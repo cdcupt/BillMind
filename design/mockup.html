@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind - UI Design Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cream: #FDF6EC;
+    --warm-white: #FEFCF7;
+    --soft-brown: #8B7355;
+    --light-brown: #B8A080;
+    --dusty-rose: #D4A0A0;
+    --sage-green: #A8BFA0;
+    --soft-blue: #9CB8C8;
+    --warm-orange: #E8B87A;
+    --paper-shadow: rgba(212, 197, 169, 0.3);
+    --muted-red: #C27070;
+    --muted-purple: #A88BBE;
+  }
+
+  body {
+    background: #f0ebe3;
+    font-family: 'Noto Serif', Georgia, serif;
+    color: var(--soft-brown);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 40px;
+    padding: 40px 20px;
+  }
+
+  h1.page-title {
+    width: 100%;
+    text-align: center;
+    font-family: 'Caveat', cursive;
+    font-size: 48px;
+    color: var(--soft-brown);
+    margin-bottom: 0;
+  }
+  .subtitle {
+    width: 100%;
+    text-align: center;
+    font-family: 'Noto Serif', serif;
+    font-size: 16px;
+    color: var(--light-brown);
+    margin-bottom: 20px;
+  }
+
+  .screen-label {
+    font-family: 'Caveat', cursive;
+    font-size: 24px;
+    color: var(--soft-brown);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  /* iPhone frame */
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: var(--cream);
+    border-radius: 44px;
+    border: 3px solid var(--light-brown);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 8px 8px 24px rgba(139, 115, 85, 0.15);
+    /* paper texture simulation */
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 20px,
+        rgba(184, 160, 128, 0.04) 20px,
+        rgba(184, 160, 128, 0.04) 21px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 20px,
+        rgba(184, 160, 128, 0.03) 20px,
+        rgba(184, 160, 128, 0.03) 21px
+      );
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--soft-brown);
+  }
+
+  /* Scrollable content area */
+  .content {
+    padding: 0 20px 100px;
+    overflow-y: auto;
+    height: calc(100% - 54px - 80px);
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: var(--warm-white);
+    border-top: 1.5px solid rgba(184, 160, 128, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding-bottom: 16px;
+    border-radius: 0 0 44px 44px;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Caveat', cursive;
+    font-size: 13px;
+    color: var(--light-brown);
+    cursor: pointer;
+  }
+  .tab-item.active { color: var(--dusty-rose); }
+  .tab-icon { font-size: 22px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .header h2 {
+    font-family: 'Caveat', cursive;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--soft-brown);
+  }
+  .header-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--warm-white);
+    border: 1.5px solid var(--light-brown);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--soft-brown);
+    cursor: pointer;
+    box-shadow: 2px 2px 6px var(--paper-shadow);
+  }
+
+  /* Stats dashboard card */
+  .stats-card {
+    background: var(--warm-white);
+    border: 1.5px solid rgba(184, 160, 128, 0.35);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 4px 4px 12px var(--paper-shadow);
+    position: relative;
+  }
+  .stats-title {
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: var(--light-brown);
+    margin-bottom: 8px;
+  }
+  .stats-amount {
+    font-family: 'Caveat', cursive;
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--soft-brown);
+  }
+  .stats-currency {
+    font-size: 20px;
+    color: var(--light-brown);
+  }
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .stats-chip {
+    flex: 1;
+    background: var(--cream);
+    border: 1px solid rgba(184, 160, 128, 0.25);
+    border-radius: 12px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .stats-chip-label {
+    font-family: 'Caveat', cursive;
+    font-size: 13px;
+    color: var(--light-brown);
+  }
+  .stats-chip-value {
+    font-family: 'Caveat', cursive;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--soft-brown);
+  }
+
+  /* Mini bar chart */
+  .mini-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 50px;
+    margin-top: 12px;
+    padding-top: 4px;
+  }
+  .mini-bar {
+    flex: 1;
+    border-radius: 6px 6px 2px 2px;
+    min-height: 6px;
+  }
+
+  /* Journal card */
+  .journal-card {
+    background: var(--warm-white);
+    border: 1.5px solid rgba(184, 160, 128, 0.35);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 3px 3px 10px var(--paper-shadow);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .journal-card:hover { transform: translateY(-2px); }
+
+  .journal-animal {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+  .journal-info { flex: 1; }
+  .journal-name {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--soft-brown);
+  }
+  .journal-meta {
+    font-size: 13px;
+    color: var(--light-brown);
+    margin-top: 2px;
+  }
+  .journal-amount {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--dusty-rose);
+    text-align: right;
+  }
+  .journal-count {
+    font-size: 12px;
+    color: var(--light-brown);
+    text-align: right;
+  }
+
+  /* Animal mascot floating */
+  .mascot {
+    position: absolute;
+    font-size: 28px;
+  }
+
+  /* Section label */
+  .section-label {
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: var(--light-brown);
+    margin: 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(184,160,128,0.3), transparent);
+  }
+
+  /* ---- Screen 2: Journal Detail ---- */
+  .bill-card {
+    background: var(--warm-white);
+    border: 1.5px solid rgba(184, 160, 128, 0.3);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 2px 2px 8px var(--paper-shadow);
+  }
+  .bill-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .bill-info { flex: 1; }
+  .bill-merchant {
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--soft-brown);
+  }
+  .bill-date {
+    font-size: 12px;
+    color: var(--light-brown);
+  }
+  .bill-amount {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .bill-converted {
+    font-size: 11px;
+    color: var(--light-brown);
+    text-align: right;
+  }
+  .bill-status {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-family: 'Caveat', cursive;
+    font-weight: 600;
+  }
+  .status-confirmed {
+    background: rgba(168, 191, 160, 0.25);
+    color: #6b8f60;
+  }
+  .status-draft {
+    background: rgba(232, 184, 122, 0.25);
+    color: #b08840;
+  }
+
+  /* Currency widget */
+  .currency-widget {
+    background: linear-gradient(135deg, rgba(156, 184, 200, 0.15), rgba(168, 191, 160, 0.15));
+    border: 1px solid rgba(184, 160, 128, 0.25);
+    border-radius: 16px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .currency-chip {
+    background: var(--warm-white);
+    border: 1px solid rgba(184, 160, 128, 0.2);
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-family: 'Caveat', cursive;
+    font-size: 15px;
+    color: var(--soft-brown);
+  }
+  .currency-chip b { color: var(--dusty-rose); }
+
+  /* FAB */
+  .fab {
+    position: absolute;
+    bottom: 96px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--dusty-rose), var(--muted-purple));
+    border: 2px solid var(--warm-white);
+    color: white;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 4px 4px 16px rgba(194, 112, 112, 0.3);
+    cursor: pointer;
+  }
+
+  /* ---- Screen 3: Bill Import Flow ---- */
+  .flow-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .flow-title {
+    font-family: 'Caveat', cursive;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--soft-brown);
+  }
+  .flow-step {
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    color: var(--light-brown);
+  }
+  .steps-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0 20px;
+  }
+  .step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--light-brown);
+    opacity: 0.3;
+  }
+  .step-dot.active { opacity: 1; background: var(--dusty-rose); }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .photo-slot {
+    aspect-ratio: 3/4;
+    border-radius: 16px;
+    border: 2px dashed var(--light-brown);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    color: var(--light-brown);
+    cursor: pointer;
+    background: rgba(254, 252, 247, 0.5);
+  }
+  .photo-slot.filled {
+    border: none;
+    background: linear-gradient(135deg, #e8ddd0, #ddd5c8);
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-slot .receipt-icon { font-size: 48px; opacity: 0.6; }
+  .photo-slot .check-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--sage-green);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1.5px solid;
+    font-family: 'Caveat', cursive;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.1s;
+  }
+  .btn:hover { transform: scale(0.98); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--dusty-rose), var(--muted-purple));
+    color: white;
+    border-color: transparent;
+    box-shadow: 3px 3px 10px rgba(194, 112, 112, 0.2);
+  }
+  .btn-secondary {
+    background: var(--warm-white);
+    color: var(--soft-brown);
+    border-color: var(--light-brown);
+  }
+
+  /* Recognition progress */
+  .recognition-item {
+    background: var(--warm-white);
+    border: 1.5px solid rgba(184, 160, 128, 0.3);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .recognition-thumb {
+    width: 50px;
+    height: 66px;
+    border-radius: 10px;
+    background: #e8ddd0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .recognition-info { flex: 1; }
+  .recognition-status {
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    margin-top: 4px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: rgba(184, 160, 128, 0.2);
+    border-radius: 3px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  /* ---- Screen 4: Settings ---- */
+  .settings-section {
+    margin-bottom: 20px;
+  }
+  .settings-section-title {
+    font-family: 'Caveat', cursive;
+    font-size: 20px;
+    color: var(--light-brown);
+    margin-bottom: 8px;
+  }
+  .settings-card {
+    background: var(--warm-white);
+    border: 1.5px solid rgba(184, 160, 128, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 3px 3px 10px var(--paper-shadow);
+  }
+  .settings-row {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(184, 160, 128, 0.15);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label {
+    font-size: 15px;
+    color: var(--soft-brown);
+  }
+  .settings-value {
+    font-family: 'Caveat', cursive;
+    font-size: 16px;
+    color: var(--dusty-rose);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .toggle {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+  }
+  .toggle.on { background: var(--sage-green); }
+  .toggle.off { background: var(--light-brown); opacity: 0.4; }
+  .toggle::after {
+    content: '';
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 20px; }
+  .toggle.off::after { left: 2px; }
+
+  .provider-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-family: 'Caveat', cursive;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* Owl mascot (AI thinking) */
+  .owl-mascot {
+    text-align: center;
+    font-size: 64px;
+    margin: 16px 0;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .empty-animal { font-size: 72px; margin-bottom: 12px; }
+  .empty-text {
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    color: var(--light-brown);
+  }
+
+  /* Wobbly border effect via SVG filter */
+  .wobbly {
+    filter: url(#wobbly);
+  }
+
+  /* Back button */
+  .back-btn {
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: var(--dusty-rose);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  /* Screen wrapper */
+  .screen-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG filter for wobbly effect -->
+<svg style="position:absolute;width:0;height:0">
+  <filter id="wobbly">
+    <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="noise" seed="2"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<h1 class="page-title">BillMind</h1>
+<p class="subtitle">Bill with AI Mind &mdash; UI Design Mockup (Sketch Style)</p>
+
+<!-- ==================== SCREEN 1: Main / Journals List ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">Main Page - Journals & Stats</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="header">
+        <h2>BillMind</h2>
+        <div style="display:flex;gap:8px">
+          <div class="header-btn">+</div>
+          <div class="header-btn" style="font-size:14px">...</div>
+        </div>
+      </div>
+
+      <!-- Stats Dashboard -->
+      <div class="stats-card">
+        <div class="stats-title">This Month's Spending</div>
+        <div class="stats-amount"><span class="stats-currency">CNY </span>12,580</div>
+        <div class="stats-row">
+          <div class="stats-chip">
+            <div class="stats-chip-label">Journals</div>
+            <div class="stats-chip-value">3</div>
+          </div>
+          <div class="stats-chip">
+            <div class="stats-chip-label">Bills</div>
+            <div class="stats-chip-value">47</div>
+          </div>
+          <div class="stats-chip">
+            <div class="stats-chip-label">Currencies</div>
+            <div class="stats-chip-value">4</div>
+          </div>
+        </div>
+        <div class="mini-chart">
+          <div class="mini-bar" style="height:70%;background:var(--dusty-rose)"></div>
+          <div class="mini-bar" style="height:45%;background:var(--sage-green)"></div>
+          <div class="mini-bar" style="height:90%;background:var(--soft-blue)"></div>
+          <div class="mini-bar" style="height:30%;background:var(--warm-orange)"></div>
+          <div class="mini-bar" style="height:55%;background:var(--muted-purple)"></div>
+          <div class="mini-bar" style="height:20%;background:var(--light-brown)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-around;margin-top:4px;font-family:'Caveat',cursive;font-size:12px;color:var(--light-brown)">
+          <span>Food</span><span>Hotel</span><span>Transport</span><span>Shop</span><span>Fun</span><span>Other</span>
+        </div>
+        <div style="position:absolute;top:12px;right:14px;font-size:22px">🐻</div>
+      </div>
+
+      <div class="section-label">
+        My Journals
+        <div class="section-line"></div>
+      </div>
+
+      <!-- Journal Cards -->
+      <div class="journal-card">
+        <div class="journal-animal" style="background:rgba(212,160,160,0.15)">🐱</div>
+        <div class="journal-info">
+          <div class="journal-name">Tokyo Trip</div>
+          <div class="journal-meta">Mar 15 - Mar 22 &bull; JPY</div>
+        </div>
+        <div>
+          <div class="journal-amount">&#165;38,500</div>
+          <div class="journal-count">12 bills</div>
+        </div>
+      </div>
+
+      <div class="journal-card">
+        <div class="journal-animal" style="background:rgba(168,191,160,0.15)">🦊</div>
+        <div class="journal-info">
+          <div class="journal-name">Bangkok Holiday</div>
+          <div class="journal-meta">Feb 28 - Mar 5 &bull; THB</div>
+        </div>
+        <div>
+          <div class="journal-amount">&#3647;24,200</div>
+          <div class="journal-count">18 bills</div>
+        </div>
+      </div>
+
+      <div class="journal-card">
+        <div class="journal-animal" style="background:rgba(156,184,200,0.15)">🐧</div>
+        <div class="journal-info">
+          <div class="journal-name">Daily Life</div>
+          <div class="journal-meta">Ongoing &bull; CNY</div>
+        </div>
+        <div>
+          <div class="journal-amount">&#165;4,280</div>
+          <div class="journal-count">17 bills</div>
+        </div>
+      </div>
+
+      <div class="journal-card" style="border-style:dashed;justify-content:center;padding:20px">
+        <div style="text-align:center;color:var(--light-brown)">
+          <div style="font-size:28px">+</div>
+          <div style="font-family:'Caveat',cursive;font-size:18px">New Journal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 2: Journal Detail ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">Journal Detail - Tokyo Trip</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="back-btn">&larr; Back</div>
+      <div class="header">
+        <h2>Tokyo Trip 🐱</h2>
+      </div>
+
+      <!-- Currency widget -->
+      <div class="currency-widget">
+        <div class="currency-chip">1 JPY = <b>0.048 CNY</b></div>
+        <div class="currency-chip">Total: <b>&#165;1,848 CNY</b></div>
+      </div>
+
+      <div class="section-label">
+        Mar 22 (Today)
+        <div class="section-line"></div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(212,160,160,0.2)">🍣</div>
+        <div class="bill-info">
+          <div class="bill-merchant">Sushi Dai</div>
+          <div class="bill-date">12:30 PM &bull; <span class="bill-status status-confirmed">Confirmed</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--dusty-rose)">&#165;4,800</div>
+          <div class="bill-converted">~230 CNY</div>
+        </div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(156,184,200,0.2)">🚃</div>
+        <div class="bill-info">
+          <div class="bill-merchant">Suica Charge</div>
+          <div class="bill-date">10:15 AM &bull; <span class="bill-status status-confirmed">Confirmed</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--soft-blue)">&#165;2,000</div>
+          <div class="bill-converted">~96 CNY</div>
+        </div>
+      </div>
+
+      <div class="section-label">
+        Mar 21
+        <div class="section-line"></div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(232,184,122,0.2)">🏨</div>
+        <div class="bill-info">
+          <div class="bill-merchant">Hotel Gracery Shinjuku</div>
+          <div class="bill-date">2:00 PM &bull; <span class="bill-status status-draft">AI Draft</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--warm-orange)">&#165;15,000</div>
+          <div class="bill-converted">~720 CNY</div>
+        </div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(168,191,160,0.2)">🛍</div>
+        <div class="bill-info">
+          <div class="bill-merchant">Don Quijote</div>
+          <div class="bill-date">7:45 PM &bull; <span class="bill-status status-confirmed">Confirmed</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--sage-green)">&#165;8,200</div>
+          <div class="bill-converted">~394 CNY</div>
+        </div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(168,139,190,0.2)">🎭</div>
+        <div class="bill-info">
+          <div class="bill-merchant">teamLab Borderless</div>
+          <div class="bill-date">11:00 AM &bull; <span class="bill-status status-confirmed">Confirmed</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--muted-purple)">&#165;3,800</div>
+          <div class="bill-converted">~182 CNY</div>
+        </div>
+      </div>
+
+      <div class="bill-card">
+        <div class="bill-icon" style="background:rgba(212,160,160,0.2)">🍜</div>
+        <div class="bill-info">
+          <div class="bill-merchant">Ichiran Ramen</div>
+          <div class="bill-date">1:30 PM &bull; <span class="bill-status status-confirmed">Confirmed</span></div>
+        </div>
+        <div>
+          <div class="bill-amount" style="color:var(--dusty-rose)">&#165;1,490</div>
+          <div class="bill-converted">~72 CNY</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAB for adding bills -->
+    <div class="fab">📷</div>
+
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 3: Bill Import Flow ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">AI Bill Recognition Flow</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="flow-header">
+        <div class="flow-title">Scan Your Bills</div>
+        <div class="flow-step">Step 2 of 3 - AI Recognition</div>
+      </div>
+      <div class="steps-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+
+      <!-- Owl mascot thinking -->
+      <div class="owl-mascot">🦉</div>
+      <p style="text-align:center;font-family:'Caveat',cursive;font-size:18px;color:var(--light-brown);margin-bottom:20px">
+        Hoot is reading your bills...
+      </p>
+
+      <!-- Recognition items -->
+      <div class="recognition-item">
+        <div class="recognition-thumb">🧾</div>
+        <div class="recognition-info">
+          <div class="bill-merchant">Photo 1 - Sushi Dai</div>
+          <div class="recognition-status" style="color:var(--sage-green)">&#10003; Recognized: &#165;4,800</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:100%;background:var(--sage-green)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recognition-item">
+        <div class="recognition-thumb">🧾</div>
+        <div class="recognition-info">
+          <div class="bill-merchant">Photo 2 - Processing...</div>
+          <div class="recognition-status" style="color:var(--warm-orange)">Analyzing with GPT-5.4...</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:65%;background:var(--warm-orange)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recognition-item">
+        <div class="recognition-thumb" style="opacity:0.5">🧾</div>
+        <div class="recognition-info">
+          <div class="bill-merchant" style="color:var(--light-brown)">Photo 3 - Waiting...</div>
+          <div class="recognition-status" style="color:var(--light-brown)">In queue</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recognition-item">
+        <div class="recognition-thumb" style="opacity:0.5">🧾</div>
+        <div class="recognition-info">
+          <div class="bill-merchant" style="color:var(--light-brown)">Photo 4 - Waiting...</div>
+          <div class="recognition-status" style="color:var(--light-brown)">In queue</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;text-align:center">
+        <div style="font-family:'Caveat',cursive;font-size:16px;color:var(--light-brown)">
+          Using: <span style="color:var(--dusty-rose);font-weight:600">OpenAI GPT-5.4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 4: Settings ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">Settings</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="header">
+        <h2>Settings 🦊</h2>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">AI Provider</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">Provider</span>
+            <span class="settings-value">OpenAI &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Model</span>
+            <span class="settings-value">GPT-5.4 &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">API Key</span>
+            <span class="settings-value">sk-...7xKm &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Test Connection</span>
+            <span class="settings-value" style="color:var(--sage-green)">&#10003; OK</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Available Providers</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+          <span class="provider-badge" style="background:rgba(168,191,160,0.2);color:#5a7a50">OpenAI GPT-5.4</span>
+          <span class="provider-badge" style="background:rgba(156,184,200,0.2);color:#5a7a8a">Gemini 3.1</span>
+          <span class="provider-badge" style="background:rgba(232,184,122,0.2);color:#8a6a30">Doubao Seed 2.0</span>
+          <span class="provider-badge" style="background:rgba(168,139,190,0.2);color:#6a5080">Kimi K2.5</span>
+          <span class="provider-badge" style="background:rgba(212,160,160,0.2);color:#8a5050">Claude 4.6</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Currency</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">Home Currency</span>
+            <span class="settings-value">CNY (&#165;) &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Auto-convert</span>
+            <div class="toggle on"></div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Rate Source</span>
+            <span class="settings-value">exchangerate-api &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Last Updated</span>
+            <span class="settings-value" style="color:var(--light-brown)">Today, 8:30 AM</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Recognition</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">OCR Fallback</span>
+            <div class="toggle on"></div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Max Photos/Batch</span>
+            <span class="settings-value">10 &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Image Quality</span>
+            <span class="settings-value">High &rsaquo;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Data Export</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">Export as CSV</span>
+            <span class="settings-value">&rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Export as PDF</span>
+            <span class="settings-value">&rsaquo;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Configuration</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span class="settings-label">Export Config</span>
+            <span class="settings-value" style="color:var(--soft-blue)">📤 JSON &rsaquo;</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Import Config</span>
+            <span class="settings-value" style="color:var(--sage-green)">📥 JSON &rsaquo;</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--light-brown);margin-top:6px;padding:0 4px">
+          Backup & restore your AI provider settings, API keys, currency preferences, and app configuration.
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:20px;padding-bottom:20px">
+        <div style="font-family:'Caveat',cursive;font-size:16px;color:var(--light-brown)">BillMind v1.0.0</div>
+        <div style="font-size:12px;color:var(--light-brown);margin-top:4px">Bill with AI Mind</div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item active">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 5: Photo Picker ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">Photo Picker (Step 1)</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="flow-header">
+        <div class="flow-title">Add Bills</div>
+        <div class="flow-step">Step 1 of 3 - Pick Photos</div>
+      </div>
+      <div class="steps-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+
+      <div class="action-buttons">
+        <div class="btn btn-primary" style="font-size:18px">📷 Camera</div>
+        <div class="btn btn-secondary" style="font-size:18px">🖼 Gallery</div>
+      </div>
+
+      <div class="section-label">
+        Selected (3 photos)
+        <div class="section-line"></div>
+      </div>
+
+      <div class="photo-grid">
+        <div class="photo-slot filled">
+          <span style="font-size:48px;opacity:0.7">🧾</span>
+          <span class="check-badge">&#10003;</span>
+        </div>
+        <div class="photo-slot filled">
+          <span style="font-size:48px;opacity:0.7">🧾</span>
+          <span class="check-badge">&#10003;</span>
+        </div>
+        <div class="photo-slot filled">
+          <span style="font-size:48px;opacity:0.7">🧾</span>
+          <span class="check-badge">&#10003;</span>
+        </div>
+        <div class="photo-slot">
+          <span style="font-size:32px">+</span>
+          <span>Add more</span>
+        </div>
+      </div>
+
+      <div class="btn btn-primary" style="margin-top:16px">
+        Start Recognition &rarr;
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <div style="font-family:'Caveat',cursive;font-size:15px;color:var(--light-brown)">
+          or <span style="color:var(--dusty-rose);text-decoration:underline;cursor:pointer">add bill manually</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 6: Bill Review ==================== -->
+<div class="screen-wrapper">
+  <div class="screen-label">Bill Review (Step 3)</div>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="font-size:12px">5G</span>
+    </div>
+    <div class="content">
+      <div class="flow-header">
+        <div class="flow-title">Review Bills</div>
+        <div class="flow-step">Step 3 of 3 - Confirm & Save</div>
+      </div>
+      <div class="steps-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+        <div class="step-dot active"></div>
+      </div>
+
+      <!-- Rabbit success -->
+      <div style="text-align:center;font-size:40px;margin-bottom:8px">🐰</div>
+      <p style="text-align:center;font-family:'Caveat',cursive;font-size:18px;color:var(--sage-green);margin-bottom:16px">
+        3 bills recognized successfully!
+      </p>
+
+      <!-- Editable bill review card -->
+      <div class="stats-card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div>
+            <div class="bill-merchant" style="font-size:20px">Sushi Dai</div>
+            <div class="bill-date">Mar 22, 2026 &bull; Food 🍣</div>
+          </div>
+          <div class="bill-amount" style="font-size:28px;color:var(--dusty-rose)">&#165;4,800</div>
+        </div>
+        <div style="font-size:13px;color:var(--light-brown);margin-bottom:8px">
+          Line items: Omakase Set x1, Green Tea x2
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="btn btn-secondary" style="flex:none;padding:6px 14px;font-size:14px;border-radius:10px">Edit</div>
+          <div class="bill-status status-confirmed" style="padding:6px 12px;font-size:13px">&#10003; Looks good</div>
+        </div>
+      </div>
+
+      <div class="stats-card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div>
+            <div class="bill-merchant" style="font-size:20px">Hotel Gracery</div>
+            <div class="bill-date">Mar 21, 2026 &bull; Hotel 🏨</div>
+          </div>
+          <div class="bill-amount" style="font-size:28px;color:var(--warm-orange)">&#165;15,000</div>
+        </div>
+        <div style="font-size:13px;color:var(--light-brown);margin-bottom:8px">
+          Line items: Standard Room 1 night
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="btn btn-secondary" style="flex:none;padding:6px 14px;font-size:14px;border-radius:10px">Edit</div>
+          <div class="bill-status status-draft" style="padding:6px 12px;font-size:13px">⚠ Check amount</div>
+        </div>
+      </div>
+
+      <div class="stats-card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+          <div>
+            <div class="bill-merchant" style="font-size:20px">Don Quijote</div>
+            <div class="bill-date">Mar 21, 2026 &bull; Shopping 🛍</div>
+          </div>
+          <div class="bill-amount" style="font-size:28px;color:var(--sage-green)">&#165;8,200</div>
+        </div>
+        <div style="font-size:13px;color:var(--light-brown);margin-bottom:8px">
+          Line items: Snacks x5, Cosmetics x2, Souvenirs x3
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="btn btn-secondary" style="flex:none;padding:6px 14px;font-size:14px;border-radius:10px">Edit</div>
+          <div class="bill-status status-confirmed" style="padding:6px 12px;font-size:13px">&#10003; Looks good</div>
+        </div>
+      </div>
+
+      <div class="btn btn-primary" style="margin-top:16px;margin-bottom:20px">
+        Save All Bills 🐰
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <span class="tab-icon">📒</span>
+        <span>Journals</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">📊</span>
+        <span>Stats</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">💱</span>
+        <span>Currency</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">🦊</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

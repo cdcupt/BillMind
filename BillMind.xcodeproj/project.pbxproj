@@ -1,0 +1,580 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		07534F3F2DC79517933810D6 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3AF02DD8EDF41BEF30E32B /* Enums.swift */; };
+		0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D7FA0F51018664CEDB7993 /* SketchTheme.swift */; };
+		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
+		469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B2A264893EE938283B7450 /* SettingsView.swift */; };
+		4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB72CB16912304251F5D8C73 /* BillRecord.swift */; };
+		4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756A864413BC8D9BB24656BB /* BillMindApp.swift */; };
+		4EA06032421200FC49E1A810 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */; };
+		5AC3B4D9B628FF07A061DB21 /* JournalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7357226A0B23BDA5F752CE61 /* JournalDetailView.swift */; };
+		6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */; };
+		6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F627B2C431A4DEF5C0281FD /* Journal.swift */; };
+		7B5EC73826E2F14912726B69 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */; };
+		86486167D856C9062524E0F2 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07DB150C234A230A577B903 /* Extensions.swift */; };
+		8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */; };
+		8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */; };
+		AE000D2A254838379C517EA5 /* StatsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */; };
+		C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F9C2003861107979A0DE67 /* AppSettings.swift */; };
+		CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */; };
+		D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */; };
+		DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */; };
+		FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B3DC7C2196C26CCD482912DF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5B88951733D73AD73F1CDA4A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 54D574BD835218BEFC60B4E5;
+			remoteInfo = BillMind;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		00E7BA1318E740D41E0B3DAD /* BillMindTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BillMindTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalsListView.swift; sourceTree = "<group>"; };
+		0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsDashboardView.swift; sourceTree = "<group>"; };
+		0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
+		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F627B2C431A4DEF5C0281FD /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
+		58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalMascotView.swift; sourceTree = "<group>"; };
+		6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewJournalView.swift; sourceTree = "<group>"; };
+		7357226A0B23BDA5F752CE61 /* JournalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalDetailView.swift; sourceTree = "<group>"; };
+		756A864413BC8D9BB24656BB /* BillMindApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindApp.swift; sourceTree = "<group>"; };
+		77F9C2003861107979A0DE67 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		8B3AF02DD8EDF41BEF30E32B /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		94B2A264893EE938283B7450 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchShapes.swift; sourceTree = "<group>"; };
+		B07DB150C234A230A577B903 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindTests.swift; sourceTree = "<group>"; };
+		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
+		CB72CB16912304251F5D8C73 /* BillRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillRecord.swift; sourceTree = "<group>"; };
+		E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDetailView.swift; sourceTree = "<group>"; };
+		FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionResult.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		02FD356573AD6E57B2BD7F9C /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				7357226A0B23BDA5F752CE61 /* JournalDetailView.swift */,
+				6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
+		101066CE8707BB8233FBC9BA /* BillMind */ = {
+			isa = PBXGroup;
+			children = (
+				0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */,
+				2F697C3129FC289BB29304B4 /* App */,
+				CDAC660854BA7F94AF8FF06A /* Models */,
+				39C7375597F23F068EC9C28B /* Services */,
+				2762CA3222A30D9D60B6C6B6 /* Theme */,
+				1CD46360F2F66654140323E3 /* Utils */,
+				ABB27FFDC2E45385024B2C4B /* Views */,
+			);
+			path = BillMind;
+			sourceTree = "<group>";
+		};
+		1CD46360F2F66654140323E3 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				B07DB150C234A230A577B903 /* Extensions.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		242FA8679ADC98E0F54802D4 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		2762CA3222A30D9D60B6C6B6 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */,
+				12D7FA0F51018664CEDB7993 /* SketchTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		2F697C3129FC289BB29304B4 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				756A864413BC8D9BB24656BB /* BillMindApp.swift */,
+				E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		39C7375597F23F068EC9C28B /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		5A5FF3BE7520DAF6190C6B73 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				13241D7F1AD186DBBDAC600E /* BillMind.app */,
+				00E7BA1318E740D41E0B3DAD /* BillMindTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7287B00A417B0672F5C3B8E6 /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */,
+				0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		734FD2CC5B3993830901B215 = {
+			isa = PBXGroup;
+			children = (
+				101066CE8707BB8233FBC9BA /* BillMind */,
+				DDED1B312ECCF6E5A70CC5C2 /* Tests */,
+				5A5FF3BE7520DAF6190C6B73 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9D05B8C0BC9E5F029BF262A8 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				94B2A264893EE938283B7450 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		ABB27FFDC2E45385024B2C4B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B85719D5414B59C2DAB236A2 /* Bill */,
+				242FA8679ADC98E0F54802D4 /* Components */,
+				02FD356573AD6E57B2BD7F9C /* Journal */,
+				7287B00A417B0672F5C3B8E6 /* Main */,
+				9D05B8C0BC9E5F029BF262A8 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B85719D5414B59C2DAB236A2 /* Bill */ = {
+			isa = PBXGroup;
+			children = (
+				C9206CA5104CF74D505113E7 /* AddBillManualView.swift */,
+				FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */,
+			);
+			path = Bill;
+			sourceTree = "<group>";
+		};
+		CDAC660854BA7F94AF8FF06A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */,
+				77F9C2003861107979A0DE67 /* AppSettings.swift */,
+				CB72CB16912304251F5D8C73 /* BillRecord.swift */,
+				8B3AF02DD8EDF41BEF30E32B /* Enums.swift */,
+				3F627B2C431A4DEF5C0281FD /* Journal.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DDED1B312ECCF6E5A70CC5C2 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		54D574BD835218BEFC60B4E5 /* BillMind */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2D9202ED89BF25B3A07FF86B /* Build configuration list for PBXNativeTarget "BillMind" */;
+			buildPhases = (
+				A0F445FA695CA2D4A005EBFC /* Sources */,
+				97BD777D35A91F210198CB55 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BillMind;
+			packageProductDependencies = (
+			);
+			productName = BillMind;
+			productReference = 13241D7F1AD186DBBDAC600E /* BillMind.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EBF8B59D3AFD3310A479CB68 /* BillMindTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 431749942176649C3B32C489 /* Build configuration list for PBXNativeTarget "BillMindTests" */;
+			buildPhases = (
+				082631E8136471528145C7B4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				677041C83D0C9B2BFB4DCF0A /* PBXTargetDependency */,
+			);
+			name = BillMindTests;
+			packageProductDependencies = (
+			);
+			productName = BillMindTests;
+			productReference = 00E7BA1318E740D41E0B3DAD /* BillMindTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5B88951733D73AD73F1CDA4A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 399AA5E0D06BE9E819ABD21B /* Build configuration list for PBXProject "BillMind" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 734FD2CC5B3993830901B215;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5A5FF3BE7520DAF6190C6B73 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				54D574BD835218BEFC60B4E5 /* BillMind */,
+				EBF8B59D3AFD3310A479CB68 /* BillMindTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		97BD777D35A91F210198CB55 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B5EC73826E2F14912726B69 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		082631E8136471528145C7B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0F445FA695CA2D4A005EBFC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */,
+				31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */,
+				DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */,
+				C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */,
+				8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */,
+				4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */,
+				4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */,
+				4EA06032421200FC49E1A810 /* ContentView.swift in Sources */,
+				07534F3F2DC79517933810D6 /* Enums.swift in Sources */,
+				86486167D856C9062524E0F2 /* Extensions.swift in Sources */,
+				6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */,
+				5AC3B4D9B628FF07A061DB21 /* JournalDetailView.swift in Sources */,
+				FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */,
+				6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */,
+				469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */,
+				CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */,
+				0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */,
+				AE000D2A254838379C517EA5 /* StatsDashboardView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		677041C83D0C9B2BFB4DCF0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 54D574BD835218BEFC60B4E5 /* BillMind */;
+			targetProxy = B3DC7C2196C26CCD482912DF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1102CD4F212FA10194EF5CAE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		33968A6C17F0C7888F696125 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		41D0CFF1D01B788BD0EC27CF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "BillMind needs camera access to scan bills and invoices";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BillMind needs photo library access to import bill images";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.app;
+				PRODUCT_NAME = BillMind;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		91EF380CFE00F80686752361 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.BillMindTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillMind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BillMind";
+			};
+			name = Debug;
+		};
+		CCA132F324DF5C134D1B2CC8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.BillMindTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillMind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BillMind";
+			};
+			name = Release;
+		};
+		DF3719992DA2F011FED8CA21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "BillMind needs camera access to scan bills and invoices";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BillMind needs photo library access to import bill images";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.app;
+				PRODUCT_NAME = BillMind;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2D9202ED89BF25B3A07FF86B /* Build configuration list for PBXNativeTarget "BillMind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				41D0CFF1D01B788BD0EC27CF /* Debug */,
+				DF3719992DA2F011FED8CA21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		399AA5E0D06BE9E819ABD21B /* Build configuration list for PBXProject "BillMind" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1102CD4F212FA10194EF5CAE /* Debug */,
+				33968A6C17F0C7888F696125 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		431749942176649C3B32C489 /* Build configuration list for PBXNativeTarget "BillMindTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91EF380CFE00F80686752361 /* Debug */,
+				CCA132F324DF5C134D1B2CC8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5B88951733D73AD73F1CDA4A /* Project object */;
+}
