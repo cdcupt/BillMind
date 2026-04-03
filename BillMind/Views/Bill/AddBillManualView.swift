@@ -54,8 +54,9 @@ struct AddBillManualView: View {
                                     selectedCategory = category
                                 } label: {
                                     VStack(spacing: 4) {
-                                        Text(category.icon)
-                                            .font(.system(size: 22))
+                                        Image(category.icon)
+                                            .resizable().scaledToFit()
+                                            .frame(width: 28, height: 28)
                                         Text(category.displayName)
                                             .font(.system(size: 10, weight: .medium, design: .rounded))
                                     }
@@ -137,7 +138,7 @@ struct AddBillManualView: View {
                     Button {
                         saveBill()
                     } label: {
-                        HandDrawnButton(title: "Save Bill", icon: "✓", style: .primary)
+                        HandDrawnButton(title: "Save Bill", icon: "checkmark", style: .primary)
                     }
                     .buttonStyle(.plain)
                     .disabled(!isValid)

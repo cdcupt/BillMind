@@ -112,16 +112,16 @@ enum BillCategory: String, Codable, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .food: return "🍽"
-        case .transport: return "🚃"
-        case .accommodation: return "🏨"
-        case .shopping: return "🛍"
-        case .entertainment: return "🎭"
-        case .utilities: return "💡"
-        case .medical: return "🏥"
-        case .education: return "📚"
-        case .subscription: return "🔄"
-        case .misc: return "📦"
+        case .food: return "cat_food"
+        case .transport: return "cat_transport"
+        case .accommodation: return "cat_hotel"
+        case .shopping: return "cat_shopping"
+        case .entertainment: return "cat_entertainment"
+        case .utilities: return "cat_utilities"
+        case .medical: return "cat_medical"
+        case .education: return "cat_education"
+        case .subscription: return "cat_subscription"
+        case .misc: return "cat_misc"
         }
     }
 
@@ -174,13 +174,13 @@ enum AnimalType: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var emoji: String {
+    var imageName: String {
         switch self {
-        case .cat: return "🐱"
-        case .owl: return "🦉"
-        case .bear: return "🐻"
-        case .rabbit: return "🐰"
-        case .fox: return "🦊"
+        case .cat: return "mascot_cat"
+        case .owl: return "mascot_owl"
+        case .bear: return "mascot_bear"
+        case .rabbit: return "mascot_rabbit"
+        case .fox: return "mascot_fox"
         }
     }
 

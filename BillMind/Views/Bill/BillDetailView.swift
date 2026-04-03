@@ -10,8 +10,9 @@ struct BillDetailView: View {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 8) {
-                    Text(bill.category.icon)
-                        .font(.system(size: 48))
+                    Image(bill.category.icon)
+                        .resizable().scaledToFit()
+                        .frame(width: 56, height: 56)
                     Text(bill.merchant ?? bill.category.displayName)
                         .font(SketchTheme.titleFont(24))
                         .foregroundStyle(SketchTheme.softBrown)
@@ -25,7 +26,7 @@ struct BillDetailView: View {
 
                 // Details
                 VStack(spacing: 12) {
-                    DetailRow(label: "Category", value: "\(bill.category.icon) \(bill.category.displayName)")
+                    DetailRow(label: "Category", value: bill.category.displayName)
                     DetailRow(label: "Date", value: bill.date.formatted(as: "yyyy-MM-dd HH:mm"))
                     if let currency = bill.originalCurrency {
                         DetailRow(label: "Currency", value: currency)

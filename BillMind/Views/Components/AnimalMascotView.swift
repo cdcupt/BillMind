@@ -8,8 +8,10 @@ struct AnimalMascotView: View {
     @State private var bounceOffset: CGFloat = 0
 
     var body: some View {
-        Text(animal.emoji)
-            .font(.system(size: size))
+        Image(animal.imageName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
             .offset(y: bounceOffset)
             .onAppear {
                 if animated {
@@ -53,7 +55,7 @@ struct HandDrawnButton: View {
     var body: some View {
         HStack(spacing: 6) {
             if let icon = icon {
-                Text(icon)
+                Image(systemName: icon)
             }
             Text(title)
                 .font(SketchTheme.headlineFont(18))

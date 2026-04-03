@@ -134,8 +134,8 @@ struct JournalCardView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(journal.coverAnimal.emoji)
-                .font(.system(size: 32))
+            Image(journal.coverAnimal.imageName)
+                .resizable().scaledToFit()
                 .frame(width: 56, height: 56)
                 .background(journal.coverAnimal == .cat ? SketchTheme.dustyRose.opacity(0.15) :
                             journal.coverAnimal == .fox ? SketchTheme.sageGreen.opacity(0.15) :

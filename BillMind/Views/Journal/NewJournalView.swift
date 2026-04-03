@@ -25,8 +25,9 @@ struct NewJournalView: View {
                                     selectedAnimal = animal
                                 } label: {
                                     VStack(spacing: 4) {
-                                        Text(animal.emoji)
-                                            .font(.system(size: 36))
+                                        Image(animal.imageName)
+                                            .resizable().scaledToFit()
+                                            .frame(width: 44, height: 44)
                                         Text(animal.displayName)
                                             .font(SketchTheme.captionFont(11))
                                             .foregroundStyle(
@@ -144,7 +145,7 @@ struct NewJournalView: View {
                     Button {
                         createJournal()
                     } label: {
-                        HandDrawnButton(title: "Create Journal", icon: "📒", style: .primary)
+                        HandDrawnButton(title: "Create Journal", icon: nil, style: .primary)
                     }
                     .buttonStyle(.plain)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)

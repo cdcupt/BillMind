@@ -123,7 +123,7 @@ struct SettingsView: View {
                         settingsCard {
                             settingsRow("Export Config") {
                                 HStack(spacing: 4) {
-                                    Text("📤")
+                                    Image(systemName: "square.and.arrow.up")
                                     Text("JSON")
                                         .font(SketchTheme.captionFont())
                                         .foregroundStyle(SketchTheme.softBlue)
@@ -134,7 +134,7 @@ struct SettingsView: View {
                             }
                             settingsRow("Import Config") {
                                 HStack(spacing: 4) {
-                                    Text("📥")
+                                    Image(systemName: "square.and.arrow.down")
                                     Text("JSON")
                                         .font(SketchTheme.captionFont())
                                         .foregroundStyle(SketchTheme.sageGreen)
@@ -172,7 +172,9 @@ struct SettingsView: View {
                         Text("Settings")
                             .font(SketchTheme.headlineFont(20))
                             .foregroundStyle(SketchTheme.softBrown)
-                        Text("🦊")
+                        Image("mascot_fox")
+                            .resizable().scaledToFit()
+                            .frame(width: 24, height: 24)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
