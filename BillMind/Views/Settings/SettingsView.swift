@@ -5,8 +5,10 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var settings: AppSettings?
-    @State private var selectedProvider: AIProvider = .openai
+    @State private var selectedProvider: AIProvider = .gemini
     @State private var customModel = ""
+    @State private var apiKey = ""
+    @State private var showAPIKeyEditor = false
     @State private var defaultCurrency = "CNY"
     @State private var enableOCRFallback = true
 
@@ -31,14 +33,19 @@ struct SettingsView: View {
                                     .font(SketchTheme.captionFont())
                                     .foregroundStyle(SketchTheme.dustyRose)
                             }
-                            settingsRow("API Key") {
-                                Text("Not set")
-                                    .font(SketchTheme.captionFont())
-                                    .foregroundStyle(SketchTheme.lightBrown)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
+                            Button {
+                                showAPIKeyEditor = true
+                            } label: {
+                                settingsRow("API Key") {
+                                    Text(apiKey.isEmpty ? "Not set" : "••••\(apiKey.suffix(4))")
+                                        .font(SketchTheme.captionFont())
+                                        .foregroundStyle(apiKey.isEmpty ? SketchTheme.lightBrown : SketchTheme.dustyRose)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(SketchTheme.lightBrown)
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
 
                         // Provider badges
@@ -185,6 +192,11 @@ struct SettingsView: View {
             .onAppear { loadSettings() }
             .onChange(of: selectedProvider) { _, _ in saveSettings() }
             .onChange(of: enableOCRFallback) { _, _ in saveSettings() }
+            .sheet(isPresented: $showAPIKeyEditor) {
+                APIKeyEditorView(apiKey: $apiKey, provider: selectedProvider) {
+                    saveSettings()
+                }
+            }
         }
     }
 
@@ -233,6 +245,10 @@ struct SettingsView: View {
         enableOCRFallback = s.enableOCRFallback
     }
 
+    private func loadAPIKey() {
+        // TODO: Load from Keychain in Phase 3
+    }
+
     private func saveSettings() {
         guard let settings else { return }
         settings.selectedProvider = selectedProvider
@@ -240,5 +256,79 @@ struct SettingsView: View {
         settings.defaultCurrency = defaultCurrency
         settings.enableOCRFallback = enableOCRFallback
         try? modelContext.save()
+    }
+}
+
+// MARK: - API Key Editor
+
+struct APIKeyEditorView: View {
+    @Binding var apiKey: String
+    let provider: AIProvider
+    var onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var editingKey = ""
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    Image(systemName: provider.iconName)
+                        .font(.system(size: 40))
+                        .foregroundStyle(provider.color)
+                    Text(provider.displayName)
+                        .font(SketchTheme.headlineFont(20))
+                        .foregroundStyle(SketchTheme.softBrown)
+                    Text("Enter your API key for \(provider.displayName)")
+                        .font(SketchTheme.bodyFont(14))
+                        .foregroundStyle(SketchTheme.lightBrown)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API Key")
+                        .font(SketchTheme.captionFont())
+                        .foregroundStyle(SketchTheme.lightBrown)
+                    SecureField("sk-...", text: $editingKey)
+                        .font(.system(size: 16, design: .monospaced))
+                        .textFieldStyle(.plain)
+                        .padding(12)
+                        .background(SketchTheme.cream)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(SketchTheme.lightBrown.opacity(0.3), lineWidth: 1)
+                        )
+                }
+                .sketchCard()
+
+                Button {
+                    apiKey = editingKey
+                    onSave()
+                    dismiss()
+                } label: {
+                    Text("Save")
+                        .font(SketchTheme.headlineFont(18))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(SketchTheme.primaryGradient)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+                .disabled(editingKey.isEmpty)
+                .opacity(editingKey.isEmpty ? 0.5 : 1)
+
+                Spacer()
+            }
+            .padding()
+            .paperBackground()
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(SketchTheme.dustyRose)
+                }
+            }
+            .onAppear { editingKey = apiKey }
+        }
     }
 }

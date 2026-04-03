@@ -3,63 +3,49 @@ import SwiftUI
 // MARK: - AI Provider
 
 enum AIProvider: String, Codable, CaseIterable, Identifiable {
-    case openai
     case gemini
+    case openai
     case doubao
-    case kimi
-    case claude
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .openai: return "OpenAI"
         case .gemini: return "Google Gemini"
+        case .openai: return "OpenAI"
         case .doubao: return "Doubao"
-        case .kimi: return "Kimi"
-        case .claude: return "Claude"
         }
     }
 
     var defaultModel: String {
         switch self {
-        case .openai: return "gpt-5.4"
         case .gemini: return "gemini-3-flash"
+        case .openai: return "gpt-5.4"
         case .doubao: return "doubao-seed-2-pro"
-        case .kimi: return "kimi-k2.5"
-        case .claude: return "claude-sonnet-4-6-20260401"
         }
     }
 
     var baseURL: String {
         switch self {
-        case .openai: return "https://api.openai.com/v1/chat/completions"
         case .gemini: return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        case .openai: return "https://api.openai.com/v1/chat/completions"
         case .doubao: return "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
-        case .kimi: return "https://api.moonshot.cn/v1/chat/completions"
-        case .claude: return "https://api.anthropic.com/v1/messages"
         }
     }
 
-    var usesAnthropicFormat: Bool { self == .claude }
-
     var iconName: String {
         switch self {
-        case .openai: return "brain.head.profile"
         case .gemini: return "sparkles"
+        case .openai: return "brain.head.profile"
         case .doubao: return "wand.and.stars"
-        case .kimi: return "moon.stars"
-        case .claude: return "bubble.left.and.text.bubble.right"
         }
     }
 
     var color: Color {
         switch self {
-        case .openai: return Color(hex: "10A37F")
         case .gemini: return Color(hex: "4285F4")
+        case .openai: return Color(hex: "10A37F")
         case .doubao: return Color(hex: "FF6A00")
-        case .kimi: return Color(hex: "6C5CE7")
-        case .claude: return Color(hex: "D97757")
         }
     }
 }

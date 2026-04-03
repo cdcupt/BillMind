@@ -10,12 +10,12 @@ final class AppSettings {
     var maxPhotosPerBatch: Int
 
     var selectedProvider: AIProvider {
-        get { AIProvider(rawValue: selectedProviderRaw) ?? .openai }
+        get { AIProvider(rawValue: selectedProviderRaw) ?? .gemini }
         set { selectedProviderRaw = newValue.rawValue }
     }
 
     init() {
-        self.selectedProviderRaw = AIProvider.openai.rawValue
+        self.selectedProviderRaw = AIProvider.gemini.rawValue
         self.customModel = ""
         self.defaultCurrency = "CNY"
         self.enableOCRFallback = true

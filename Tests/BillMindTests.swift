@@ -7,12 +7,11 @@ final class BillMindTests: XCTestCase {
     }
 
     func testAIProviderDefaults() {
-        XCTAssertEqual(AIProvider.openai.defaultModel, "gpt-5.4")
         XCTAssertEqual(AIProvider.gemini.defaultModel, "gemini-3-flash")
+        XCTAssertEqual(AIProvider.openai.defaultModel, "gpt-5.4")
         XCTAssertEqual(AIProvider.doubao.defaultModel, "doubao-seed-2-pro")
-        XCTAssertEqual(AIProvider.kimi.defaultModel, "kimi-k2.5")
-        XCTAssertFalse(AIProvider.openai.usesAnthropicFormat)
-        XCTAssertTrue(AIProvider.claude.usesAnthropicFormat)
+        XCTAssertEqual(AIProvider.allCases.count, 3)
+        XCTAssertEqual(AIProvider.allCases.first, .gemini)
     }
 
     func testCurrencyInfoPopular() {
