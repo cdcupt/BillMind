@@ -49,7 +49,7 @@ struct BillDetailView: View {
 
                 // Details
                 VStack(spacing: 12) {
-                    DetailRow(label: "Category", value: "\(bill.category.englishName) (\(bill.category.displayName))")
+                    DetailRow(label: "Category", value: bill.category.englishName)
                     DetailRow(label: "Date", value: bill.date.formatted(as: "yyyy-MM-dd HH:mm"))
                     if let currency = bill.originalCurrency {
                         DetailRow(label: "Currency", value: currency)

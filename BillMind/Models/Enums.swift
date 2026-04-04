@@ -164,18 +164,7 @@ enum BillCategory: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .food: return "餐饮"
-        case .transport: return "交通"
-        case .accommodation: return "住宿"
-        case .shopping: return "购物"
-        case .entertainment: return "娱乐"
-        case .utilities: return "生活"
-        case .medical: return "医疗"
-        case .education: return "教育"
-        case .subscription: return "订阅"
-        case .misc: return "其他"
-        }
+        englishName
     }
 
     var englishName: String {
@@ -295,19 +284,18 @@ struct CurrencyInfo: Identifiable, Codable, Hashable {
     let code: String
     let symbol: String
     let name: String
-    let nameCN: String
 
     static let popular: [CurrencyInfo] = [
-        CurrencyInfo(code: "CNY", symbol: "¥", name: "Chinese Yuan", nameCN: "人民币"),
-        CurrencyInfo(code: "USD", symbol: "$", name: "US Dollar", nameCN: "美元"),
-        CurrencyInfo(code: "EUR", symbol: "€", name: "Euro", nameCN: "欧元"),
-        CurrencyInfo(code: "JPY", symbol: "¥", name: "Japanese Yen", nameCN: "日元"),
-        CurrencyInfo(code: "KRW", symbol: "₩", name: "Korean Won", nameCN: "韩元"),
-        CurrencyInfo(code: "THB", symbol: "฿", name: "Thai Baht", nameCN: "泰铢"),
-        CurrencyInfo(code: "GBP", symbol: "£", name: "British Pound", nameCN: "英镑"),
-        CurrencyInfo(code: "HKD", symbol: "HK$", name: "Hong Kong Dollar", nameCN: "港币"),
-        CurrencyInfo(code: "SGD", symbol: "S$", name: "Singapore Dollar", nameCN: "新加坡元"),
-        CurrencyInfo(code: "AUD", symbol: "A$", name: "Australian Dollar", nameCN: "澳元"),
-        CurrencyInfo(code: "MYR", symbol: "RM", name: "Malaysian Ringgit", nameCN: "马来西亚林吉特"),
+        CurrencyInfo(code: "CNY", symbol: "¥", name: "Chinese Yuan"),
+        CurrencyInfo(code: "USD", symbol: "$", name: "US Dollar"),
+        CurrencyInfo(code: "EUR", symbol: "€", name: "Euro"),
+        CurrencyInfo(code: "JPY", symbol: "¥", name: "Japanese Yen"),
+        CurrencyInfo(code: "KRW", symbol: "₩", name: "Korean Won"),
+        CurrencyInfo(code: "THB", symbol: "฿", name: "Thai Baht"),
+        CurrencyInfo(code: "GBP", symbol: "£", name: "British Pound"),
+        CurrencyInfo(code: "HKD", symbol: "HK$", name: "Hong Kong Dollar"),
+        CurrencyInfo(code: "SGD", symbol: "S$", name: "Singapore Dollar"),
+        CurrencyInfo(code: "AUD", symbol: "A$", name: "Australian Dollar"),
+        CurrencyInfo(code: "MYR", symbol: "RM", name: "Malaysian Ringgit"),
     ]
 }
