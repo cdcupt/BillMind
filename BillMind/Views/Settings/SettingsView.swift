@@ -10,7 +10,9 @@ struct SettingsView: View {
     @State private var apiKey = ""
     @State private var showAPIKeyEditor = false
     @State private var defaultCurrency = "CNY"
-    @State private var enableOCRFallback = true
+    @State private var isTesting = false
+    @State private var testResult: Bool?
+    @State private var testErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -87,22 +89,42 @@ struct SettingsView: View {
                         }
                     }
 
-                    // Recognition Section
+                    // Test Connection Section
                     VStack(alignment: .leading, spacing: 12) {
-                        sectionTitle("Recognition")
+                        sectionTitle("Connection")
                         settingsCard {
-                            settingsRow("OCR Fallback") {
-                                Toggle("", isOn: $enableOCRFallback)
-                                    .tint(SketchTheme.sageGreen)
-                                    .labelsHidden()
+                            Button {
+                                testConnection()
+                            } label: {
+                                settingsRow("Test Connection") {
+                                    if isTesting {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    } else if let result = testResult {
+                                        Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
+                                        Text(result ? "OK" : "Failed")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(SketchTheme.dustyRose)
+                                        Text("Tap to test")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(SketchTheme.dustyRose)
+                                    }
+                                }
                             }
-                            settingsRow("Max Photos/Batch") {
-                                Text("10")
-                                    .font(SketchTheme.captionFont())
-                                    .foregroundStyle(SketchTheme.dustyRose)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
+                            .buttonStyle(.plain)
+                            .disabled(apiKey.isEmpty)
+
+                            if let errorMsg = testErrorMessage {
+                                Text(errorMsg)
+                                    .font(.system(size: 12, design: .serif))
+                                    .foregroundStyle(SketchTheme.mutedRed)
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 12)
                             }
                         }
                     }
@@ -191,7 +213,7 @@ struct SettingsView: View {
             }
             .onAppear { loadSettings() }
             .onChange(of: selectedProvider) { _, _ in saveSettings() }
-            .onChange(of: enableOCRFallback) { _, _ in saveSettings() }
+            .onChange(of: apiKey) { _, _ in testResult = nil; testErrorMessage = nil }
             .sheet(isPresented: $showAPIKeyEditor) {
                 APIKeyEditorView(apiKey: $apiKey, provider: selectedProvider) {
                     saveSettings()
@@ -242,11 +264,58 @@ struct SettingsView: View {
         selectedProvider = s.selectedProvider
         customModel = s.customModel
         defaultCurrency = s.defaultCurrency
-        enableOCRFallback = s.enableOCRFallback
     }
 
-    private func loadAPIKey() {
-        // TODO: Load from Keychain in Phase 3
+    private func testConnection() {
+        guard !apiKey.isEmpty else { return }
+        isTesting = true
+        testResult = nil
+        testErrorMessage = nil
+
+        Task {
+            do {
+                let url = URL(string: "\(selectedProvider.baseURL)")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.timeoutInterval = 15
+
+                let body: [String: Any] = [
+                    "model": customModel.isEmpty ? selectedProvider.defaultModel : customModel,
+                    "messages": [["role": "user", "content": "Say OK"]],
+                    "max_tokens": 5
+                ]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+                let httpResponse = response as? HTTPURLResponse
+
+                await MainActor.run {
+                    if let status = httpResponse?.statusCode, (200...299).contains(status) {
+                        testResult = true
+                        testErrorMessage = nil
+                    } else {
+                        testResult = false
+                        let status = httpResponse?.statusCode ?? 0
+                        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let error = json["error"] as? [String: Any],
+                           let msg = error["message"] as? String {
+                            testErrorMessage = "HTTP \(status): \(msg)"
+                        } else {
+                            testErrorMessage = "HTTP \(status)"
+                        }
+                    }
+                    isTesting = false
+                }
+            } catch {
+                await MainActor.run {
+                    testResult = false
+                    testErrorMessage = error.localizedDescription
+                    isTesting = false
+                }
+            }
+        }
     }
 
     private func saveSettings() {
@@ -254,7 +323,6 @@ struct SettingsView: View {
         settings.selectedProvider = selectedProvider
         settings.customModel = customModel
         settings.defaultCurrency = defaultCurrency
-        settings.enableOCRFallback = enableOCRFallback
         try? modelContext.save()
     }
 }
