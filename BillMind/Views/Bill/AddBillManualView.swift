@@ -58,7 +58,7 @@ struct AddBillManualView: View {
                                             .resizable().scaledToFill()
                                             .frame(width: 28, height: 28)
                                             .clipShape(RoundedRectangle(cornerRadius: 6))
-                                        Text(category.displayName)
+                                        Text(category.englishName)
                                             .font(.system(size: 10, weight: .medium, design: .rounded))
                                     }
                                     .frame(maxWidth: .infinity)
