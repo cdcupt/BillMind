@@ -350,6 +350,7 @@ struct APIKeyEditorView: View {
     var onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var editingKey = ""
+    @State private var showKey = false
 
     var body: some View {
         NavigationStack {
@@ -367,19 +368,37 @@ struct APIKeyEditorView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("API Key")
-                        .font(SketchTheme.captionFont())
-                        .foregroundStyle(SketchTheme.lightBrown)
-                    SecureField("Enter your API key", text: $editingKey)
-                        .font(.system(size: 16, design: .monospaced))
-                        .textFieldStyle(.plain)
-                        .padding(12)
-                        .background(SketchTheme.cream)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(SketchTheme.lightBrown.opacity(0.3), lineWidth: 1)
-                        )
+                    HStack {
+                        Text("API Key")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        Spacer()
+                        Button {
+                            showKey.toggle()
+                        } label: {
+                            Image(systemName: showKey ? "eye.slash" : "eye")
+                                .font(.system(size: 14))
+                                .foregroundStyle(SketchTheme.lightBrown)
+                        }
+                    }
+                    ZStack {
+                        if showKey {
+                            TextField("Enter your API key", text: $editingKey)
+                                .font(.system(size: 16, design: .monospaced))
+                                .textFieldStyle(.plain)
+                        } else {
+                            SecureField("Enter your API key", text: $editingKey)
+                                .font(.system(size: 16, design: .monospaced))
+                                .textFieldStyle(.plain)
+                        }
+                    }
+                    .padding(12)
+                    .background(SketchTheme.cream)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(SketchTheme.lightBrown.opacity(0.3), lineWidth: 1)
+                    )
                 }
                 .sketchCard()
 
