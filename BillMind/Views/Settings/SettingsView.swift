@@ -36,21 +36,23 @@ struct SettingsView: View {
                                 }
                                 .tint(SketchTheme.dustyRose)
                             }
-                            settingsRow("Recognition Model") {
+                            settingsRow("Recognition") {
                                 Picker("", selection: $customModel) {
                                     ForEach(selectedProvider.availableModels, id: \.self) { model in
                                         let price = AIProvider.priceLabel(for: model)
-                                        Text(price.isEmpty ? model : "\(model) (\(price))")
+                                        let name = AIProvider.shortName(for: model)
+                                        Text(price.isEmpty ? name : "\(name)  \(price)")
                                             .tag(model)
                                     }
                                 }
                                 .tint(SketchTheme.dustyRose)
                             }
-                            settingsRow("Image Gen Model") {
+                            settingsRow("Image Gen") {
                                 Picker("", selection: $imageModel) {
                                     ForEach(selectedProvider.availableImageModels, id: \.self) { model in
                                         let price = AIProvider.priceLabel(for: model)
-                                        Text(price.isEmpty ? model : "\(model) (\(price))")
+                                        let name = AIProvider.shortName(for: model)
+                                        Text(price.isEmpty ? name : "\(name)  \(price)")
                                             .tag(model)
                                     }
                                 }

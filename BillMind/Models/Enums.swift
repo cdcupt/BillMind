@@ -98,6 +98,28 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Short display name for picker selected value
+    static func shortName(for model: String) -> String {
+        let names: [String: String] = [
+            "gemini-3-flash-preview": "Gemini 3 Flash",
+            "gemini-3.1-pro-preview": "Gemini 3.1 Pro",
+            "gemini-2.5-flash": "Gemini 2.5 Flash",
+            "gemini-2.5-pro": "Gemini 2.5 Pro",
+            "gemini-3.1-flash-lite-preview": "Gemini 3.1 Lite",
+            "gemini-3.1-flash-image-preview": "Gemini 3.1 Image",
+            "gemini-3-pro-image-preview": "Gemini 3 Pro Image",
+            "gemini-2.5-flash-image": "Gemini 2.5 Image",
+            "gpt-5.4": "GPT-5.4",
+            "gpt-5.4-nano": "GPT-5.4 Nano",
+            "gpt-5": "GPT-5",
+            "gpt-5-image-mini": "GPT-5 Image Mini",
+            "gpt-5-image": "GPT-5 Image",
+            "doubao-seed-2-pro": "Seed 2 Pro",
+            "doubao-seed-2-lite": "Seed 2 Lite",
+        ]
+        return names[model] ?? model
+    }
+
     /// Price per 1M tokens: "input / output"
     static func priceLabel(for model: String) -> String {
         let prices: [String: String] = [
