@@ -471,15 +471,19 @@ struct DraftBill: Identifiable {
 struct DraftBillCard: View {
     @Binding var draft: DraftBill
     var onRetry: (() -> Void)? = nil
+    @State private var showZoom = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Image + merchant + amount
             HStack(alignment: .top, spacing: 12) {
-                Image(uiImage: draft.sourceImage)
-                    .resizable().scaledToFill()
-                    .frame(width: 60, height: 80)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Button { showZoom = true } label: {
+                    Image(uiImage: draft.sourceImage)
+                        .resizable().scaledToFill()
+                        .frame(width: 60, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 6) {
                     TextField("Merchant", text: $draft.merchant)
@@ -549,7 +553,7 @@ struct DraftBillCard: View {
             }
 
             // Retry button for failed recognition
-            if draft.failed, let onRetry {
+            if draft.failed, let onRetry = onRetry {
                 Button {
                     onRetry()
                 } label: {
@@ -568,6 +572,9 @@ struct DraftBillCard: View {
             }
         }
         .sketchCard()
+        .fullScreenCover(isPresented: $showZoom) {
+            ZoomableImageView(image: draft.sourceImage)
+        }
     }
 }
 
