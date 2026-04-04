@@ -52,6 +52,31 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    var defaultImageModel: String {
+        switch self {
+        case .gemini: return "gemini-3.1-flash-image-preview"
+        case .openai: return "gpt-5-image-mini"
+        case .doubao: return ""
+        }
+    }
+
+    var availableImageModels: [String] {
+        switch self {
+        case .gemini: return [
+            "gemini-3.1-flash-image-preview",
+            "gemini-3-pro-image-preview",
+            "gemini-2.5-flash-image",
+        ]
+        case .openai: return [
+            "gpt-5-image-mini",
+            "gpt-5-image",
+        ]
+        case .doubao: return [
+            "Not supported",
+        ]
+        }
+    }
+
     var availableModels: [String] {
         switch self {
         case .gemini: return [

@@ -5,6 +5,7 @@ import SwiftData
 final class AppSettings {
     var selectedProviderRaw: String
     var customModel: String
+    var imageModel: String
     var apiKey: String
     var defaultCurrency: String
     var enableOCRFallback: Bool
@@ -18,6 +19,7 @@ final class AppSettings {
     init() {
         self.selectedProviderRaw = AIProvider.gemini.rawValue
         self.customModel = ""
+        self.imageModel = ""
         self.apiKey = ""
         self.defaultCurrency = "CNY"
         self.enableOCRFallback = true

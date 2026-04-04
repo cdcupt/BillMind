@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var settings: AppSettings?
     @State private var selectedProvider: AIProvider = .gemini
     @State private var customModel = ""
+    @State private var imageModel = ""
     @State private var apiKey = ""
     @State private var showAPIKeyEditor = false
     @State private var defaultCurrency = "CNY"
@@ -42,6 +43,14 @@ struct SettingsView: View {
                                     }
                                 }
                                 .tint(SketchTheme.dustyRose)
+                            }
+                            settingsRow("Image Gen Model") {
+                                Picker("", selection: $imageModel) {
+                                    ForEach(selectedProvider.availableImageModels, id: \.self) { model in
+                                        Text(model).tag(model)
+                                    }
+                                }
+                                .tint(SketchTheme.sageGreen)
                             }
                             Button {
                                 showAPIKeyEditor = true
@@ -211,6 +220,7 @@ struct SettingsView: View {
             .onAppear { loadSettings() }
             .onChange(of: selectedProvider) { _, newProvider in
                 customModel = newProvider.defaultModel
+                imageModel = newProvider.defaultImageModel
                 testResult = nil
                 testErrorMessage = nil
                 saveSettings()
@@ -273,6 +283,7 @@ struct SettingsView: View {
         settings = s
         selectedProvider = s.selectedProvider
         customModel = s.customModel.isEmpty ? s.selectedProvider.defaultModel : s.customModel
+        imageModel = s.imageModel.isEmpty ? s.selectedProvider.defaultImageModel : s.imageModel
         apiKey = s.apiKey
         defaultCurrency = s.defaultCurrency
     }
@@ -383,6 +394,7 @@ struct SettingsView: View {
         guard let settings else { return }
         settings.selectedProvider = selectedProvider
         settings.customModel = customModel
+        settings.imageModel = imageModel
         settings.apiKey = apiKey
         settings.defaultCurrency = defaultCurrency
         try? modelContext.save()

@@ -226,7 +226,7 @@ struct MindsView: View {
                 let service = AIService()
 
                 // Use Gemini image generation
-                let imageModel = "gemini-3.1-flash-image-preview"
+                let imageModel = settings?.imageModel.isEmpty == false ? settings!.imageModel : "gemini-3.1-flash-image-preview"
                 let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(imageModel):generateContent")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
