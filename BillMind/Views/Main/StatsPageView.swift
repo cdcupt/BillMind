@@ -4,9 +4,22 @@ import Charts
 
 struct StatsPageView: View {
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @State private var selectedJournalId: UUID?
+
+    private var selectedJournal: Journal? {
+        guard let id = selectedJournalId else { return nil }
+        return journals.first(where: { $0.id == id })
+    }
+
+    private var filteredBills: [BillRecord] {
+        if let journal = selectedJournal {
+            return journal.bills
+        }
+        return journals.flatMap(\.bills)
+    }
 
     private var allBills: [BillRecord] {
-        journals.flatMap(\.bills)
+        filteredBills
     }
 
     private var totalAmount: Decimal {
@@ -61,6 +74,25 @@ struct StatsPageView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Journal filter
+                    if journals.count > 1 {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                FilterChip(label: "All Journals", isSelected: selectedJournalId == nil) {
+                                    selectedJournalId = nil
+                                }
+                                ForEach(journals) { journal in
+                                    FilterChip(
+                                        label: journal.name,
+                                        isSelected: selectedJournalId == journal.id
+                                    ) {
+                                        selectedJournalId = journal.id
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if allBills.isEmpty {
                         EmptyStateView(
                             animal: .bear,
@@ -365,5 +397,30 @@ struct StatChipView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(color.opacity(0.15), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Filter Chip
+
+struct FilterChip: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(SketchTheme.captionFont(13))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? SketchTheme.dustyRose.opacity(0.15) : SketchTheme.warmWhite)
+                .foregroundStyle(isSelected ? SketchTheme.dustyRose : SketchTheme.softBrown)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(isSelected ? SketchTheme.dustyRose.opacity(0.4) : SketchTheme.lightBrown.opacity(0.3), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -507,7 +507,7 @@ struct DraftBillCard: View {
                                     .resizable().scaledToFill()
                                     .frame(width: 16, height: 16)
                                     .clipShape(RoundedRectangle(cornerRadius: 3))
-                                Text(cat.displayName)
+                                Text(cat.englishName)
                                     .font(.system(size: 11, weight: .medium, design: .rounded))
                             }
                             .padding(.horizontal, 8)
@@ -531,13 +531,15 @@ struct DraftBillCard: View {
                 .labelsHidden()
                 .tint(SketchTheme.dustyRose)
 
-            // Note
-            if !draft.note.isEmpty {
-                Text(draft.note)
-                    .font(SketchTheme.captionFont(12))
-                    .foregroundStyle(SketchTheme.lightBrown)
-                    .lineLimit(2)
-            }
+            // Note (editable)
+            TextField("Add a note...", text: $draft.note, axis: .vertical)
+                .font(SketchTheme.bodyFont(13))
+                .foregroundStyle(SketchTheme.softBrown)
+                .lineLimit(1...3)
+                .textFieldStyle(.plain)
+                .padding(8)
+                .background(SketchTheme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // Line items summary
             if !draft.lineItems.isEmpty {

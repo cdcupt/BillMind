@@ -63,6 +63,11 @@ struct JournalDetailView: View {
                 }
             }
         }
+        .navigationDestination(for: UUID.self) { billId in
+            if let bill = journal.bills.first(where: { $0.id == billId }) {
+                BillDetailView(bill: bill, currencySymbol: currencySymbol)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             fabButton
         }
@@ -125,8 +130,11 @@ struct JournalDetailView: View {
                 .padding(.top, 8)
 
                 ForEach(group.bills) { bill in
-                    BillCardView(bill: bill, currencySymbol: currencySymbol)
-                        .padding(.horizontal)
+                    NavigationLink(value: bill.id) {
+                        BillCardView(bill: bill, currencySymbol: currencySymbol)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
                 }
             }
         }
