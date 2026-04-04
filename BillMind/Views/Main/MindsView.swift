@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct MindsView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @Query private var allSettings: [AppSettings]
     private var settings: AppSettings? { allSettings.first }
@@ -11,12 +12,12 @@ struct MindsView: View {
     @State private var generatedImage: UIImage?
     @State private var errorMessage: String?
     @State private var showShareSheet = false
+    @State private var savedMessage: String?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header mascot
                     AnimalMascotView(animal: .owl, size: 64, animated: !isGenerating)
 
                     Text("Generate a beautiful timeline\nof your travel expenses")
@@ -25,61 +26,17 @@ struct MindsView: View {
                         .multilineTextAlignment(.center)
 
                     // Journal picker
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Select a Journal")
-                            .font(SketchTheme.captionFont())
-                            .foregroundStyle(SketchTheme.lightBrown)
+                    journalPicker
 
-                        if journals.isEmpty {
-                            Text("No journals yet — create one first")
-                                .font(SketchTheme.bodyFont(14))
-                                .foregroundStyle(SketchTheme.lightBrown)
-                                .padding(.vertical, 12)
-                        } else {
-                            ForEach(journals) { journal in
-                                Button {
-                                    selectedJournal = journal
-                                } label: {
-                                    HStack(spacing: 10) {
-                                        Image(journal.coverAnimal.imageName)
-                                            .resizable().scaledToFill()
-                                            .frame(width: 36, height: 36)
-                                            .clipShape(Circle())
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(journal.name)
-                                                .font(SketchTheme.headlineFont(15))
-                                                .foregroundStyle(SketchTheme.softBrown)
-                                            Text("\(journal.billCount) bills · \(journal.currency)")
-                                                .font(SketchTheme.captionFont(11))
-                                                .foregroundStyle(SketchTheme.lightBrown)
-                                        }
-                                        Spacer()
-                                        if selectedJournal?.id == journal.id {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(SketchTheme.sageGreen)
-                                        }
-                                    }
-                                    .padding(.vertical, 6)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .sketchCard()
-
-                    // Generate button
-                    Button {
-                        generateMind()
-                    } label: {
+                    // Generate / Regenerate button
+                    Button { generateMind() } label: {
                         HStack {
                             if isGenerating {
-                                ProgressView()
-                                    .tint(.white)
-                                    .scaleEffect(0.8)
+                                ProgressView().tint(.white).scaleEffect(0.8)
                             } else {
-                                Image(systemName: "sparkles")
+                                Image(systemName: generatedImage == nil ? "sparkles" : "arrow.clockwise")
                             }
-                            Text(isGenerating ? "Generating..." : "Generate Mind")
+                            Text(isGenerating ? "Generating..." : generatedImage == nil ? "Generate Mind" : "Regenerate")
                                 .font(SketchTheme.headlineFont(18))
                         }
                         .frame(maxWidth: .infinity)
@@ -99,53 +56,20 @@ struct MindsView: View {
                             .foregroundStyle(SketchTheme.mutedRed)
                     }
 
-                    // Generated image
+                    if let msg = savedMessage {
+                        Text(msg)
+                            .font(SketchTheme.captionFont(12))
+                            .foregroundStyle(SketchTheme.sageGreen)
+                    }
+
+                    // Generated image + actions
                     if let image = generatedImage {
-                        VStack(spacing: 12) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .shadow(color: SketchTheme.paperShadow, radius: 8, y: 4)
+                        generatedImageView(image)
+                    }
 
-                            HStack(spacing: 12) {
-                                Button {
-                                    saveToPhotos(image)
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "square.and.arrow.down")
-                                        Text("Save to Photos")
-                                            .font(SketchTheme.headlineFont(14))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(SketchTheme.warmWhite)
-                                    .foregroundStyle(SketchTheme.softBrown)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(SketchTheme.lightBrown, lineWidth: 1.5)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                Button {
-                                    showShareSheet = true
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "square.and.arrow.up")
-                                        Text("Share")
-                                            .font(SketchTheme.headlineFont(14))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(SketchTheme.primaryGradient)
-                                    .foregroundStyle(.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                    // Saved minds gallery
+                    if let journal = selectedJournal {
+                        savedMindsGallery(for: journal)
                     }
                 }
                 .padding()
@@ -170,6 +94,209 @@ struct MindsView: View {
         }
     }
 
+    // MARK: - Journal Picker
+
+    private var journalPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Select a Journal")
+                .font(SketchTheme.captionFont())
+                .foregroundStyle(SketchTheme.lightBrown)
+
+            if journals.isEmpty {
+                Text("No journals yet")
+                    .font(SketchTheme.bodyFont(14))
+                    .foregroundStyle(SketchTheme.lightBrown)
+            } else {
+                ForEach(journals) { journal in
+                    Button {
+                        selectedJournal = journal
+                        generatedImage = nil
+                        savedMessage = nil
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(journal.coverAnimal.imageName)
+                                .resizable().scaledToFill()
+                                .frame(width: 36, height: 36)
+                                .clipShape(Circle())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(journal.name)
+                                    .font(SketchTheme.headlineFont(15))
+                                    .foregroundStyle(SketchTheme.softBrown)
+                                HStack(spacing: 4) {
+                                    Text("\(journal.billCount) bills · \(journal.currency)")
+                                        .font(SketchTheme.captionFont(11))
+                                        .foregroundStyle(SketchTheme.lightBrown)
+                                    if !savedMindPaths(for: journal).isEmpty {
+                                        Text("· \(savedMindPaths(for: journal).count) minds")
+                                            .font(SketchTheme.captionFont(11))
+                                            .foregroundStyle(SketchTheme.sageGreen)
+                                    }
+                                }
+                            }
+                            Spacer()
+                            if selectedJournal?.id == journal.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(SketchTheme.sageGreen)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .sketchCard()
+    }
+
+    // MARK: - Generated Image View
+
+    @ViewBuilder
+    private func generatedImageView(_ image: UIImage) -> some View {
+        VStack(spacing: 12) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: SketchTheme.paperShadow, radius: 8, y: 4)
+
+            // Action buttons
+            HStack(spacing: 10) {
+                Button { saveToJournal(image) } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                        Text("Save")
+                            .font(SketchTheme.headlineFont(13))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(SketchTheme.sageGreen.opacity(0.15))
+                    .foregroundStyle(SketchTheme.sageGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+
+                Button { saveToPhotos(image) } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo")
+                        Text("Photos")
+                            .font(SketchTheme.headlineFont(13))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(SketchTheme.warmWhite)
+                    .foregroundStyle(SketchTheme.softBrown)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(SketchTheme.lightBrown.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button { showShareSheet = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("Share")
+                            .font(SketchTheme.headlineFont(13))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(SketchTheme.primaryGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: - Saved Minds Gallery
+
+    @ViewBuilder
+    private func savedMindsGallery(for journal: Journal) -> some View {
+        let paths = savedMindPaths(for: journal)
+        if !paths.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Saved Minds (\(paths.count))")
+                    .font(SketchTheme.headlineFont(16))
+                    .foregroundStyle(SketchTheme.softBrown)
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(paths, id: \.self) { path in
+                        if let image = loadImage(path) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 180)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(color: SketchTheme.paperShadow, radius: 4, y: 2)
+                                .contextMenu {
+                                    Button {
+                                        showShareSheet = true
+                                        generatedImage = image
+                                    } label: {
+                                        Label("Share", systemImage: "square.and.arrow.up")
+                                    }
+                                    Button {
+                                        saveToPhotos(image)
+                                    } label: {
+                                        Label("Save to Photos", systemImage: "photo")
+                                    }
+                                    Button(role: .destructive) {
+                                        deleteMind(path: path, journal: journal)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
+            .sketchCard()
+        }
+    }
+
+    // MARK: - Mind Storage
+
+    private func mindDirectory(for journal: Journal) -> URL {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("minds/\(journal.id.uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    private func savedMindPaths(for journal: Journal) -> [String] {
+        let dir = mindDirectory(for: journal)
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return files.filter { $0.hasSuffix(".jpg") }.sorted().reversed().map { dir.appendingPathComponent($0).path }
+    }
+
+    private func loadImage(_ path: String) -> UIImage? {
+        UIImage(contentsOfFile: path)
+    }
+
+    private func saveToJournal(_ image: UIImage) {
+        guard let journal = selectedJournal else { return }
+        let dir = mindDirectory(for: journal)
+        let filename = "mind_\(Date().formatted(as: "yyyyMMdd_HHmmss")).jpg"
+        let fileURL = dir.appendingPathComponent(filename)
+        if let data = image.jpegData(compressionQuality: 0.9) {
+            try? data.write(to: fileURL)
+            savedMessage = "Mind saved!"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { savedMessage = nil }
+        }
+    }
+
+    private func deleteMind(path: String, journal: Journal) {
+        try? FileManager.default.removeItem(atPath: path)
+    }
+
+    private func saveToPhotos(_ image: UIImage) {
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        savedMessage = "Saved to Photos!"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { savedMessage = nil }
+    }
+
     // MARK: - Generate Mind
 
     private func generateMind() {
@@ -178,20 +305,15 @@ struct MindsView: View {
             errorMessage = "Please set your API key in Settings first"
             return
         }
-
         guard settings?.selectedProvider == .gemini else {
-            errorMessage = "Minds requires Google Gemini. Please switch your provider in Settings."
+            errorMessage = "Minds requires Google Gemini. Please switch provider in Settings."
             return
         }
 
         isGenerating = true
         errorMessage = nil
-        generatedImage = nil
+        savedMessage = nil
 
-        let provider = settings?.selectedProvider ?? .gemini
-        let model = settings?.customModel.isEmpty == false ? settings!.customModel : provider.defaultModel
-
-        // Build bill timeline description
         let currencySymbol = CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
         let billsSorted = journal.bills.sorted { $0.date < $1.date }
         var timeline = "Journal: \(journal.name)\nCurrency: \(journal.currency)\n\nBill Timeline:\n"
@@ -223,9 +345,6 @@ struct MindsView: View {
 
         Task {
             do {
-                let service = AIService()
-
-                // Use Gemini image generation
                 let imageModel = settings?.imageModel.isEmpty == false ? settings!.imageModel : "gemini-3.1-flash-image-preview"
                 let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(imageModel):generateContent")!
                 var request = URLRequest(url: url)
@@ -244,11 +363,10 @@ struct MindsView: View {
                 let httpResponse = response as? HTTPURLResponse
 
                 guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                    let errorMsg = parseError(data)
-                    throw AIError.httpError(httpResponse?.statusCode ?? 0, errorMsg)
+                    let msg = parseError(data)
+                    throw AIError.httpError(httpResponse?.statusCode ?? 0, msg)
                 }
 
-                // Parse image from response
                 guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let candidates = json["candidates"] as? [[String: Any]],
                       let content = candidates.first?["content"] as? [String: Any],
@@ -291,9 +409,5 @@ struct MindsView: View {
             return "Unknown error"
         }
         return msg
-    }
-
-    private func saveToPhotos(_ image: UIImage) {
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
     }
 }
