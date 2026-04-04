@@ -26,8 +26,9 @@ struct NewJournalView: View {
                                 } label: {
                                     VStack(spacing: 4) {
                                         Image(animal.imageName)
-                                            .resizable().scaledToFit()
+                                            .resizable().scaledToFill()
                                             .frame(width: 44, height: 44)
+                                            .clipShape(Circle())
                                         Text(animal.displayName)
                                             .font(SketchTheme.captionFont(11))
                                             .foregroundStyle(

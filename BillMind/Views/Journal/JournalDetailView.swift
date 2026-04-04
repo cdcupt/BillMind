@@ -39,8 +39,9 @@ struct JournalDetailView: View {
                         .font(SketchTheme.headlineFont(20))
                         .foregroundStyle(SketchTheme.softBrown)
                     Image(journal.coverAnimal.imageName)
-                        .resizable().scaledToFit()
+                        .resizable().scaledToFill()
                         .frame(width: 24, height: 24)
+                        .clipShape(Circle())
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -163,10 +164,8 @@ struct BillCardView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(bill.category.icon)
-                .resizable().scaledToFit()
-                .frame(width: 28, height: 28)
+                .resizable().scaledToFill()
                 .frame(width: 42, height: 42)
-                .background(bill.category.color.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 2) {

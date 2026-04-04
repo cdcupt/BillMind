@@ -11,8 +11,9 @@ struct BillDetailView: View {
                 // Header
                 VStack(spacing: 8) {
                     Image(bill.category.icon)
-                        .resizable().scaledToFit()
+                        .resizable().scaledToFill()
                         .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     Text(bill.merchant ?? bill.category.displayName)
                         .font(SketchTheme.titleFont(24))
                         .foregroundStyle(SketchTheme.softBrown)

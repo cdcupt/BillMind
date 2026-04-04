@@ -55,8 +55,9 @@ struct AddBillManualView: View {
                                 } label: {
                                     VStack(spacing: 4) {
                                         Image(category.icon)
-                                            .resizable().scaledToFit()
+                                            .resizable().scaledToFill()
                                             .frame(width: 28, height: 28)
+                                            .clipShape(RoundedRectangle(cornerRadius: 6))
                                         Text(category.displayName)
                                             .font(.system(size: 10, weight: .medium, design: .rounded))
                                     }

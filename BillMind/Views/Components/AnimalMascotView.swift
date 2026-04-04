@@ -10,8 +10,9 @@ struct AnimalMascotView: View {
     var body: some View {
         Image(animal.imageName)
             .resizable()
-            .scaledToFit()
+            .scaledToFill()
             .frame(width: size, height: size)
+            .clipShape(Circle())
             .offset(y: bounceOffset)
             .onAppear {
                 if animated {

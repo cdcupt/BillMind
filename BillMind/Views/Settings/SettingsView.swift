@@ -202,8 +202,9 @@ struct SettingsView: View {
                             .font(SketchTheme.headlineFont(20))
                             .foregroundStyle(SketchTheme.softBrown)
                         Image("mascot_fox")
-                            .resizable().scaledToFit()
+                            .resizable().scaledToFill()
                             .frame(width: 24, height: 24)
+                            .clipShape(Circle())
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {

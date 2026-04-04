@@ -135,13 +135,8 @@ struct JournalCardView: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(journal.coverAnimal.imageName)
-                .resizable().scaledToFit()
+                .resizable().scaledToFill()
                 .frame(width: 56, height: 56)
-                .background(journal.coverAnimal == .cat ? SketchTheme.dustyRose.opacity(0.15) :
-                            journal.coverAnimal == .fox ? SketchTheme.sageGreen.opacity(0.15) :
-                            journal.coverAnimal == .owl ? SketchTheme.warmOrange.opacity(0.15) :
-                            journal.coverAnimal == .bear ? SketchTheme.softBlue.opacity(0.15) :
-                            SketchTheme.mutedPurple.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
             VStack(alignment: .leading, spacing: 2) {
