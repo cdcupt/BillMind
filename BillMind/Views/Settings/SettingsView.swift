@@ -37,26 +37,46 @@ struct SettingsView: View {
                                 .tint(SketchTheme.dustyRose)
                             }
                             settingsRow("Recognition") {
-                                Picker("", selection: $customModel) {
+                                Menu {
                                     ForEach(selectedProvider.availableModels, id: \.self) { model in
-                                        let price = AIProvider.priceLabel(for: model)
-                                        let name = AIProvider.shortName(for: model)
-                                        Text(price.isEmpty ? name : "\(name)  \(price)")
-                                            .tag(model)
+                                        Button {
+                                            customModel = model
+                                            saveSettings()
+                                        } label: {
+                                            let name = AIProvider.shortName(for: model)
+                                            let price = AIProvider.priceLabel(for: model)
+                                            Text(price.isEmpty ? name : "\(name) — \(price)")
+                                        }
                                     }
+                                } label: {
+                                    Text(AIProvider.shortName(for: customModel))
+                                        .font(SketchTheme.captionFont())
+                                        .foregroundStyle(SketchTheme.dustyRose)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(SketchTheme.lightBrown)
                                 }
-                                .tint(SketchTheme.dustyRose)
                             }
                             settingsRow("Image Gen") {
-                                Picker("", selection: $imageModel) {
+                                Menu {
                                     ForEach(selectedProvider.availableImageModels, id: \.self) { model in
-                                        let price = AIProvider.priceLabel(for: model)
-                                        let name = AIProvider.shortName(for: model)
-                                        Text(price.isEmpty ? name : "\(name)  \(price)")
-                                            .tag(model)
+                                        Button {
+                                            imageModel = model
+                                            saveSettings()
+                                        } label: {
+                                            let name = AIProvider.shortName(for: model)
+                                            let price = AIProvider.priceLabel(for: model)
+                                            Text(price.isEmpty ? name : "\(name) — \(price)")
+                                        }
                                     }
+                                } label: {
+                                    Text(AIProvider.shortName(for: imageModel))
+                                        .font(SketchTheme.captionFont())
+                                        .foregroundStyle(SketchTheme.sageGreen)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(SketchTheme.lightBrown)
                                 }
-                                .tint(SketchTheme.sageGreen)
                             }
                             Button {
                                 showAPIKeyEditor = true
