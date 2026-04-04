@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+struct BillNavID: Hashable {
+    let id: UUID
+}
+
 struct JournalDetailView: View {
     @Bindable var journal: Journal
     @Environment(\.modelContext) private var modelContext
@@ -63,8 +67,8 @@ struct JournalDetailView: View {
                 }
             }
         }
-        .navigationDestination(for: UUID.self) { billId in
-            if let bill = journal.bills.first(where: { $0.id == billId }) {
+        .navigationDestination(for: BillNavID.self) { navId in
+            if let bill = journal.bills.first(where: { $0.id == navId.id }) {
                 BillDetailView(bill: bill, currencySymbol: currencySymbol)
             }
         }
@@ -130,7 +134,7 @@ struct JournalDetailView: View {
                 .padding(.top, 8)
 
                 ForEach(group.bills) { bill in
-                    NavigationLink(value: bill.id) {
+                    NavigationLink(value: BillNavID(id: bill.id)) {
                         BillCardView(bill: bill, currencySymbol: currencySymbol)
                     }
                     .buttonStyle(.plain)

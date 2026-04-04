@@ -101,6 +101,9 @@ struct StatsPageView: View {
                         )
                     } else {
                         overviewCard
+                        if selectedJournalId == nil && journals.count > 1 {
+                            journalExpensesCard
+                        }
                         categoryChart
                         dailyChart
                         monthlyChart
@@ -158,6 +161,42 @@ struct StatsPageView: View {
     }
 
     // MARK: - Category Chart
+
+    // MARK: - Journal Expenses Card
+
+    private var journalExpensesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Expenses by Journal")
+                .font(SketchTheme.headlineFont(18))
+                .foregroundStyle(SketchTheme.softBrown)
+
+            ForEach(journals.sorted(by: { $0.totalAmount > $1.totalAmount })) { journal in
+                HStack(spacing: 10) {
+                    Image(journal.coverAnimal.imageName)
+                        .resizable().scaledToFill()
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(journal.name)
+                            .font(SketchTheme.headlineFont(14))
+                            .foregroundStyle(SketchTheme.softBrown)
+                        Text("\(journal.billCount) bills")
+                            .font(SketchTheme.captionFont(11))
+                            .foregroundStyle(SketchTheme.lightBrown)
+                    }
+                    Spacer()
+                    let symbol = CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
+                    Text("\(symbol)\(journal.totalAmount.formattedCurrency)")
+                        .font(SketchTheme.headlineFont(16))
+                        .foregroundStyle(SketchTheme.dustyRose)
+                }
+                if journal.id != journals.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .sketchCard()
+    }
 
     private var categoryChart: some View {
         VStack(alignment: .leading, spacing: 12) {
