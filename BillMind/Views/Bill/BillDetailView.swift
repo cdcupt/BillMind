@@ -143,6 +143,7 @@ struct EditBillView: View {
     @State private var selectedCategory: BillCategory = .misc
     @State private var currency: String = ""
     @State private var note: String = ""
+    @State private var lineItems: [BillLineItem] = []
 
     var body: some View {
         NavigationStack {
@@ -240,6 +241,74 @@ struct EditBillView: View {
                     }
                     .sketchCard()
 
+                    // Line Items
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Line Items")
+                                .font(SketchTheme.captionFont())
+                                .foregroundStyle(SketchTheme.lightBrown)
+                            Spacer()
+                            Button {
+                                lineItems.append(BillLineItem(itemDescription: "", amount: 0))
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Add")
+                                        .font(SketchTheme.captionFont(12))
+                                }
+                                .foregroundStyle(SketchTheme.dustyRose)
+                            }
+                        }
+
+                        if lineItems.isEmpty {
+                            Text("No line items")
+                                .font(SketchTheme.bodyFont(13))
+                                .foregroundStyle(SketchTheme.lightBrown)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(lineItems.indices, id: \.self) { index in
+                                HStack(spacing: 8) {
+                                    TextField("Description", text: Binding(
+                                        get: { lineItems[safe: index]?.itemDescription ?? "" },
+                                        set: { if lineItems.indices.contains(index) { lineItems[index].itemDescription = $0 } }
+                                    ))
+                                    .font(SketchTheme.bodyFont(13))
+                                    .textFieldStyle(.plain)
+
+                                    TextField("0.00", text: Binding(
+                                        get: { lineItems[safe: index].map { $0.amount.formatted2 } ?? "" },
+                                        set: {
+                                            if lineItems.indices.contains(index),
+                                               let val = Decimal(string: $0) {
+                                                lineItems[index].amount = val
+                                            }
+                                        }
+                                    ))
+                                    .font(SketchTheme.headlineFont(13))
+                                    .foregroundStyle(SketchTheme.softBrown)
+                                    .keyboardType(.decimalPad)
+                                    .textFieldStyle(.plain)
+                                    .frame(width: 70)
+                                    .multilineTextAlignment(.trailing)
+
+                                    Button {
+                                        lineItems.remove(at: index)
+                                    } label: {
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundStyle(SketchTheme.mutedRed.opacity(0.6))
+                                            .font(.system(size: 18))
+                                    }
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 10)
+                                .background(SketchTheme.cream)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                    .sketchCard()
+
                     // Save
                     Button { saveBill() } label: {
                         HStack {
@@ -281,6 +350,7 @@ struct EditBillView: View {
         selectedCategory = bill.category
         currency = bill.originalCurrency ?? ""
         note = bill.note ?? ""
+        lineItems = bill.lineItems
     }
 
     private func saveBill() {
@@ -292,6 +362,7 @@ struct EditBillView: View {
         bill.category = selectedCategory
         bill.originalCurrency = currency.isEmpty ? nil : currency
         bill.note = note.isEmpty ? nil : note
+        bill.lineItems = lineItems.filter { !$0.itemDescription.isEmpty }
         try? modelContext.save()
         dismiss()
     }
