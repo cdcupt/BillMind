@@ -179,6 +179,11 @@ struct MindsView: View {
             return
         }
 
+        guard settings?.selectedProvider == .gemini else {
+            errorMessage = "Minds requires Google Gemini. Please switch your provider in Settings."
+            return
+        }
+
         isGenerating = true
         errorMessage = nil
         generatedImage = nil

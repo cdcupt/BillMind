@@ -35,7 +35,7 @@ struct SettingsView: View {
                                 }
                                 .tint(SketchTheme.dustyRose)
                             }
-                            settingsRow("Model") {
+                            settingsRow("Recognition Model") {
                                 Picker("", selection: $customModel) {
                                     ForEach(selectedProvider.availableModels, id: \.self) { model in
                                         Text(model).tag(model)
