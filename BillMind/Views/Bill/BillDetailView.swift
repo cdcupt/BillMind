@@ -380,13 +380,12 @@ struct ZoomableImageView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Image area (tappable to dismiss)
-            ZStack {
-                Color.black
-
+            // Image area (scrollable for tall images, tappable to dismiss)
+            ScrollView {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
+                    .frame(maxWidth: .infinity)
                     .scaleEffect(scale)
                     .gesture(
                         MagnifyGesture()
@@ -407,7 +406,9 @@ struct ZoomableImageView: View {
                     .onTapGesture(count: 1) {
                         dismiss()
                     }
-
+            }
+            .background(Color.black)
+            .overlay {
                 // Toast
                 if let msg = savedMessage {
                     VStack {
