@@ -499,34 +499,36 @@ struct DraftBillCard: View {
                 Spacer()
             }
 
-            // Category picker (compact)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(BillCategory.allCases) { cat in
-                        Button {
-                            draft.category = cat
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(cat.icon)
-                                    .resizable().scaledToFill()
-                                    .frame(width: 16, height: 16)
-                                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                                Text(cat.englishName)
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(draft.category == cat ? cat.color.opacity(0.15) : SketchTheme.cream)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(draft.category == cat ? cat.color.opacity(0.4) : Color.clear, lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(SketchTheme.softBrown)
+            // Category picker (dropdown)
+            Menu {
+                ForEach(BillCategory.allCases) { cat in
+                    Button {
+                        draft.category = cat
+                    } label: {
+                        Label(cat.englishName, image: cat.icon)
                     }
                 }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(draft.category.icon)
+                        .resizable().scaledToFill()
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    Text(draft.category.englishName)
+                        .font(SketchTheme.headlineFont(14))
+                        .foregroundStyle(SketchTheme.softBrown)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundStyle(SketchTheme.lightBrown)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(draft.category.color.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(draft.category.color.opacity(0.3), lineWidth: 1)
+                )
             }
 
             // Date
