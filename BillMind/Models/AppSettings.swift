@@ -5,6 +5,7 @@ import SwiftData
 final class AppSettings {
     var selectedProviderRaw: String
     var customModel: String
+    var apiKey: String
     var defaultCurrency: String
     var enableOCRFallback: Bool
     var maxPhotosPerBatch: Int
@@ -17,6 +18,7 @@ final class AppSettings {
     init() {
         self.selectedProviderRaw = AIProvider.gemini.rawValue
         self.customModel = ""
+        self.apiKey = ""
         self.defaultCurrency = "CNY"
         self.enableOCRFallback = true
         self.maxPhotosPerBatch = 10

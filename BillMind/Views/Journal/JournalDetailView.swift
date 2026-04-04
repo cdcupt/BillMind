@@ -70,11 +70,7 @@ struct JournalDetailView: View {
             AddBillManualView(journal: journal)
         }
         .sheet(isPresented: $showImportFlow) {
-            // Placeholder for BillImportFlowView (Phase 2)
-            Text("Bill Import Flow — Coming in Phase 2")
-                .font(SketchTheme.headlineFont())
-                .foregroundStyle(SketchTheme.lightBrown)
-                .padding()
+            BillImportFlowView(journal: journal)
         }
     }
 

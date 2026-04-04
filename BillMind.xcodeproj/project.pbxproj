@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		07534F3F2DC79517933810D6 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3AF02DD8EDF41BEF30E32B /* Enums.swift */; };
 		0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D7FA0F51018664CEDB7993 /* SketchTheme.swift */; };
+		19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26146454BEE1E65D41784BE /* BillImportFlowView.swift */; };
 		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
 		469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B2A264893EE938283B7450 /* SettingsView.swift */; };
 		4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB72CB16912304251F5D8C73 /* BillRecord.swift */; };
@@ -18,6 +19,7 @@
 		6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */; };
 		6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F627B2C431A4DEF5C0281FD /* Journal.swift */; };
 		7B5EC73826E2F14912726B69 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */; };
+		8625C1845463B1DAC256E0C2 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412B83CE985985B1EA8A1BDC /* AIService.swift */; };
 		86486167D856C9062524E0F2 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07DB150C234A230A577B903 /* Extensions.swift */; };
 		8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */; };
 		8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */; };
@@ -27,6 +29,7 @@
 		CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */; };
 		D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */; };
 		DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */; };
+		E0263C4219656B96A789FAAD /* Prompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166CBE10EC2FF76A53B34FF0 /* Prompts.swift */; };
 		FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */; };
 /* End PBXBuildFile section */
 
@@ -47,7 +50,9 @@
 		0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
 		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		166CBE10EC2FF76A53B34FF0 /* Prompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prompts.swift; sourceTree = "<group>"; };
 		3F627B2C431A4DEF5C0281FD /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
+		412B83CE985985B1EA8A1BDC /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		4D022264B53C134EA879EFEE /* StatsPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPageView.swift; sourceTree = "<group>"; };
 		58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalMascotView.swift; sourceTree = "<group>"; };
 		6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewJournalView.swift; sourceTree = "<group>"; };
@@ -62,6 +67,7 @@
 		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
 		CB72CB16912304251F5D8C73 /* BillRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillRecord.swift; sourceTree = "<group>"; };
 		E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F26146454BEE1E65D41784BE /* BillImportFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillImportFlowView.swift; sourceTree = "<group>"; };
 		FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDetailView.swift; sourceTree = "<group>"; };
 		FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionResult.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -94,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				B07DB150C234A230A577B903 /* Extensions.swift */,
+				166CBE10EC2FF76A53B34FF0 /* Prompts.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -127,6 +134,7 @@
 		39C7375597F23F068EC9C28B /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				412B83CE985985B1EA8A1BDC /* AIService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -184,6 +192,7 @@
 			children = (
 				C9206CA5104CF74D505113E7 /* AddBillManualView.swift */,
 				FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */,
+				F26146454BEE1E65D41784BE /* BillImportFlowView.swift */,
 			);
 			path = Bill;
 			sourceTree = "<group>";
@@ -303,10 +312,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */,
+				8625C1845463B1DAC256E0C2 /* AIService.swift in Sources */,
 				31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */,
 				DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */,
 				C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */,
 				8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */,
+				19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */,
 				4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */,
 				4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */,
 				4EA06032421200FC49E1A810 /* ContentView.swift in Sources */,
@@ -316,6 +327,7 @@
 				5AC3B4D9B628FF07A061DB21 /* JournalDetailView.swift in Sources */,
 				FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */,
 				6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */,
+				E0263C4219656B96A789FAAD /* Prompts.swift in Sources */,
 				469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */,
 				CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */,
 				0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */,

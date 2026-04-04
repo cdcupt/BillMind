@@ -260,6 +260,7 @@ struct SettingsView: View {
         settings = s
         selectedProvider = s.selectedProvider
         customModel = s.customModel
+        apiKey = s.apiKey
         defaultCurrency = s.defaultCurrency
     }
 
@@ -334,6 +335,7 @@ struct SettingsView: View {
         guard let settings else { return }
         settings.selectedProvider = selectedProvider
         settings.customModel = customModel
+        settings.apiKey = apiKey
         settings.defaultCurrency = defaultCurrency
         try? modelContext.save()
     }
