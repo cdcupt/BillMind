@@ -1,0 +1,8 @@
+{
+  "apiKey" : "AIzaSyALRwu10AZ0qxj4i60VSV8lRiRW0cJ2JQc",
+  "defaultCurrency" : "CNY",
+  "maxPhotosPerBatch" : 10,
+  "model" : "",
+  "provider" : "gemini",
+  "version" : "1.0"
+}

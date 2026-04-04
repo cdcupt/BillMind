@@ -10,6 +10,7 @@
 		07534F3F2DC79517933810D6 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3AF02DD8EDF41BEF30E32B /* Enums.swift */; };
 		0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D7FA0F51018664CEDB7993 /* SketchTheme.swift */; };
 		19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26146454BEE1E65D41784BE /* BillImportFlowView.swift */; };
+		1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */; };
 		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
 		469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B2A264893EE938283B7450 /* SettingsView.swift */; };
 		4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB72CB16912304251F5D8C73 /* BillRecord.swift */; };
@@ -66,6 +67,7 @@
 		B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindTests.swift; sourceTree = "<group>"; };
 		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
 		CB72CB16912304251F5D8C73 /* BillRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillRecord.swift; sourceTree = "<group>"; };
+		CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigService.swift; sourceTree = "<group>"; };
 		E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F26146454BEE1E65D41784BE /* BillImportFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillImportFlowView.swift; sourceTree = "<group>"; };
 		FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDetailView.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				412B83CE985985B1EA8A1BDC /* AIService.swift */,
+				CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */,
 				4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */,
 				4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */,
+				1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */,
 				4EA06032421200FC49E1A810 /* ContentView.swift in Sources */,
 				07534F3F2DC79517933810D6 /* Enums.swift in Sources */,
 				86486167D856C9062524E0F2 /* Extensions.swift in Sources */,

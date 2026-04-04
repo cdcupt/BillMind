@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,6 +11,10 @@ struct SettingsView: View {
     @State private var apiKey = ""
     @State private var showAPIKeyEditor = false
     @State private var defaultCurrency = "CNY"
+    @State private var showExportShare = false
+    @State private var exportFileURL: URL?
+    @State private var showImportPicker = false
+    @State private var importMessage: String?
     @State private var isTesting = false
     @State private var testResult: Bool?
     @State private var testErrorMessage: String?
@@ -150,29 +155,44 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         sectionTitle("Configuration")
                         settingsCard {
-                            settingsRow("Export Config") {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "square.and.arrow.up")
-                                    Text("JSON")
-                                        .font(SketchTheme.captionFont())
-                                        .foregroundStyle(SketchTheme.softBlue)
+                            Button { exportConfig() } label: {
+                                settingsRow("Export Config") {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "square.and.arrow.up")
+                                        Text("JSON")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(SketchTheme.softBlue)
+                                    }
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(SketchTheme.lightBrown)
                                 }
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
                             }
-                            settingsRow("Import Config") {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "square.and.arrow.down")
-                                    Text("JSON")
-                                        .font(SketchTheme.captionFont())
-                                        .foregroundStyle(SketchTheme.sageGreen)
+                            .buttonStyle(.plain)
+
+                            Button { showImportPicker = true } label: {
+                                settingsRow("Import Config") {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "square.and.arrow.down")
+                                        Text("JSON")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(SketchTheme.sageGreen)
+                                    }
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(SketchTheme.lightBrown)
                                 }
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
                             }
+                            .buttonStyle(.plain)
                         }
+
+                        if let msg = importMessage {
+                            Text(msg)
+                                .font(.system(size: 12, design: .serif))
+                                .foregroundStyle(msg.contains("Success") ? SketchTheme.sageGreen : SketchTheme.mutedRed)
+                                .padding(.horizontal, 4)
+                        }
+
                         Text("Backup & restore your AI provider settings, API keys, currency preferences, and app configuration.")
                             .font(.system(size: 12, design: .serif))
                             .foregroundStyle(SketchTheme.lightBrown)
@@ -215,6 +235,14 @@ struct SettingsView: View {
                 APIKeyEditorView(apiKey: $apiKey, provider: selectedProvider) {
                     saveSettings()
                 }
+            }
+            .sheet(isPresented: $showExportShare) {
+                if let url = exportFileURL {
+                    ShareSheet(items: [url])
+                }
+            }
+            .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json]) { result in
+                importConfig(result: result)
             }
         }
     }
@@ -262,6 +290,41 @@ struct SettingsView: View {
         customModel = s.customModel
         apiKey = s.apiKey
         defaultCurrency = s.defaultCurrency
+    }
+
+    private func exportConfig() {
+        guard let settings else { return }
+        saveSettings()
+        do {
+            exportFileURL = try BillMindConfig.export(settings: settings)
+            showExportShare = true
+        } catch {
+            importMessage = "Export failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func importConfig(result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            guard url.startAccessingSecurityScopedResource() else { return }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            let config = try BillMindConfig.load(from: url)
+            guard let settings else { return }
+            config.apply(to: settings)
+            try? modelContext.save()
+
+            // Reload UI state
+            selectedProvider = settings.selectedProvider
+            customModel = settings.customModel
+            apiKey = settings.apiKey
+            defaultCurrency = settings.defaultCurrency
+            testResult = nil
+            testErrorMessage = nil
+            importMessage = "Success! Configuration imported."
+        } catch {
+            importMessage = "Import failed: \(error.localizedDescription)"
+        }
     }
 
     private func testConnection() {
@@ -432,4 +495,16 @@ struct APIKeyEditorView: View {
             .onAppear { editingKey = apiKey }
         }
     }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
