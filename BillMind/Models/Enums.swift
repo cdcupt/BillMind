@@ -19,7 +19,7 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
 
     var defaultModel: String {
         switch self {
-        case .gemini: return "gemini-3-flash"
+        case .gemini: return "gemini-2.5-flash"
         case .openai: return "gpt-5.4"
         case .doubao: return "doubao-seed-2-pro"
         }
@@ -27,11 +27,14 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
 
     var baseURL: String {
         switch self {
-        case .gemini: return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        case .gemini: return "https://generativelanguage.googleapis.com/v1beta"
         case .openai: return "https://api.openai.com/v1/chat/completions"
         case .doubao: return "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
         }
     }
+
+    /// Whether this provider uses the native Gemini API format instead of OpenAI-compatible
+    var usesGeminiFormat: Bool { self == .gemini }
 
     var iconName: String {
         switch self {

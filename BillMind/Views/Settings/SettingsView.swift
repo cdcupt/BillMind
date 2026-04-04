@@ -274,19 +274,34 @@ struct SettingsView: View {
 
         Task {
             do {
-                let url = URL(string: "\(selectedProvider.baseURL)")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                request.timeoutInterval = 15
+                let model = customModel.isEmpty ? selectedProvider.defaultModel : customModel
+                let url: URL
+                var request: URLRequest
 
-                let body: [String: Any] = [
-                    "model": customModel.isEmpty ? selectedProvider.defaultModel : customModel,
-                    "messages": [["role": "user", "content": "Say OK"]],
-                    "max_tokens": 5
-                ]
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                if selectedProvider.usesGeminiFormat {
+                    url = URL(string: "\(selectedProvider.baseURL)/models/\(model):generateContent")!
+                    request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.setValue(apiKey, forHTTPHeaderField: "X-goog-api-key")
+                    let body: [String: Any] = [
+                        "contents": [["parts": [["text": "Say OK"]]]]
+                    ]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                } else {
+                    url = URL(string: selectedProvider.baseURL)!
+                    request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                    let body: [String: Any] = [
+                        "model": model,
+                        "messages": [["role": "user", "content": "Say OK"]],
+                        "max_tokens": 5
+                    ]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                }
+                request.timeoutInterval = 15
 
                 let (data, response) = try await URLSession.shared.data(for: request)
                 let httpResponse = response as? HTTPURLResponse
