@@ -287,7 +287,7 @@ struct APIKeyEditorView: View {
                     Text("API Key")
                         .font(SketchTheme.captionFont())
                         .foregroundStyle(SketchTheme.lightBrown)
-                    SecureField("sk-...", text: $editingKey)
+                    SecureField("Enter your API key", text: $editingKey)
                         .font(.system(size: 16, design: .monospaced))
                         .textFieldStyle(.plain)
                         .padding(12)
