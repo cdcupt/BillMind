@@ -379,58 +379,53 @@ struct ZoomableImageView: View {
     @State private var savedMessage: String?
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-                .onTapGesture { dismiss() }
+        VStack(spacing: 0) {
+            // Image area (tappable to dismiss)
+            ZStack {
+                Color.black
 
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .scaleEffect(scale)
-                .gesture(
-                    MagnifyGesture()
-                        .onChanged { value in
-                            scale = lastScale * value.magnification
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .scaleEffect(scale)
+                    .gesture(
+                        MagnifyGesture()
+                            .onChanged { value in
+                                scale = lastScale * value.magnification
+                            }
+                            .onEnded { _ in
+                                lastScale = scale
+                                if scale < 1 { withAnimation { scale = 1; lastScale = 1 } }
+                            }
+                    )
+                    .onTapGesture(count: 2) {
+                        withAnimation {
+                            if scale > 1 { scale = 1; lastScale = 1 }
+                            else { scale = 2.5; lastScale = 2.5 }
                         }
-                        .onEnded { _ in
-                            lastScale = scale
-                            if scale < 1 { withAnimation { scale = 1; lastScale = 1 } }
-                        }
-                )
-                .onTapGesture(count: 2) {
-                    withAnimation {
-                        if scale > 1 { scale = 1; lastScale = 1 }
-                        else { scale = 2.5; lastScale = 2.5 }
+                    }
+                    .onTapGesture(count: 1) {
+                        dismiss()
+                    }
+
+                // Toast
+                if let msg = savedMessage {
+                    VStack {
+                        Spacer()
+                        Text(msg)
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(.black.opacity(0.6))
+                            .clipShape(Capsule())
+                            .padding(.bottom, 20)
                     }
                 }
+            }
 
-            // Saved message toast
-            if let msg = savedMessage {
-                VStack {
-                    Spacer()
-                    Text(msg)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(.black.opacity(0.6))
-                        .clipShape(Capsule())
-                        .padding(.bottom, 120)
-                }
-            }
-        }
-        // Top bar: close button
-        .overlay(alignment: .topLeading) {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .padding(20)
-        }
-        // Bottom bar: save + share
-        .overlay(alignment: .bottom) {
-            HStack(spacing: 30) {
+            // Bottom bar on black background (below image)
+            HStack(spacing: 40) {
                 Button {
                     UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                     savedMessage = "Saved to Photos"
@@ -440,7 +435,7 @@ struct ZoomableImageView: View {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 20))
                         Text("Save")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.8))
                 }
@@ -450,13 +445,17 @@ struct ZoomableImageView: View {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 20))
                         Text("Share")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.8))
                 }
             }
-            .padding(.bottom, 50)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 16)
+            .padding(.bottom, 40)
+            .background(Color.black)
         }
+        .ignoresSafeArea()
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: [image])
         }
