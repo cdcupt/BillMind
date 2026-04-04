@@ -23,7 +23,7 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // AI Provider Section
+                    // AI Provider Section (merged with Connection)
                     VStack(alignment: .leading, spacing: 12) {
                         sectionTitle("AI Provider")
                         settingsCard {
@@ -53,6 +53,40 @@ struct SettingsView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+
+                            // Test Connection (inline)
+                            Button {
+                                testConnection()
+                            } label: {
+                                settingsRow("Test Connection") {
+                                    if isTesting {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    } else if let result = testResult {
+                                        Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
+                                        Text(result ? "OK" : "Failed")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(SketchTheme.dustyRose)
+                                        Text("Tap to test")
+                                            .font(SketchTheme.captionFont())
+                                            .foregroundStyle(SketchTheme.dustyRose)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(apiKey.isEmpty)
+                        }
+
+                        if let errorMsg = testErrorMessage {
+                            Text(errorMsg)
+                                .font(.system(size: 12, design: .serif))
+                                .foregroundStyle(SketchTheme.mutedRed)
+                                .padding(.horizontal, 4)
                         }
 
                         // Provider badges
@@ -94,74 +128,17 @@ struct SettingsView: View {
                         }
                     }
 
-                    // Test Connection Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionTitle("Connection")
-                        settingsCard {
-                            Button {
-                                testConnection()
-                            } label: {
-                                settingsRow("Test Connection") {
-                                    if isTesting {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                    } else if let result = testResult {
-                                        Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
-                                        Text(result ? "OK" : "Failed")
-                                            .font(SketchTheme.captionFont())
-                                            .foregroundStyle(result ? SketchTheme.sageGreen : SketchTheme.mutedRed)
-                                    } else {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(SketchTheme.dustyRose)
-                                        Text("Tap to test")
-                                            .font(SketchTheme.captionFont())
-                                            .foregroundStyle(SketchTheme.dustyRose)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(apiKey.isEmpty)
-
-                            if let errorMsg = testErrorMessage {
-                                Text(errorMsg)
-                                    .font(.system(size: 12, design: .serif))
-                                    .foregroundStyle(SketchTheme.mutedRed)
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 12)
-                            }
-                        }
-                    }
-
-                    // Data Export Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionTitle("Data Export")
-                        settingsCard {
-                            settingsRow("Export as CSV") {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
-                            }
-                            settingsRow("Export as PDF") {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(SketchTheme.lightBrown)
-                            }
-                        }
-                    }
-
                     // Configuration Section
                     VStack(alignment: .leading, spacing: 12) {
                         sectionTitle("Configuration")
                         settingsCard {
-                            Button { exportConfig() } label: {
-                                settingsRow("Export Config") {
+                            Button { showImportPicker = true } label: {
+                                settingsRow("Import Config") {
                                     HStack(spacing: 4) {
-                                        Image(systemName: "square.and.arrow.up")
+                                        Image(systemName: "square.and.arrow.down")
                                         Text("JSON")
                                             .font(SketchTheme.captionFont())
-                                            .foregroundStyle(SketchTheme.softBlue)
+                                            .foregroundStyle(SketchTheme.sageGreen)
                                     }
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 12))
@@ -170,13 +147,13 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
 
-                            Button { showImportPicker = true } label: {
-                                settingsRow("Import Config") {
+                            Button { exportConfig() } label: {
+                                settingsRow("Export Config") {
                                     HStack(spacing: 4) {
-                                        Image(systemName: "square.and.arrow.down")
+                                        Image(systemName: "square.and.arrow.up")
                                         Text("JSON")
                                             .font(SketchTheme.captionFont())
-                                            .foregroundStyle(SketchTheme.sageGreen)
+                                            .foregroundStyle(SketchTheme.softBlue)
                                     }
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 12))
@@ -362,7 +339,7 @@ struct SettingsView: View {
                     ]
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
                 }
-                request.timeoutInterval = 15
+                request.timeoutInterval = 30
 
                 let (data, response) = try await URLSession.shared.data(for: request)
                 let httpResponse = response as? HTTPURLResponse
