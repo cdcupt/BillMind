@@ -375,10 +375,13 @@ struct ZoomableImageView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var scale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
+    @State private var showShareSheet = false
+    @State private var savedMessage: String?
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+                .onTapGesture { dismiss() }
 
             Image(uiImage: image)
                 .resizable()
@@ -400,14 +403,62 @@ struct ZoomableImageView: View {
                         else { scale = 2.5; lastScale = 2.5 }
                     }
                 }
+
+            // Saved message toast
+            if let msg = savedMessage {
+                VStack {
+                    Spacer()
+                    Text(msg)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(.black.opacity(0.6))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 120)
+                }
+            }
         }
-        .overlay(alignment: .topTrailing) {
+        // Top bar: close button
+        .overlay(alignment: .topLeading) {
             Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(.white.opacity(0.8))
             }
             .padding(20)
+        }
+        // Bottom bar: save + share
+        .overlay(alignment: .bottom) {
+            HStack(spacing: 30) {
+                Button {
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    savedMessage = "Saved to Photos"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { savedMessage = nil }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 20))
+                        Text("Save")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                }
+
+                Button { showShareSheet = true } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 20))
+                        Text("Share")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                }
+            }
+            .padding(.bottom, 50)
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: [image])
         }
     }
 }
