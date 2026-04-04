@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct BillDetailView: View {
-    let bill: BillRecord
+    @Bindable var bill: BillRecord
     let currencySymbol: String
+    @Environment(\.modelContext) private var modelContext
     @State private var showFullImage = false
+    @State private var showEdit = false
 
     private var billImage: UIImage? {
         guard let path = bill.imagePaths.first else { return nil }
@@ -109,12 +111,189 @@ struct BillDetailView: View {
                     .font(SketchTheme.headlineFont(20))
                     .foregroundStyle(SketchTheme.softBrown)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showEdit = true } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(SketchTheme.dustyRose)
+                }
+            }
         }
         .fullScreenCover(isPresented: $showFullImage) {
             if let image = billImage {
                 ZoomableImageView(image: image)
             }
         }
+        .sheet(isPresented: $showEdit) {
+            EditBillView(bill: bill)
+        }
+    }
+}
+
+// MARK: - Edit Bill View
+
+struct EditBillView: View {
+    @Bindable var bill: BillRecord
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var merchant: String = ""
+    @State private var amountText: String = ""
+    @State private var date: Date = Date()
+    @State private var selectedCategory: BillCategory = .misc
+    @State private var currency: String = ""
+    @State private var note: String = ""
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Amount
+                    VStack(spacing: 4) {
+                        Text("Amount")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        TextField("0.00", text: $amountText)
+                            .font(SketchTheme.amountFont(42))
+                            .foregroundStyle(SketchTheme.dustyRose)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.center)
+                            .textFieldStyle(.plain)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .sketchCard()
+
+                    // Merchant
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Merchant")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        TextField("Store or company name", text: $merchant)
+                            .font(SketchTheme.bodyFont())
+                            .textFieldStyle(.plain)
+                            .padding(12)
+                            .background(SketchTheme.cream)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .sketchCard()
+
+                    // Category
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Category")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()), GridItem(.flexible()),
+                            GridItem(.flexible()), GridItem(.flexible()),
+                            GridItem(.flexible()),
+                        ], spacing: 10) {
+                            ForEach(BillCategory.allCases) { category in
+                                Button { selectedCategory = category } label: {
+                                    VStack(spacing: 4) {
+                                        Image(category.icon)
+                                            .resizable().scaledToFill()
+                                            .frame(width: 28, height: 28)
+                                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        Text(category.englishName)
+                                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(selectedCategory == category ? category.color.opacity(0.15) : SketchTheme.cream)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(selectedCategory == category ? category.color.opacity(0.5) : Color.clear, lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(SketchTheme.softBrown)
+                            }
+                        }
+                    }
+                    .sketchCard()
+
+                    // Date
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Date")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        DatePicker("", selection: $date)
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            .tint(SketchTheme.dustyRose)
+                    }
+                    .sketchCard()
+
+                    // Note
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Note")
+                            .font(SketchTheme.captionFont())
+                            .foregroundStyle(SketchTheme.lightBrown)
+                        TextField("Additional details...", text: $note, axis: .vertical)
+                            .font(SketchTheme.bodyFont(14))
+                            .textFieldStyle(.plain)
+                            .lineLimit(2...4)
+                            .padding(12)
+                            .background(SketchTheme.cream)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .sketchCard()
+
+                    // Save
+                    Button { saveBill() } label: {
+                        HStack {
+                            Image(systemName: "checkmark")
+                            Text("Save Changes")
+                                .font(SketchTheme.headlineFont(18))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(SketchTheme.primaryGradient)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
+            }
+            .paperBackground()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Edit Bill")
+                        .font(SketchTheme.headlineFont(20))
+                        .foregroundStyle(SketchTheme.softBrown)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(SketchTheme.dustyRose)
+                }
+            }
+            .onAppear { loadBill() }
+        }
+    }
+
+    private func loadBill() {
+        merchant = bill.merchant ?? ""
+        amountText = bill.amount.formatted2
+        date = bill.date
+        selectedCategory = bill.category
+        currency = bill.originalCurrency ?? ""
+        note = bill.note ?? ""
+    }
+
+    private func saveBill() {
+        if let amount = Decimal(string: amountText) {
+            bill.amount = amount
+        }
+        bill.merchant = merchant.isEmpty ? nil : merchant
+        bill.date = date
+        bill.category = selectedCategory
+        bill.originalCurrency = currency.isEmpty ? nil : currency
+        bill.note = note.isEmpty ? nil : note
+        try? modelContext.save()
+        dismiss()
     }
 }
 
