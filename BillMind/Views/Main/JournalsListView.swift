@@ -43,9 +43,9 @@ struct JournalsListView: View {
                 .padding(.top, 8)
             }
             .paperBackground()
-            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .principal) {
                     Text("BillMind")
                         .font(SketchTheme.titleFont(28))
                         .foregroundStyle(SketchTheme.softBrown)
