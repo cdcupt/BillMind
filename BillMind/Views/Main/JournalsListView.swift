@@ -6,6 +6,8 @@ struct JournalsListView: View {
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
     @State private var navigationPath = NavigationPath()
+    @State private var journalToDelete: Journal?
+    @State private var showDeleteAlert = false
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -31,6 +33,14 @@ struct JournalsListView: View {
                                     JournalCardView(journal: journal)
                                 }
                                 .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        journalToDelete = journal
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label("Delete Journal", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -71,6 +81,18 @@ struct JournalsListView: View {
                         navigationPath.append(journalId)
                     }
                 }
+            }
+            .alert("Delete Journal?", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) { journalToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let journal = journalToDelete {
+                        modelContext.delete(journal)
+                        try? modelContext.save()
+                        journalToDelete = nil
+                    }
+                }
+            } message: {
+                Text("This will permanently delete \"\(journalToDelete?.name ?? "")\" and all its bills.")
             }
         }
     }
