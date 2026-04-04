@@ -39,7 +39,9 @@ struct SettingsView: View {
                             settingsRow("Recognition Model") {
                                 Picker("", selection: $customModel) {
                                     ForEach(selectedProvider.availableModels, id: \.self) { model in
-                                        Text(model).tag(model)
+                                        let price = AIProvider.priceLabel(for: model)
+                                        Text(price.isEmpty ? model : "\(model) (\(price))")
+                                            .tag(model)
                                     }
                                 }
                                 .tint(SketchTheme.dustyRose)
@@ -47,7 +49,9 @@ struct SettingsView: View {
                             settingsRow("Image Gen Model") {
                                 Picker("", selection: $imageModel) {
                                     ForEach(selectedProvider.availableImageModels, id: \.self) { model in
-                                        Text(model).tag(model)
+                                        let price = AIProvider.priceLabel(for: model)
+                                        Text(price.isEmpty ? model : "\(model) (\(price))")
+                                            .tag(model)
                                     }
                                 }
                                 .tint(SketchTheme.sageGreen)

@@ -97,6 +97,32 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
         ]
         }
     }
+
+    /// Price per 1M tokens: "input / output"
+    static func priceLabel(for model: String) -> String {
+        let prices: [String: String] = [
+            // Gemini recognition
+            "gemini-3-flash-preview": "$0.50 / $3",
+            "gemini-3.1-pro-preview": "$2 / $12",
+            "gemini-2.5-flash": "$0.30 / $2.50",
+            "gemini-2.5-pro": "$1.25 / $10",
+            "gemini-3.1-flash-lite-preview": "$0.25 / $1.50",
+            // Gemini image gen
+            "gemini-3.1-flash-image-preview": "$0.50 / ~$0.04/img",
+            "gemini-3-pro-image-preview": "$2 / ~$0.13/img",
+            "gemini-2.5-flash-image": "$0.30 / ~$0.04/img",
+            // OpenAI
+            "gpt-5.4": "$2.50 / $12",
+            "gpt-5.4-nano": "$0.20 / $1.25",
+            "gpt-5": "$10 / $10",
+            "gpt-5-image-mini": "$2.50 / ~$0.02/img",
+            "gpt-5-image": "$10 / ~$0.04/img",
+            // Doubao
+            "doubao-seed-2-pro": "~$0.47 / $2.37",
+            "doubao-seed-2-lite": "~$0.15 / $0.60",
+        ]
+        return prices[model] ?? ""
+    }
 }
 
 // MARK: - Bill Category
