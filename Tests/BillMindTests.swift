@@ -7,7 +7,7 @@ final class BillMindTests: XCTestCase {
     }
 
     func testAIProviderDefaults() {
-        XCTAssertEqual(AIProvider.gemini.defaultModel, "gemini-3-flash-preview")
+        XCTAssertEqual(AIProvider.gemini.defaultModel, "gemini-2.5-flash")
         XCTAssertEqual(AIProvider.openai.defaultModel, "gpt-5.4")
         XCTAssertEqual(AIProvider.doubao.defaultModel, "doubao-seed-2-pro")
         XCTAssertEqual(AIProvider.allCases.count, 3)
