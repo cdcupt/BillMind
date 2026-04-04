@@ -5,6 +5,7 @@ struct BillMindConfig: Codable {
     var version: String = "1.0"
     var provider: String
     var model: String
+    var imageModel: String?
     var apiKey: String
     var defaultCurrency: String
     var maxPhotosPerBatch: Int
@@ -13,6 +14,7 @@ struct BillMindConfig: Codable {
         BillMindConfig(
             provider: settings.selectedProviderRaw,
             model: settings.customModel,
+            imageModel: settings.imageModel,
             apiKey: settings.apiKey,
             defaultCurrency: settings.defaultCurrency,
             maxPhotosPerBatch: settings.maxPhotosPerBatch
@@ -24,6 +26,7 @@ struct BillMindConfig: Codable {
             settings.selectedProvider = provider
         }
         settings.customModel = model
+        settings.imageModel = imageModel ?? provider == "gemini" ? "gemini-3.1-flash-image-preview" : ""
         settings.apiKey = apiKey
         settings.defaultCurrency = defaultCurrency
         settings.maxPhotosPerBatch = maxPhotosPerBatch
