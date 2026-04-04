@@ -7,7 +7,12 @@ struct MindsView: View {
     @Query private var allSettings: [AppSettings]
     private var settings: AppSettings? { allSettings.first }
 
-    @State private var selectedJournal: Journal?
+    @State private var selectedJournalId: UUID?
+
+    private var selectedJournal: Journal? {
+        guard let id = selectedJournalId else { return nil }
+        return journals.first(where: { $0.id == id })
+    }
     @State private var isGenerating = false
     @State private var generatedImage: UIImage?
     @State private var errorMessage: String?
@@ -86,6 +91,11 @@ struct MindsView: View {
                     }
                 }
             }
+            .onAppear {
+                if selectedJournalId == nil, let first = journals.first {
+                    selectedJournalId = first.id
+                }
+            }
             .sheet(isPresented: $showShareSheet) {
                 if let image = generatedImage {
                     ShareSheet(items: [image])
@@ -109,7 +119,7 @@ struct MindsView: View {
             } else {
                 ForEach(journals) { journal in
                     Button {
-                        selectedJournal = journal
+                        selectedJournalId = journal.id
                         generatedImage = nil
                         savedMessage = nil
                     } label: {
@@ -134,7 +144,7 @@ struct MindsView: View {
                                 }
                             }
                             Spacer()
-                            if selectedJournal?.id == journal.id {
+                            if selectedJournalId == journal.id {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(SketchTheme.sageGreen)
                             }
