@@ -207,10 +207,6 @@ struct SettingsView: View {
                             .clipShape(Circle())
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundStyle(SketchTheme.dustyRose)
-                }
             }
             .onAppear { loadSettings() }
             .onChange(of: selectedProvider) { _, _ in saveSettings() }

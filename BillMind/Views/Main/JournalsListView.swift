@@ -5,7 +5,6 @@ struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
-    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -51,21 +50,12 @@ struct JournalsListView: View {
                         .foregroundStyle(SketchTheme.softBrown)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            showNewJournal = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(SketchTheme.softBrown)
-                        }
-                        Button {
-                            showSettings = true
-                        } label: {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(SketchTheme.softBrown)
-                        }
+                    Button {
+                        showNewJournal = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(SketchTheme.softBrown)
                     }
                 }
             }
@@ -76,9 +66,6 @@ struct JournalsListView: View {
             }
             .sheet(isPresented: $showNewJournal) {
                 NewJournalView()
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
             }
         }
     }
