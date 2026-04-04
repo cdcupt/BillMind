@@ -547,11 +547,52 @@ struct DraftBillCard: View {
                 .background(SketchTheme.cream)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            // Line items summary
+            // Line items (collapsible, editable)
             if !draft.lineItems.isEmpty {
-                Text("\(draft.lineItems.count) line items")
-                    .font(SketchTheme.captionFont(11))
-                    .foregroundStyle(SketchTheme.lightBrown)
+                DisclosureGroup {
+                    VStack(spacing: 6) {
+                        ForEach(draft.lineItems.indices, id: \.self) { index in
+                            HStack(spacing: 6) {
+                                TextField("Item", text: Binding(
+                                    get: { draft.lineItems[safe: index]?.itemDescription ?? "" },
+                                    set: { if draft.lineItems.indices.contains(index) { draft.lineItems[index].itemDescription = $0 } }
+                                ))
+                                .font(SketchTheme.bodyFont(12))
+                                .textFieldStyle(.plain)
+
+                                TextField("0", text: Binding(
+                                    get: { draft.lineItems[safe: index].map { $0.amount.formatted2 } ?? "" },
+                                    set: {
+                                        if draft.lineItems.indices.contains(index),
+                                           let val = Decimal(string: $0) {
+                                            draft.lineItems[index].amount = val
+                                        }
+                                    }
+                                ))
+                                .font(SketchTheme.captionFont(12))
+                                .foregroundStyle(SketchTheme.softBrown)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(.plain)
+                                .frame(width: 60)
+                                .multilineTextAlignment(.trailing)
+
+                                Button {
+                                    draft.lineItems.remove(at: index)
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(SketchTheme.mutedRed.opacity(0.5))
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                } label: {
+                    Text("\(draft.lineItems.count) line items")
+                        .font(SketchTheme.captionFont(12))
+                        .foregroundStyle(SketchTheme.lightBrown)
+                }
+                .tint(SketchTheme.lightBrown)
             }
 
             // Retry button for failed recognition
