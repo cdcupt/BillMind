@@ -36,9 +36,12 @@ struct SettingsView: View {
                                 .tint(SketchTheme.dustyRose)
                             }
                             settingsRow("Model") {
-                                Text(customModel.isEmpty ? selectedProvider.defaultModel : customModel)
-                                    .font(SketchTheme.captionFont())
-                                    .foregroundStyle(SketchTheme.dustyRose)
+                                Picker("", selection: $customModel) {
+                                    ForEach(selectedProvider.availableModels, id: \.self) { model in
+                                        Text(model).tag(model)
+                                    }
+                                }
+                                .tint(SketchTheme.dustyRose)
                             }
                             Button {
                                 showAPIKeyEditor = true
@@ -206,7 +209,12 @@ struct SettingsView: View {
                 }
             }
             .onAppear { loadSettings() }
-            .onChange(of: selectedProvider) { _, _ in saveSettings() }
+            .onChange(of: selectedProvider) { _, newProvider in
+                customModel = newProvider.defaultModel
+                testResult = nil
+                testErrorMessage = nil
+                saveSettings()
+            }
             .onChange(of: apiKey) { _, _ in testResult = nil; testErrorMessage = nil }
             .sheet(isPresented: $showAPIKeyEditor) {
                 APIKeyEditorView(apiKey: $apiKey, provider: selectedProvider) {
@@ -264,7 +272,7 @@ struct SettingsView: View {
         let s = AppSettings.getOrCreate(context: modelContext)
         settings = s
         selectedProvider = s.selectedProvider
-        customModel = s.customModel
+        customModel = s.customModel.isEmpty ? s.selectedProvider.defaultModel : s.customModel
         apiKey = s.apiKey
         defaultCurrency = s.defaultCurrency
     }

@@ -51,6 +51,27 @@ enum AIProvider: String, Codable, CaseIterable, Identifiable {
         case .doubao: return Color(hex: "FF6A00")
         }
     }
+
+    var availableModels: [String] {
+        switch self {
+        case .gemini: return [
+            "gemini-3-flash-preview",
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+            "gemini-3.1-flash-lite-preview",
+        ]
+        case .openai: return [
+            "gpt-5.4",
+            "gpt-5.4-nano",
+            "gpt-5",
+        ]
+        case .doubao: return [
+            "doubao-seed-2-pro",
+            "doubao-seed-2-lite",
+        ]
+        }
+    }
 }
 
 // MARK: - Bill Category

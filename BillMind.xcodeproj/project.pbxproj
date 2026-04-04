@@ -32,6 +32,7 @@
 		DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */; };
 		E0263C4219656B96A789FAAD /* Prompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166CBE10EC2FF76A53B34FF0 /* Prompts.swift */; };
 		FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */; };
+		FD1BEC650A90B214EFD47A8D /* MindsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E76A2BD5243EED8B530996 /* MindsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +53,7 @@
 		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
 		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		166CBE10EC2FF76A53B34FF0 /* Prompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prompts.swift; sourceTree = "<group>"; };
+		17E76A2BD5243EED8B530996 /* MindsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindsView.swift; sourceTree = "<group>"; };
 		3F627B2C431A4DEF5C0281FD /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
 		412B83CE985985B1EA8A1BDC /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		4D022264B53C134EA879EFEE /* StatsPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPageView.swift; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */,
+				17E76A2BD5243EED8B530996 /* MindsView.swift */,
 				0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */,
 				4D022264B53C134EA879EFEE /* StatsPageView.swift */,
 			);
@@ -330,6 +333,7 @@
 				6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */,
 				5AC3B4D9B628FF07A061DB21 /* JournalDetailView.swift in Sources */,
 				FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */,
+				FD1BEC650A90B214EFD47A8D /* MindsView.swift in Sources */,
 				6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */,
 				E0263C4219656B96A789FAAD /* Prompts.swift in Sources */,
 				469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */,

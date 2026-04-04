@@ -19,12 +19,19 @@ struct ContentView: View {
                 }
                 .tag(1)
 
+            MindsView()
+                .tabItem {
+                    Image(systemName: "sparkles")
+                    Text("Minds")
+                }
+                .tag(2)
+
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape.fill")
                     Text("Settings")
                 }
-                .tag(2)
+                .tag(3)
         }
         .tint(SketchTheme.dustyRose)
     }
