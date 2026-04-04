@@ -171,14 +171,21 @@ struct NewJournalView: View {
     }
 
     private func createJournal() {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
+
         let journal = Journal(
-            name: name.trimmingCharacters(in: .whitespaces),
+            name: trimmedName,
             currency: selectedCurrency,
             coverAnimal: selectedAnimal,
             notes: notes.isEmpty ? nil : notes
         )
         modelContext.insert(journal)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save journal: \(error)")
+        }
         dismiss()
     }
 }
