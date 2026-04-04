@@ -15,9 +15,33 @@ struct JournalDetailView: View {
         CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
     }
 
+    @State private var showMindFullscreen = false
+
+    private var mindImage: UIImage? {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("minds/\(journal.id.uuidString)", isDirectory: true)
+        let path = dir.appendingPathComponent("mind.jpg").path
+        guard FileManager.default.fileExists(atPath: path) else { return nil }
+        return UIImage(contentsOfFile: path)
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Saved Mind (if exists)
+                if let mind = mindImage {
+                    Button { showMindFullscreen = true } label: {
+                        Image(uiImage: mind)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(color: SketchTheme.paperShadow, radius: 4, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                }
+
                 // Currency widget
                 currencyWidget
 
@@ -80,6 +104,11 @@ struct JournalDetailView: View {
         }
         .sheet(isPresented: $showImportFlow) {
             BillImportFlowView(journal: journal)
+        }
+        .fullScreenCover(isPresented: $showMindFullscreen) {
+            if let mind = mindImage {
+                ZoomableImageView(image: mind)
+            }
         }
     }
 

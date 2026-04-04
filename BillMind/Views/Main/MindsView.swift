@@ -224,43 +224,35 @@ struct MindsView: View {
 
     @ViewBuilder
     private func savedMindsGallery(for journal: Journal) -> some View {
-        let paths = savedMindPaths(for: journal)
-        if !paths.isEmpty {
+        if let path = savedMindPaths(for: journal).first, let image = loadImage(path) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Saved Minds (\(paths.count))")
+                Text("Saved Mind")
                     .font(SketchTheme.headlineFont(16))
                     .foregroundStyle(SketchTheme.softBrown)
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(paths, id: \.self) { path in
-                        if let image = loadImage(path) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(height: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .shadow(color: SketchTheme.paperShadow, radius: 4, y: 2)
-                                .contextMenu {
-                                    Button {
-                                        showShareSheet = true
-                                        generatedImage = image
-                                    } label: {
-                                        Label("Share", systemImage: "square.and.arrow.up")
-                                    }
-                                    Button {
-                                        saveToPhotos(image)
-                                    } label: {
-                                        Label("Save to Photos", systemImage: "photo")
-                                    }
-                                    Button(role: .destructive) {
-                                        deleteMind(path: path, journal: journal)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: SketchTheme.paperShadow, radius: 4, y: 2)
+                    .contextMenu {
+                        Button {
+                            showShareSheet = true
+                            generatedImage = image
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            saveToPhotos(image)
+                        } label: {
+                            Label("Save to Photos", systemImage: "photo")
+                        }
+                        Button(role: .destructive) {
+                            deleteMind(path: path, journal: journal)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
                     }
-                }
             }
             .sketchCard()
         }
@@ -276,9 +268,11 @@ struct MindsView: View {
     }
 
     private func savedMindPaths(for journal: Journal) -> [String] {
-        let dir = mindDirectory(for: journal)
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
-        return files.filter { $0.hasSuffix(".jpg") }.sorted().reversed().map { dir.appendingPathComponent($0).path }
+        let path = mindDirectory(for: journal).appendingPathComponent("mind.jpg").path
+        if FileManager.default.fileExists(atPath: path) {
+            return [path]
+        }
+        return []
     }
 
     private func loadImage(_ path: String) -> UIImage? {
@@ -288,8 +282,8 @@ struct MindsView: View {
     private func saveToJournal(_ image: UIImage) {
         guard let journal = selectedJournal else { return }
         let dir = mindDirectory(for: journal)
-        let filename = "mind_\(Date().formatted(as: "yyyyMMdd_HHmmss")).jpg"
-        let fileURL = dir.appendingPathComponent(filename)
+        let fileURL = dir.appendingPathComponent("mind.jpg")
+        // Overwrite previous mind
         if let data = image.jpegData(compressionQuality: 0.9) {
             try? data.write(to: fileURL)
             savedMessage = "Mind saved!"
