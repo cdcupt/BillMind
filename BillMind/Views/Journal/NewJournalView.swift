@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct NewJournalView: View {
+    var onCreated: ((UUID) -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
@@ -186,6 +187,7 @@ struct NewJournalView: View {
         } catch {
             print("Failed to save journal: \(error)")
         }
+        onCreated?(journal.id)
         dismiss()
     }
 }

@@ -5,9 +5,10 @@ struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 16) {
                     if !journals.isEmpty {
@@ -65,7 +66,11 @@ struct JournalsListView: View {
                 }
             }
             .sheet(isPresented: $showNewJournal) {
-                NewJournalView()
+                NewJournalView { journalId in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        navigationPath.append(journalId)
+                    }
+                }
             }
         }
     }

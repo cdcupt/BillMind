@@ -197,6 +197,7 @@ struct BillImportFlowView: View {
     // MARK: - Step 2: Recognizing
 
     private var recognizingStep: some View {
+        ScrollView {
         VStack(spacing: 20) {
             StepIndicator(current: 2, total: 3)
 
@@ -253,6 +254,14 @@ struct BillImportFlowView: View {
                     .foregroundStyle(SketchTheme.mutedRed)
                     .padding()
             }
+
+            Spacer(minLength: 40)
+
+            Text("Using: \(settings?.selectedProvider.displayName ?? "Gemini")")
+                .font(SketchTheme.captionFont())
+                .foregroundStyle(SketchTheme.lightBrown)
+        }
+        .padding()
         }
         .padding()
     }
@@ -281,7 +290,9 @@ struct BillImportFlowView: View {
 
                 // Editable draft bills
                 ForEach($draftBills) { $draft in
-                    DraftBillCard(draft: $draft)
+                    DraftBillCard(draft: $draft) {
+                        retryRecognition(for: draft.id)
+                    }
                 }
 
                 // Save all button
@@ -342,7 +353,7 @@ struct BillImportFlowView: View {
                     )
                     draftBills.append(draft)
                 } catch {
-                    // Create a draft with error, user can fill manually
+                    // Create a draft with error, user can fill manually or retry
                     let draft = DraftBill(
                         sourceImage: image,
                         merchant: "",
@@ -351,7 +362,8 @@ struct BillImportFlowView: View {
                         category: .misc,
                         currency: journal.currency,
                         note: "Recognition failed: \(error.localizedDescription)",
-                        lineItems: []
+                        lineItems: [],
+                        failed: true
                     )
                     draftBills.append(draft)
                     errorMessage = "Photo \(index + 1): \(error.localizedDescription)"
@@ -365,6 +377,45 @@ struct BillImportFlowView: View {
     @MainActor
     private func getAPIKey() -> String {
         return settings?.apiKey ?? ""
+    }
+
+    private func retryRecognition(for draftId: UUID) {
+        guard let index = draftBills.firstIndex(where: { $0.id == draftId }) else { return }
+        let image = draftBills[index].sourceImage
+
+        let provider = settings?.selectedProvider ?? .gemini
+        let model = (settings?.customModel.isEmpty ?? true) ? provider.defaultModel : (settings?.customModel ?? provider.defaultModel)
+
+        draftBills[index].failed = false
+        draftBills[index].note = "Retrying..."
+
+        Task {
+            let service = AIService()
+            let key = await getAPIKey()
+            do {
+                let result = try await service.recognizeBill(
+                    images: [image],
+                    provider: provider,
+                    model: model,
+                    apiKey: key
+                )
+                await MainActor.run {
+                    draftBills[index].merchant = result.merchant ?? ""
+                    draftBills[index].amount = result.parsedAmount?.formatted2 ?? ""
+                    draftBills[index].date = result.parsedDate ?? Date()
+                    draftBills[index].category = result.parsedCategory ?? .misc
+                    draftBills[index].currency = result.currency ?? journal.currency
+                    draftBills[index].note = result.notes ?? ""
+                    draftBills[index].lineItems = result.toBillLineItems()
+                    draftBills[index].failed = false
+                }
+            } catch {
+                await MainActor.run {
+                    draftBills[index].note = "Retry failed: \(error.localizedDescription)"
+                    draftBills[index].failed = true
+                }
+            }
+        }
     }
 
     private func saveAllBills() {
@@ -412,12 +463,14 @@ struct DraftBill: Identifiable {
     var currency: String
     var note: String
     var lineItems: [BillLineItem]
+    var failed: Bool = false
 }
 
 // MARK: - Draft Bill Card
 
 struct DraftBillCard: View {
     @Binding var draft: DraftBill
+    var onRetry: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -491,6 +544,25 @@ struct DraftBillCard: View {
                 Text("\(draft.lineItems.count) line items")
                     .font(SketchTheme.captionFont(11))
                     .foregroundStyle(SketchTheme.lightBrown)
+            }
+
+            // Retry button for failed recognition
+            if draft.failed, let onRetry {
+                Button {
+                    onRetry()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Retry Recognition")
+                            .font(SketchTheme.headlineFont(14))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(SketchTheme.warmOrange.opacity(0.15))
+                    .foregroundStyle(SketchTheme.warmOrange)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
             }
         }
         .sketchCard()
