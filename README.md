@@ -73,3 +73,7 @@ Import `BillMind_config.json` in Settings to quickly set up:
   "defaultCurrency": "CNY"
 }
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
