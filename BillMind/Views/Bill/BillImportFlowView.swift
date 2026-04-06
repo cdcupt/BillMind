@@ -333,13 +333,15 @@ struct BillImportFlowView: View {
             for (index, image) in selectedImages.enumerated() {
                 processingIndex = index
                 do {
+                    let isDemoMode = settings?.demoMode ?? false
                     let key = await getAPIKey()
-                    guard !key.isEmpty else { throw AIError.noAPIKey }
+                    guard isDemoMode || !key.isEmpty else { throw AIError.noAPIKey }
                     let result = try await service.recognizeBill(
                         images: [image],
                         provider: provider,
                         model: model,
-                        apiKey: key
+                        apiKey: key,
+                        demoMode: isDemoMode
                     )
                     let draft = DraftBill(
                         sourceImage: image,
@@ -393,11 +395,13 @@ struct BillImportFlowView: View {
             let service = AIService()
             let key = await getAPIKey()
             do {
+                let isDemoMode = settings?.demoMode ?? false
                 let result = try await service.recognizeBill(
                     images: [image],
                     provider: provider,
                     model: model,
-                    apiKey: key
+                    apiKey: key,
+                    demoMode: isDemoMode
                 )
                 await MainActor.run {
                     draftBills[index].merchant = result.merchant ?? ""

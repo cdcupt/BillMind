@@ -305,18 +305,36 @@ struct MindsView: View {
 
     private func generateMind() {
         guard let journal = selectedJournal, !journal.bills.isEmpty else { return }
-        guard let apiKey = settings?.apiKey, !apiKey.isEmpty else {
-            errorMessage = "Please set your API key in Settings first"
-            return
-        }
-        guard settings?.selectedProvider == .gemini else {
-            errorMessage = "Minds requires Google Gemini. Please switch provider in Settings."
-            return
+
+        let isDemoMode = settings?.demoMode ?? false
+        let apiKey = settings?.apiKey ?? ""
+
+        if !isDemoMode {
+            guard !apiKey.isEmpty else {
+                errorMessage = "Please set your API key in Settings first"
+                return
+            }
+            guard settings?.selectedProvider == .gemini else {
+                errorMessage = "Minds requires Google Gemini. Please switch provider in Settings."
+                return
+            }
         }
 
         isGenerating = true
         errorMessage = nil
         savedMessage = nil
+
+        // Demo mode: generate a placeholder infographic
+        if isDemoMode {
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                await MainActor.run {
+                    generatedImage = DemoData.generatePlaceholderMind(journal: journal)
+                    isGenerating = false
+                }
+            }
+            return
+        }
 
         let currencySymbol = CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
         let billsSorted = journal.bills.sorted { $0.date < $1.date }

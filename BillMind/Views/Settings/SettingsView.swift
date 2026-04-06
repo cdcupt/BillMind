@@ -24,6 +24,28 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Demo Mode Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionTitle("Demo Mode")
+                        settingsCard {
+                            settingsRow("Demo Mode") {
+                                Toggle("", isOn: Binding(
+                                    get: { settings?.demoMode ?? false },
+                                    set: {
+                                        settings?.demoMode = $0
+                                        try? modelContext.save()
+                                    }
+                                ))
+                                .tint(SketchTheme.sageGreen)
+                                .labelsHidden()
+                            }
+                        }
+                        Text("Try all features without an API key. Uses sample bill data and a placeholder Mind image.")
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundStyle(SketchTheme.lightBrown)
+                            .padding(.horizontal, 4)
+                    }
+
                     // AI Provider Section (merged with Connection)
                     VStack(alignment: .leading, spacing: 12) {
                         sectionTitle("AI Provider")

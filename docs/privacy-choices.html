@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMind - Privacy Choices</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #1C1917;
+            background: #FDF6EC;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 28px; margin: 30px 0 10px; color: #D97706; }
+        h2 { font-size: 20px; margin: 24px 0 8px; color: #1C1917; }
+        p, li { font-size: 15px; color: #44403C; margin-bottom: 8px; }
+        ul { padding-left: 20px; }
+        .section { background: white; padding: 20px; border-radius: 16px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        a { color: #D97706; }
+        .lang-btn { display: inline-block; color: #D97706; font-weight: 600; padding: 6px 16px; border: 2px solid #D97706; border-radius: 20px; cursor: pointer; font-size: 14px; background: none; }
+        .lang-btn:hover { background: #D97706; color: white; }
+        .lang-switch { text-align: right; margin: 10px 0; }
+        .zh { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="lang-switch">
+    <button class="lang-btn" onclick="toggleLang()">中文</button>
+</div>
+
+<h1>BillMind</h1>
+<h2 class="en">Your Privacy Choices</h2>
+<h2 class="zh">您的隐私选择</h2>
+
+<div class="section">
+<h2 class="en">Data Control</h2>
+<h2 class="zh">数据控制</h2>
+<p class="en">BillMind gives you full control over your data. All information is stored locally on your device — we never collect, store, or have access to any of your data.</p>
+<p class="zh">BillMind 让您完全掌控自己的数据。所有信息都存储在您的设备本地——我们从不收集、存储或访问您的任何数据。</p>
+</div>
+
+<div class="section">
+<h2 class="en">AI Processing</h2>
+<h2 class="zh">AI 处理</h2>
+<p class="en">You choose whether to use AI features. When enabled, receipt images and bill data are sent directly to your chosen AI provider (Gemini, OpenAI, or Doubao). You can:</p>
+<p class="zh">您可以自行选择是否使用 AI 功能。启用后，发票图片和账单数据将直接发送至您选择的 AI 服务商（Gemini、OpenAI 或豆包）。您可以：</p>
+<ul class="en">
+    <li><strong>Opt out of AI</strong> — Add bills manually without any network requests</li>
+    <li><strong>Choose your provider</strong> — Select which AI service processes your data</li>
+    <li><strong>Control your API key</strong> — Use your own key; remove it anytime to disable AI</li>
+</ul>
+<ul class="zh">
+    <li><strong>不使用 AI</strong> — 手动添加账单，无需任何网络请求</li>
+    <li><strong>选择服务商</strong> — 选择处理您数据的 AI 服务</li>
+    <li><strong>管理 API 密钥</strong> — 使用自己的密钥；随时移除即可禁用 AI</li>
+</ul>
+</div>
+
+<div class="section">
+<h2 class="en">Camera & Photos</h2>
+<h2 class="zh">相机和照片</h2>
+<p class="en">Camera and photo library access is requested only when you choose to add a receipt photo. You can deny these permissions and still use the app by entering bills manually.</p>
+<p class="zh">仅在您选择添加发票照片时才会请求相机和相册权限。您可以拒绝这些权限，仍然可以手动输入账单使用应用。</p>
+</div>
+
+<div class="section">
+<h2 class="en">Delete Your Data</h2>
+<h2 class="zh">删除您的数据</h2>
+<p class="en">Since all data is stored locally on your device, you have complete control:</p>
+<p class="zh">由于所有数据都存储在您的设备本地，您拥有完全的控制权：</p>
+<ul class="en">
+    <li>Delete individual bills or entire journals within the app</li>
+    <li>Remove your API key from Settings at any time</li>
+    <li>Delete the app to remove all stored data permanently</li>
+</ul>
+<ul class="zh">
+    <li>在应用内删除单条账单或整个旅行日记</li>
+    <li>随时从设置中移除 API 密钥</li>
+    <li>删除应用即可永久移除所有存储数据</li>
+</ul>
+</div>
+
+<div class="section">
+<h2 class="en">No Tracking</h2>
+<h2 class="zh">无追踪</h2>
+<p class="en">BillMind does not use any analytics, advertising, or tracking frameworks. We do not collect usage statistics, crash reports, or any form of telemetry.</p>
+<p class="zh">BillMind 不使用任何分析、广告或追踪框架。我们不收集使用统计、崩溃报告或任何形式的遥测数据。</p>
+</div>
+
+<div class="section">
+<h2 class="en">Questions?</h2>
+<h2 class="zh">有问题？</h2>
+<p class="en">For privacy-related questions, please contact us:</p>
+<p class="zh">如有隐私相关问题，请联系我们：</p>
+<p>GitHub: <a href="https://github.com/cdcupt/BillMind/issues">github.com/cdcupt/BillMind/issues</a></p>
+<p class="en">See also: <a href="privacy-policy.html">Full Privacy Policy</a></p>
+<p class="zh">另请参阅：<a href="privacy-policy.html">完整隐私政策</a></p>
+</div>
+
+<div style="text-align: center; padding: 30px 0 20px; color: #78716C; font-size: 13px;">
+    <p>&copy; 2026 cdcupt. All rights reserved.</p>
+</div>
+
+<script>
+let lang = 'en';
+function toggleLang() {
+    lang = lang === 'en' ? 'zh' : 'en';
+    document.querySelectorAll('.en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+    document.querySelectorAll('.zh').forEach(el => el.style.display = lang === 'zh' ? '' : 'none');
+    document.querySelector('.lang-btn').textContent = lang === 'en' ? '中文' : 'English';
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+}
+</script>
+
+</body>
+</html>
