@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMind — Smart Travel Bill Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #1C1917;
+            background: #FDF6EC;
+        }
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+            background: linear-gradient(135deg, #FDF6EC 0%, #FFF7ED 50%, #FEF3C7 100%);
+        }
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 800;
+            color: #D97706;
+            margin-bottom: 8px;
+        }
+        .hero .tagline {
+            font-size: 20px;
+            color: #92400E;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .hero .subtitle {
+            font-size: 16px;
+            color: #78716C;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 10px 28px;
+            background: #D97706;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            border-radius: 24px;
+            text-decoration: none;
+        }
+        .badge:hover { background: #B45309; }
+        .content { max-width: 800px; margin: 0 auto; padding: 0 20px 40px; }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 30px 0;
+        }
+        @media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+        .feature-card {
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .feature-card .icon { font-size: 32px; margin-bottom: 8px; }
+        .feature-card h3 { font-size: 18px; color: #1C1917; margin-bottom: 6px; }
+        .feature-card p { font-size: 14px; color: #57534E; }
+        h2 {
+            font-size: 24px;
+            color: #D97706;
+            margin: 40px 0 16px;
+            text-align: center;
+        }
+        .provider-list {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .provider-tag {
+            padding: 8px 20px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .p-gemini { background: #DBEAFE; color: #1D4ED8; }
+        .p-openai { background: #D1FAE5; color: #065F46; }
+        .p-doubao { background: #FEE2E2; color: #991B1B; }
+        .highlight-box {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .highlight-box ul { padding-left: 20px; }
+        .highlight-box li { font-size: 15px; color: #44403C; margin-bottom: 6px; }
+        .privacy-note {
+            text-align: center;
+            padding: 30px 20px;
+            background: white;
+            border-radius: 20px;
+            margin: 30px 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .privacy-note h3 { color: #D97706; margin-bottom: 8px; }
+        .privacy-note p { font-size: 14px; color: #57534E; }
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #78716C;
+            font-size: 13px;
+        }
+        footer a { color: #D97706; text-decoration: none; }
+        .lang-btn { display: inline-block; color: #D97706; font-weight: 600; padding: 6px 16px; border: 2px solid #D97706; border-radius: 20px; cursor: pointer; font-size: 14px; background: none; position: absolute; top: 20px; right: 20px; }
+        .lang-btn:hover { background: #D97706; color: white; }
+        .zh { display: none; }
+    </style>
+</head>
+<body>
+
+<button class="lang-btn" onclick="toggleLang()">中文</button>
+
+<div class="hero">
+    <h1>BillMind</h1>
+    <p class="tagline en">Smart Travel Bill Tracker</p>
+    <p class="tagline zh">智能旅行账单追踪</p>
+    <p class="subtitle en">Snap a photo of any receipt. AI extracts the details instantly. Track every expense across your trips with beautiful, sketch-style journals.</p>
+    <p class="subtitle zh">拍摄任意收据，AI 即时提取信息。用手绘风格日记追踪每一笔旅行消费。</p>
+    <a href="https://apps.apple.com/app/billmind" class="badge en">Download on the App Store</a>
+    <a href="https://apps.apple.com/app/billmind" class="badge zh" style="display:none">在 App Store 下载</a>
+</div>
+
+<div class="content">
+
+    <h2 class="en">Features</h2>
+    <h2 class="zh">功能特色</h2>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📸</div>
+            <h3 class="en">AI Bill Recognition</h3>
+            <h3 class="zh">AI 账单识别</h3>
+            <p class="en">Photograph receipts and invoices. AI reads the merchant, amount, date, category, and line items — then you review and confirm.</p>
+            <p class="zh">拍摄收据和发票，AI 自动读取商户、金额、日期、类别和明细——确认后即可保存。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🎨</div>
+            <h3 class="en">Minds — AI Infographics</h3>
+            <h3 class="zh">Minds — AI 信息图</h3>
+            <p class="en">Generate beautiful sketch-style timeline infographics from your trip data. A visual souvenir of every journey.</p>
+            <p class="zh">从旅行数据生成精美的手绘风格时间线信息图，每段旅程的视觉纪念。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📊</div>
+            <h3 class="en">Smart Statistics</h3>
+            <h3 class="zh">智能统计</h3>
+            <p class="en">See where your money goes with category breakdowns, daily spending charts, and cross-journal comparisons.</p>
+            <p class="zh">通过类别分析、每日消费图表和跨日记对比，了解每一分钱的去向。</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💱</div>
+            <h3 class="en">Multi-Currency</h3>
+            <h3 class="zh">多币种支持</h3>
+            <p class="en">Each journal has its own base currency. Supports CNY, USD, EUR, JPY, GBP, KRW, THB, and many more.</p>
+            <p class="zh">每个日记可设独立币种，支持人民币、美元、欧元、日元、英镑、韩元、泰铢等多种货币。</p>
+        </div>
+    </div>
+
+    <h2 class="en">AI Providers</h2>
+    <h2 class="zh">AI 服务商</h2>
+
+    <div class="provider-list">
+        <span class="provider-tag p-gemini">Gemini</span>
+        <span class="provider-tag p-openai">OpenAI</span>
+        <span class="provider-tag p-doubao en">Doubao</span>
+        <span class="provider-tag p-doubao zh" style="display:none">豆包</span>
+    </div>
+
+    <div class="highlight-box">
+        <ul class="en">
+            <li>Use your own API key — full control over costs and data</li>
+            <li>Choose from multiple models per provider with pricing info</li>
+            <li>Gemini powers both bill recognition and Mind image generation</li>
+            <li>All providers use the same intuitive recognition flow</li>
+        </ul>
+        <ul class="zh" style="display:none">
+            <li>使用自己的 API 密钥——完全掌控成本和数据</li>
+            <li>每个服务商提供多种模型选择，显示价格信息</li>
+            <li>Gemini 同时支持账单识别和 Mind 图片生成</li>
+            <li>所有服务商使用相同的直觉化识别流程</li>
+        </ul>
+    </div>
+
+    <h2 class="en">More to Love</h2>
+    <h2 class="zh">更多亮点</h2>
+
+    <div class="highlight-box">
+        <ul class="en">
+            <li><strong>10 bill categories</strong> — Food, Transport, Accommodation, Shopping, Entertainment, and more</li>
+            <li><strong>Batch import</strong> — Recognize up to 10 receipts at once</li>
+            <li><strong>Manual entry</strong> — Add bills without AI when you prefer</li>
+            <li><strong>Config sharing</strong> — Export and import settings as JSON files</li>
+            <li><strong>Sketch-style design</strong> — Warm, hand-drawn aesthetic with cute animal mascots</li>
+            <li><strong>No third-party dependencies</strong> — Built entirely with Apple frameworks</li>
+        </ul>
+        <ul class="zh" style="display:none">
+            <li><strong>10 种账单类别</strong> — 餐饮、交通、住宿、购物、娱乐等</li>
+            <li><strong>批量导入</strong> — 一次最多识别 10 张收据</li>
+            <li><strong>手动录入</strong> — 不使用 AI 也可手动添加账单</li>
+            <li><strong>配置分享</strong> — 导出和导入 JSON 格式的设置文件</li>
+            <li><strong>手绘风格设计</strong> — 温暖的手绘美学，配有可爱的动物吉祥物</li>
+            <li><strong>无第三方依赖</strong> — 完全使用 Apple 原生框架构建</li>
+        </ul>
+    </div>
+
+    <div class="privacy-note">
+        <h3 class="en">Your Data Stays on Your Device</h3>
+        <h3 class="zh">数据留在您的设备上</h3>
+        <p class="en">BillMind stores everything locally. No accounts, no servers, no tracking. AI requests go directly to your chosen provider — we never see your data.</p>
+        <p class="zh">BillMind 将所有数据存储在本地。无需注册账号、无服务器、无追踪。AI 请求直接发送至您选择的服务商——我们从不接触您的数据。</p>
+        <p style="margin-top: 12px;">
+            <a href="privacy-policy.html" class="en">Privacy Policy</a>
+            <a href="privacy-policy.html" class="zh" style="display:none">隐私政策</a>
+            &nbsp;·&nbsp;
+            <a href="support.html" class="en">Support</a>
+            <a href="support.html" class="zh" style="display:none">支持</a>
+        </p>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 cdcupt. All rights reserved.</p>
+    <p>iOS 17.0+ &nbsp;·&nbsp; <a href="https://github.com/cdcupt/BillMind">GitHub</a></p>
+</footer>
+
+<script>
+let lang = 'en';
+function toggleLang() {
+    lang = lang === 'en' ? 'zh' : 'en';
+    document.querySelectorAll('.en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+    document.querySelectorAll('.zh').forEach(el => el.style.display = lang === 'zh' ? '' : 'none');
+    document.querySelector('.lang-btn').textContent = lang === 'en' ? '中文' : 'English';
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+}
+</script>
+
+</body>
+</html>
