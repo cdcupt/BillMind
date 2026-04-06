@@ -83,6 +83,8 @@ BillMind/
 
 ## Key Notes
 
+- **Demo Mode**: `AppSettings.demoMode` flag — when enabled, `AIService.recognizeBill()` returns hardcoded `DemoData` results, Minds generates a CoreGraphics placeholder, no API key needed. Toggle in Settings UI.
+- **GitHub Pages**: Privacy policy, support, marketing, and privacy choices pages in `docs/`. Served at `https://cdcupt.github.io/BillMind/docs/`.
 - Default provider is Gemini; default currency is CNY
 - 3 providers: Gemini, OpenAI, Doubao (with model + pricing selection)
 - All text is English (no Chinese characters in codebase)

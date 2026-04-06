@@ -12,6 +12,7 @@
 - **Statistics** — Category breakdown, daily/monthly charts, per-journal and total expenses, top merchants
 - **Sketch-style UI** — Warm hand-drawn aesthetic with AI-generated mascot illustrations
 - **Config Import/Export** — Share settings as JSON files between devices
+- **Demo Mode** — Try all features without an API key (for App Store review or first-time exploration)
 
 ## Screenshots
 
