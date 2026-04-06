@@ -10,6 +10,7 @@ final class AppSettings {
     var defaultCurrency: String
     var enableOCRFallback: Bool
     var maxPhotosPerBatch: Int
+    var demoMode: Bool
 
     var selectedProvider: AIProvider {
         get { AIProvider(rawValue: selectedProviderRaw) ?? .gemini }
@@ -24,6 +25,7 @@ final class AppSettings {
         self.defaultCurrency = "CNY"
         self.enableOCRFallback = true
         self.maxPhotosPerBatch = 10
+        self.demoMode = false
     }
 
     static func getOrCreate(context: ModelContext) -> AppSettings {
