@@ -1,9 +1,0 @@
-{
-  "apiKey" : "AIzaSyALRwu10AZ0qxj4i60VSV8lRiRW0cJ2JQc",
-  "defaultCurrency" : "CNY",
-  "imageModel" : "gemini-3.1-flash-image-preview",
-  "maxPhotosPerBatch" : 10,
-  "model" : "gemini-3-flash-preview",
-  "provider" : "gemini",
-  "version" : "1.0"
-}
