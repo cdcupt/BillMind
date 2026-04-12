@@ -13,6 +13,7 @@
 - **Sketch-style UI** — Warm hand-drawn aesthetic with AI-generated mascot illustrations
 - **Config Import/Export** — Share settings as JSON files between devices
 - **Demo Mode** — Try all features without an API key (for App Store review or first-time exploration)
+- **Privacy-first** — In-app AI data sharing consent, all data stored locally, no BillMind servers
 
 ## Screenshots
 

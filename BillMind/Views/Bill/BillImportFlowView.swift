@@ -14,6 +14,7 @@ struct BillImportFlowView: View {
     @State private var draftBills: [DraftBill] = []
     @State private var processingIndex = 0
     @State private var errorMessage: String?
+    @State private var showConsentSheet = false
 
     // Settings
     @Query private var allSettings: [AppSettings]
@@ -151,7 +152,12 @@ struct BillImportFlowView: View {
 
                     // Start recognition button
                     Button {
-                        startRecognition()
+                        let isDemoMode = settings?.demoMode ?? false
+                        if !isDemoMode && settings?.hasConsentedToAIDataSharing != true {
+                            showConsentSheet = true
+                        } else {
+                            startRecognition()
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "sparkles")
@@ -179,6 +185,15 @@ struct BillImportFlowView: View {
         .sheet(isPresented: $showCamera) {
             CameraPickerView { image in
                 selectedImages.append(image)
+            }
+        }
+        .sheet(isPresented: $showConsentSheet) {
+            AIDataConsentView(provider: settings?.selectedProvider ?? .gemini) {
+                settings?.hasConsentedToAIDataSharing = true
+                try? modelContext.save()
+                startRecognition()
+            } onDecline: {
+                // User declined — stay on photo picker
             }
         }
         .onChange(of: photoPickerItems) { _, items in

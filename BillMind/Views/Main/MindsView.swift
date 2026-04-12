@@ -18,6 +18,7 @@ struct MindsView: View {
     @State private var errorMessage: String?
     @State private var showShareSheet = false
     @State private var savedMessage: String?
+    @State private var showConsentSheet = false
 
     var body: some View {
         NavigationStack {
@@ -99,6 +100,15 @@ struct MindsView: View {
             .sheet(isPresented: $showShareSheet) {
                 if let image = generatedImage {
                     ShareSheet(items: [image])
+                }
+            }
+            .sheet(isPresented: $showConsentSheet) {
+                AIDataConsentView(provider: settings?.selectedProvider ?? .gemini) {
+                    settings?.hasConsentedToAIDataSharing = true
+                    try? modelContext.save()
+                    generateMind()
+                } onDecline: {
+                    // User declined — no action
                 }
             }
         }
@@ -310,6 +320,10 @@ struct MindsView: View {
         let apiKey = settings?.apiKey ?? ""
 
         if !isDemoMode {
+            guard settings?.hasConsentedToAIDataSharing == true else {
+                showConsentSheet = true
+                return
+            }
             guard !apiKey.isEmpty else {
                 errorMessage = "Please set your API key in Settings first"
                 return

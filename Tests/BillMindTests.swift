@@ -315,3 +315,22 @@ final class ExtensionTests: XCTestCase {
         XCTAssertEqual(Date().relativeLabel, "Today")
     }
 }
+
+// MARK: - AppSettings Tests
+
+final class AppSettingsTests: XCTestCase {
+    func testDefaultConsentIsFalse() {
+        let settings = AppSettings()
+        XCTAssertFalse(settings.hasConsentedToAIDataSharing)
+    }
+
+    func testDefaultDemoModeIsFalse() {
+        let settings = AppSettings()
+        XCTAssertFalse(settings.demoMode)
+    }
+
+    func testDefaultProvider() {
+        let settings = AppSettings()
+        XCTAssertEqual(settings.selectedProvider, .gemini)
+    }
+}

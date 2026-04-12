@@ -83,6 +83,7 @@ BillMind/
 
 ## Key Notes
 
+- **AI Data Consent**: `AppSettings.hasConsentedToAIDataSharing` — must be `true` before any data is sent to AI providers. `AIDataConsentView` (in SettingsView.swift) is shown automatically before the first AI call. Users can revoke in Settings > Privacy. Skipped in demo mode.
 - **Demo Mode**: `AppSettings.demoMode` flag — when enabled, `AIService.recognizeBill()` returns hardcoded `DemoData` results, Minds generates a CoreGraphics placeholder, no API key needed. Toggle in Settings UI.
 - **GitHub Pages**: Privacy policy, support, marketing, and privacy choices pages in `docs/`. Served at `https://cdcupt.github.io/BillMind/docs/`.
 - Default provider is Gemini; default currency is CNY
