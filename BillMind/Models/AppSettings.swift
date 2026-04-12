@@ -11,6 +11,7 @@ final class AppSettings {
     var enableOCRFallback: Bool
     var maxPhotosPerBatch: Int
     var demoMode: Bool
+    var hasConsentedToAIDataSharing: Bool
 
     var selectedProvider: AIProvider {
         get { AIProvider(rawValue: selectedProviderRaw) ?? .gemini }
@@ -26,6 +27,7 @@ final class AppSettings {
         self.enableOCRFallback = true
         self.maxPhotosPerBatch = 10
         self.demoMode = false
+        self.hasConsentedToAIDataSharing = false
     }
 
     static func getOrCreate(context: ModelContext) -> AppSettings {

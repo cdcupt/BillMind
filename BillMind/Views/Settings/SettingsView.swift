@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var testResult: Bool?
     @State private var testErrorMessage: String?
+    @State private var showConsentSheet = false
 
     var body: some View {
         NavigationStack {
@@ -236,6 +237,44 @@ struct SettingsView: View {
                             .padding(.horizontal, 4)
                     }
 
+                    // Privacy Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionTitle("Privacy")
+                        settingsCard {
+                            settingsRow("AI Data Sharing") {
+                                Toggle("", isOn: Binding(
+                                    get: { settings?.hasConsentedToAIDataSharing ?? false },
+                                    set: {
+                                        if $0 {
+                                            showConsentSheet = true
+                                        } else {
+                                            settings?.hasConsentedToAIDataSharing = false
+                                            try? modelContext.save()
+                                        }
+                                    }
+                                ))
+                                .tint(SketchTheme.sageGreen)
+                                .labelsHidden()
+                            }
+                        }
+                        Text(settings?.hasConsentedToAIDataSharing == true
+                            ? "You have consented to share data with your AI provider for bill recognition and timeline generation."
+                            : "AI features require consent to share receipt images and bill data with your chosen AI provider.")
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundStyle(SketchTheme.lightBrown)
+                            .padding(.horizontal, 4)
+
+                        Link(destination: URL(string: "https://cdcupt.github.io/BillMind/docs/privacy-policy.html")!) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "lock.shield")
+                                Text("Privacy Policy")
+                                    .font(.system(size: 12, design: .serif))
+                            }
+                            .foregroundStyle(SketchTheme.dustyRose)
+                            .padding(.horizontal, 4)
+                        }
+                    }
+
                     // About
                     VStack(spacing: 4) {
                         Text("BillMind v1.0.0")
@@ -286,6 +325,14 @@ struct SettingsView: View {
             }
             .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json]) { result in
                 importConfig(result: result)
+            }
+            .sheet(isPresented: $showConsentSheet) {
+                AIDataConsentView(provider: selectedProvider) {
+                    settings?.hasConsentedToAIDataSharing = true
+                    try? modelContext.save()
+                } onDecline: {
+                    // No action needed — toggle stays off
+                }
             }
         }
     }
@@ -552,4 +599,140 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - AI Data Sharing Consent
+
+struct AIDataConsentView: View {
+    let provider: AIProvider
+    var onConsent: () -> Void
+    var onDecline: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    AnimalMascotView(animal: .owl, size: 72)
+
+                    Text("AI Data Sharing")
+                        .font(SketchTheme.headlineFont(22))
+                        .foregroundStyle(SketchTheme.softBrown)
+
+                    Text("BillMind uses AI to recognize bills from photos and generate timeline images. Before using these features, please review what data is shared.")
+                        .font(SketchTheme.bodyFont(15))
+                        .foregroundStyle(SketchTheme.lightBrown)
+                        .multilineTextAlignment(.center)
+
+                    // What data is sent
+                    consentSection(
+                        icon: "doc.text.image",
+                        title: "What data is sent",
+                        items: [
+                            "Photos of receipts and invoices you select",
+                            "Bill details (merchant names, dates, amounts, categories) for timeline generation",
+                        ]
+                    )
+
+                    // Who receives the data
+                    consentSection(
+                        icon: "server.rack",
+                        title: "Who receives the data",
+                        items: [
+                            "Your chosen AI provider: \(provider.displayName)",
+                            "Data is sent directly from your device to the provider's API",
+                            "BillMind does not operate any servers and does not collect your data",
+                        ]
+                    )
+
+                    // How data is used
+                    consentSection(
+                        icon: "shield.lefthalf.filled",
+                        title: "How your data is protected",
+                        items: [
+                            "Your API key is stored only on your device",
+                            "All financial data stays on your device",
+                            "You can revoke consent anytime in Settings",
+                            "You can use the app without AI (manual bill entry)",
+                        ]
+                    )
+
+                    // Privacy policy link
+                    Link(destination: URL(string: "https://cdcupt.github.io/BillMind/docs/privacy-policy.html")!) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "lock.shield")
+                            Text("Read Full Privacy Policy")
+                                .font(SketchTheme.bodyFont(14))
+                        }
+                        .foregroundStyle(SketchTheme.dustyRose)
+                    }
+
+                    // Consent button
+                    Button {
+                        onConsent()
+                        dismiss()
+                    } label: {
+                        Text("I Agree — Enable AI Features")
+                            .font(SketchTheme.headlineFont(18))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(SketchTheme.primaryGradient)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: SketchTheme.dustyRose.opacity(0.3), radius: 6, y: 3)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Decline button
+                    Button {
+                        onDecline()
+                        dismiss()
+                    } label: {
+                        Text("Not Now")
+                            .font(SketchTheme.bodyFont(15))
+                            .foregroundStyle(SketchTheme.lightBrown)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
+            }
+            .paperBackground()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onDecline()
+                        dismiss()
+                    }
+                    .foregroundStyle(SketchTheme.dustyRose)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func consentSection(icon: String, title: String, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(SketchTheme.dustyRose)
+                Text(title)
+                    .font(SketchTheme.headlineFont(16))
+                    .foregroundStyle(SketchTheme.softBrown)
+            }
+
+            ForEach(items, id: \.self) { item in
+                HStack(alignment: .top, spacing: 8) {
+                    Text("•")
+                        .foregroundStyle(SketchTheme.lightBrown)
+                    Text(item)
+                        .font(SketchTheme.bodyFont(14))
+                        .foregroundStyle(SketchTheme.softBrown)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sketchCard()
+    }
 }

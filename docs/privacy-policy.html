@@ -37,8 +37,8 @@
 <h1>BillMind</h1>
 <h2 class="en">Privacy Policy</h2>
 <h2 class="zh">隐私政策</h2>
-<p class="date en">Last Updated: 2026-04-06</p>
-<p class="date zh">最后更新：2026-04-06</p>
+<p class="date en">Last Updated: 2026-04-12</p>
+<p class="date zh">最后更新：2026-04-12</p>
 
 <div class="section">
 <h2 class="en">1. Overview</h2>
@@ -75,21 +75,72 @@
 </div>
 
 <div class="section">
-<h2 class="en">3. Third-Party Services</h2>
-<h2 class="zh">三、第三方服务</h2>
+<h2 class="en">3. Third-Party AI Services — Data Sent and Recipients</h2>
+<h2 class="zh">三、第三方 AI 服务 — 发送的数据与接收方</h2>
 
-<p class="en">The App sends data to your chosen AI provider for processing, including:</p>
-<p class="zh">本应用会将数据发送至您选择的 AI 服务商进行处理，包括：</p>
-<ul class="en">
-    <li>Receipt/invoice image recognition and data extraction</li>
-    <li>Timeline infographic generation (Minds feature)</li>
+<div class="en">
+<p>The App integrates with third-party AI services to provide bill recognition and timeline image generation. <strong>No data is sent to any AI service until you explicitly consent through the in-app consent prompt.</strong></p>
+
+<h3>Supported AI Providers</h3>
+<p>You choose which provider processes your data. The supported providers are:</p>
+<ul>
+    <li><strong>Google Gemini</strong> (Google LLC) — <a href="https://policies.google.com/privacy">Privacy Policy</a></li>
+    <li><strong>OpenAI</strong> (OpenAI, Inc.) — <a href="https://openai.com/privacy">Privacy Policy</a></li>
+    <li><strong>Doubao</strong> (ByteDance Ltd.) — <a href="https://www.volcengine.com/docs/82379/1399942">Privacy Policy</a></li>
 </ul>
-<ul class="zh">
-    <li>收据/发票图片识别与数据提取</li>
-    <li>时间线信息图生成（Minds 功能）</li>
+
+<h3>What Data Is Sent</h3>
+<p><strong>Bill Recognition:</strong> When you use AI to recognize a bill, the following data is sent to your chosen AI provider:</p>
+<ul>
+    <li>Photos of receipts or invoices that you select (converted to JPEG format)</li>
+    <li>A text prompt instructing the AI to extract merchant name, date, amount, currency, category, line items, and notes</li>
 </ul>
-<p class="en">These requests are sent directly from your device to the provider — they do not pass through our servers. Please refer to each provider's privacy policy for their data handling practices.</p>
-<p class="zh">这些请求直接从您的设备发送至对应服务商，不经过我们的服务器。请参阅各服务商的隐私政策了解其数据处理方式。</p>
+<p><strong>Timeline Generation (Minds):</strong> When you generate a Mind timeline image, the following data is sent to Google Gemini:</p>
+<ul>
+    <li>Journal name and currency</li>
+    <li>Bill timeline summary: merchant names, dates, amounts, and categories</li>
+    <li>A text prompt requesting an artistic infographic</li>
+</ul>
+<p><strong>Not sent:</strong> Your API key is used only for authentication with the provider. Your full financial history, other journals, device identifiers, or any other personal data is never sent.</p>
+
+<h3>How Data Is Sent</h3>
+<p>All requests are sent directly from your device to the AI provider's API over HTTPS. Data does not pass through any BillMind servers. We do not operate any servers.</p>
+
+<h3>How AI Providers Use Your Data</h3>
+<p>Each AI provider processes your data according to their own privacy policy (linked above). BillMind requires that the AI providers you connect to provide protection of your data. We recommend reviewing your chosen provider's privacy policy and API data usage terms before using AI features.</p>
+</div>
+
+<div class="zh">
+<p>本应用集成了第三方 AI 服务，用于账单识别和时间线图片生成。<strong>在您通过应用内同意提示明确授权之前，不会向任何 AI 服务发送数据。</strong></p>
+
+<h3>支持的 AI 服务商</h3>
+<p>您可以选择由哪个服务商处理您的数据，目前支持：</p>
+<ul>
+    <li><strong>Google Gemini</strong>（Google LLC）— <a href="https://policies.google.com/privacy">隐私政策</a></li>
+    <li><strong>OpenAI</strong>（OpenAI, Inc.）— <a href="https://openai.com/privacy">隐私政策</a></li>
+    <li><strong>豆包</strong>（字节跳动）— <a href="https://www.volcengine.com/docs/82379/1399942">隐私政策</a></li>
+</ul>
+
+<h3>发送哪些数据</h3>
+<p><strong>账单识别：</strong>当您使用 AI 识别账单时，以下数据将发送至您选择的 AI 服务商：</p>
+<ul>
+    <li>您选择的收据或发票照片（转换为 JPEG 格式）</li>
+    <li>指示 AI 提取商户名称、日期、金额、币种、分类、明细和备注的文本提示</li>
+</ul>
+<p><strong>时间线生成（Minds）：</strong>当您生成 Mind 时间线图片时，以下数据将发送至 Google Gemini：</p>
+<ul>
+    <li>旅行日记名称和币种</li>
+    <li>账单时间线摘要：商户名称、日期、金额和分类</li>
+    <li>请求生成艺术信息图的文本提示</li>
+</ul>
+<p><strong>不会发送的内容：</strong>您的 API 密钥仅用于与服务商的身份验证。您的完整财务记录、其他日记本、设备标识符或任何其他个人数据绝不会被发送。</p>
+
+<h3>数据如何发送</h3>
+<p>所有请求通过 HTTPS 直接从您的设备发送至 AI 服务商的 API。数据不经过任何 BillMind 服务器。我们不运营任何服务器。</p>
+
+<h3>AI 服务商如何使用您的数据</h3>
+<p>每个 AI 服务商根据其自身的隐私政策（上方已附链接）处理您的数据。BillMind 要求您连接的 AI 服务商为您的数据提供保护。我们建议您在使用 AI 功能前查阅所选服务商的隐私政策和 API 数据使用条款。</p>
+</div>
 </div>
 
 <div class="section">
@@ -108,36 +159,63 @@
 </div>
 
 <div class="section">
-<h2 class="en">5. Data Sharing</h2>
-<h2 class="zh">五、数据分享</h2>
+<h2 class="en">5. User Consent and Control</h2>
+<h2 class="zh">五、用户同意与控制</h2>
+
+<div class="en">
+<p>The App requires your explicit consent before sharing any data with third-party AI services. Specifically:</p>
+<ul>
+    <li><strong>In-App Consent:</strong> The first time you use an AI feature, the App presents a consent screen that discloses what data will be sent, identifies the AI provider, and requires you to agree before proceeding.</li>
+    <li><strong>Revoke Anytime:</strong> You can revoke your consent at any time in Settings > Privacy. Once revoked, no further data will be sent to AI services.</li>
+    <li><strong>Use Without AI:</strong> You can use the App entirely without AI — bills can be entered manually, and Demo Mode lets you explore all features using sample data with no network requests.</li>
+    <li><strong>Choose Your Provider:</strong> You decide which AI provider processes your data by selecting it in Settings.</li>
+    <li><strong>Delete Your Data:</strong> All data is stored locally. Deleting the App removes all data from your device. You can also delete individual journals or bills at any time.</li>
+</ul>
+</div>
+
+<div class="zh">
+<p>本应用在向第三方 AI 服务分享任何数据之前，需要您的明确同意。具体如下：</p>
+<ul>
+    <li><strong>应用内同意：</strong>当您首次使用 AI 功能时，应用会显示同意界面，披露将发送哪些数据、标识 AI 服务商，并要求您同意后才能继续。</li>
+    <li><strong>随时撤回：</strong>您可以随时在设置 > 隐私中撤回同意。撤回后，不会再向 AI 服务发送任何数据。</li>
+    <li><strong>无需 AI 即可使用：</strong>您可以完全不使用 AI 功能 — 可以手动输入账单，演示模式也可以使用示例数据体验所有功能，无需任何网络请求。</li>
+    <li><strong>选择服务商：</strong>您可以在设置中选择由哪个 AI 服务商处理您的数据。</li>
+    <li><strong>删除数据：</strong>所有数据均存储在本地。删除应用即可从设备中移除所有数据。您也可以随时删除单个日记本或账单。</li>
+</ul>
+</div>
+</div>
+
+<div class="section">
+<h2 class="en">6. Data Sharing</h2>
+<h2 class="zh">六、数据分享</h2>
 <p class="en">The App offers config import/export. In "Share" mode, API keys and sensitive credentials are automatically removed. In "Backup" mode, the file contains the full configuration. Please keep your backup files secure.</p>
 <p class="zh">本应用提供配置导入/导出功能。在"分享"模式下，API 密钥和敏感凭据会被自动移除。在"备份"模式下，文件包含完整配置。请妥善保管您的备份文件。</p>
 </div>
 
 <div class="section">
-<h2 class="en">6. Financial Data</h2>
-<h2 class="zh">六、财务数据</h2>
+<h2 class="en">7. Financial Data</h2>
+<h2 class="zh">七、财务数据</h2>
 <p class="en">Bill amounts, categories, and other financial information are stored exclusively on your device. We have no access to your financial data. The App does not connect to any bank, payment processor, or financial institution.</p>
 <p class="zh">账单金额、分类及其他财务信息仅存储在您的设备上。我们无法访问您的财务数据。本应用不连接任何银行、支付处理商或金融机构。</p>
 </div>
 
 <div class="section">
-<h2 class="en">7. Children's Privacy</h2>
-<h2 class="zh">七、儿童隐私</h2>
+<h2 class="en">8. Children's Privacy</h2>
+<h2 class="zh">八、儿童隐私</h2>
 <p class="en">The App is not specifically directed at children under 13 and does not knowingly collect personal information from children.</p>
 <p class="zh">���应用不专门面向 13 岁以下儿童，也不会故意收集儿童的个人信息。</p>
 </div>
 
 <div class="section">
-<h2 class="en">8. Changes to This Policy</h2>
-<h2 class="zh">八、隐私政策更新</h2>
+<h2 class="en">9. Changes to This Policy</h2>
+<h2 class="zh">九、隐私政策更新</h2>
 <p class="en">We may update this Privacy Policy from time to time. The updated policy will be posted on this page with a revised "Last Updated" date.</p>
 <p class="zh">我们可能会不时更新本隐私政策。更新后的政策将在本页面发布，并更新"最后更新"日期。</p>
 </div>
 
 <div class="section">
-<h2 class="en">9. Contact</h2>
-<h2 class="zh">九、联系方式</h2>
+<h2 class="en">10. Contact</h2>
+<h2 class="zh">十、联系方式</h2>
 <p class="en">If you have any questions about this Privacy Policy, please contact us at:</p>
 <p class="zh">如果您对本隐私政策有任何疑问，请通过以下方式联系我们：</p>
 <p>GitHub: <a href="https://github.com/cdcupt/BillMind/issues">github.com/cdcupt/BillMind/issues</a></p>
