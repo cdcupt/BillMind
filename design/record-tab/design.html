@@ -273,6 +273,8 @@ function drawerBody(id, field){
 }
 function pad(k){ if(k==='⌫'){ DC.buf=DC.buf.slice(0,-1); } else if(k==='.'){ if(!DC.buf.includes('.')) DC.buf += DC.buf===''?'0.':'.'; } else { DC.buf+=k; } $('dnum').textContent='¥'+(DC.buf||'0'); }
 function setAmount(){ const n=parseFloat(DC.buf); if(isNaN(n)||n<=0){ toast('Enter an amount'); return; } const c=$('card'+DC.id); c.dataset.amount=n; const a=$('amt'+DC.id); a.textContent='¥'+fmt(n); a.classList.remove('req'); closeDrawer(); setReadyIfComplete(DC.id); }
+// Merchant = direct draft mutation (real impl: RecordingSession.setMerchant);
+// it is never a ClarificationValue — merchant is not a validator gap.
 function setMerchant(){ const v=$('dmerch').value.trim(); if(!v){ toast('Enter a merchant'); return; } $('card'+DC.id).querySelector('.merchant').textContent=v; closeDrawer(); }
 function setDate(label){ answerDate(DC.id, label); closeDrawer(); }
 function setDateFromPicker(){ const v=$('ddate').value; if(!v){ toast('Choose a date'); return; } const p=v.split('-'); setDate(MONTHS[parseInt(p[1])-1]+' '+parseInt(p[2])); }
