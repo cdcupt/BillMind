@@ -80,7 +80,7 @@
       <li><strong>Text capture</strong>: local, deterministic parse (no network / API key) → draft</li>
       <li><strong>Photo capture</strong>: PhotosPicker → <code>AIService.recognizeBill</code> (demo mode works with no key)</li>
       <li>Full agent loop: validate → clarify (chips) → review → confirm</li>
-      <li><strong>Editable cards</strong>: tap-to-edit amount / merchant / date / category; skip + acknowledge</li>
+      <li><strong>Editable cards via a bottom drawer</strong>: tap any field → an edit drawer with the field-appropriate selector (date picker, category grid, number pad, merchant text + recent chips) — <strong>no inline input boxes</strong>; plus skip + acknowledge</li>
       <li><strong>Confirm → persist</strong>: one <code>BillRecord</code> into the selected journal</li>
       <li>Journal selector; graceful "no journals yet" state</li>
     </ul>
@@ -150,7 +150,8 @@ final class RecordingCoordinator {
   <li><strong><code>AIRecognitionMapper</code> maps an unparseable date to <code>rawDateText</code></strong>: <code>AIRecognitionResult</code> gives <code>parsedDate: Date?</code> (nil on failure) plus the raw <code>date</code> string — set <code>draft.date = result.parsedDate</code> and, when that is nil but <code>result.date != nil</code>, <code>draft.rawDateText = result.date</code>, so the "date hard to read" gap path is exercised. An unknown <code>result.category</code> is carried to <code>categoryRaw</code> verbatim so the validator can flag it.</li>
 </ul>
 
-<h3>Clarify affordances — date &amp; category (user feedback)</h3>
+<h3>Edit affordances — the bottom edit drawer (user feedback)</h3>
+<div class="callout"><strong>Every field edit happens in a bottom drawer (a SwiftUI <code>.sheet</code> / <code>.presentationDetents</code> half-sheet), never an inline input box.</strong> Tapping a field on a card opens the drawer with the field-appropriate control over a dimmed card: <strong>date</strong> → quick chips + graphical <code>DatePicker</code>; <strong>category</strong> → the 10-item grid (pure selection); <strong>amount</strong> → a number pad (free value, but a focused full-width control); <strong>merchant</strong> → a text field + recent-merchant chips (free value with selectable recents). All of them resolve via <code>answer</code>/<code>edit</code> — the collection UI is independent of the core.</div>
 <ul>
   <li><strong>Date — quick chips + a real picker.</strong> The date clarify offers <strong>Today</strong> and <strong>Yesterday</strong> chips for the common case, plus a <strong>"Pick a date…"</strong> control that opens a SwiftUI <code>DatePicker</code> (graphical) for any specific day — e.g. a receipt from earlier in the trip. All three resolve via <code>answer(cardID:, .date, .date(chosen))</code>; the core already accepts an arbitrary date, so the picker is UI-only. The "Pick a date…" picker is also the resolver for the <em>unparseable-date</em> gap (<code>rawDateText != nil</code>), which carries no chips. Reuse <code>Date.relativeLabel</code> (existing in <code>Extensions.swift</code>) for chip/card date labels so a "Yesterday" pick and the Yesterday chip render identically.</li>
   <li><strong>Category ("tag") — always one-tap changeable at recognition time.</strong> Every card renders its category as a <strong>tappable chip</strong> (icon + name). Tapping opens the 10-category picker (the grid reused from <code>AddBillManualView</code>), so the user can correct it the moment the card appears, <em>not only</em> when the agent is unsure. The agent cannot detect a <em>valid-but-wrong</em> category (it's not a gap), so the fix is to make the chip always editable rather than to add a clarify prompt. An <em>unknown</em> category is still highlighted via the validator's category gap; a confident guess is still one tap from change.</li>
@@ -214,7 +215,7 @@ final class RecordingCoordinator {
   <tr><td>No journals exist when opening Record</td><td>Empty state + "Create a journal first" CTA; capture disabled until a journal is selected</td></tr>
   <tr><td>Text parse ambiguity</td><td>validate → clarify catches gaps; amount is mandatory and never guessed</td></tr>
   <tr><td><code>@Observable</code> value-type republish</td><td>Coordinator exposes computed <code>cards</code>; mutations go through methods that reassign <code>session</code></td></tr>
-  <tr><td>Keyboard vs. card edit fields</td><td>Edits use focused <code>TextField</code>s; Save reachable via scroll (E2E helper)</td></tr>
+  <tr><td>Keyboard vs. inline edit fields</td><td>All edits happen in a bottom drawer hosting the right control (picker / number pad / text), so there is no inline-input keyboard overlap; the card stays read-only behind a scrim</td></tr>
   <tr><td>5-tab crowding</td><td>Acceptable on iPhone; revisit IA when Minds moves into journals (future)</td></tr>
 </table></div>
 
@@ -223,6 +224,7 @@ final class RecordingCoordinator {
   <li>Record tab present and reachable; selecting a journal enables capture.</li>
   <li>Typing <code>ramen 2840</code> produces a card; the missing date is asked with Today/Yesterday chips <strong>plus a "Pick a date…" picker</strong> for a specific day; answering it makes the card saveable.</li>
   <li>The category is a tappable chip on every card and can be changed via the 10-category picker at recognition time, even when the agent was confident.</li>
+  <li>Every editable field (amount, merchant, date, category) opens a <strong>bottom edit drawer</strong> with the appropriate selector — no inline input boxes.</li>
   <li>Save writes exactly one <code>BillRecord</code> into the selected journal (appears in the journal, count + total update) and persists across relaunch.</li>
   <li>A card with no amount cannot be confirmed until an amount is entered (the agent's core guarantee holds in the UI).</li>
   <li>No SwiftData schema change; existing flows (manual add, import, Minds, stats) still work.</li>

@@ -69,6 +69,27 @@
   .catpicker button:hover { border-color:var(--sage); background:rgba(168,191,160,.2); }
   .dateinput { margin-top:7px; display:flex; gap:6px; align-items:center; }
   .dateinput input { border:1.5px solid var(--blue); border-radius:8px; padding:4px 8px; font-family:'Noto Serif',serif; font-size:12.5px; }
+  /* bottom edit drawer */
+  .scrim { position:absolute; inset:0; background:rgba(42,37,32,.35); opacity:0; pointer-events:none; transition:opacity .25s; z-index:30; }
+  .scrim.open { opacity:1; pointer-events:auto; }
+  .drawer { position:absolute; left:0; right:0; bottom:0; background:var(--ww); border-top:2px solid var(--lbrown);
+    border-top-left-radius:24px; border-top-right-radius:24px; padding:12px 16px 20px; transform:translateY(115%);
+    transition:transform .28s cubic-bezier(.2,.9,.3,1); z-index:31; box-shadow:0 -8px 22px rgba(139,115,85,.16); }
+  .drawer.open { transform:translateY(0); }
+  .drawer .grip { width:40px; height:4px; border-radius:3px; background:var(--lbrown); opacity:.5; margin:2px auto 12px; }
+  .drawer h5 { font-family:'Caveat',cursive; font-size:21px; color:var(--brown); margin-bottom:10px; text-align:center; }
+  .dnum { text-align:center; font-size:30px; font-weight:700; margin-bottom:10px; min-height:38px; color:var(--brown); }
+  .keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .keypad button { font-family:'Noto Serif',serif; font-size:20px; padding:9px; border:1.5px solid var(--lbrown); border-radius:12px; background:var(--cream); cursor:pointer; }
+  .keypad button:active { background:rgba(168,191,160,.25); }
+  .dgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .dgrid button { font-size:12.5px; padding:10px 6px; border:1.5px solid var(--lbrown); border-radius:12px; background:var(--cream); cursor:pointer; font-family:'Noto Serif',serif; color:var(--brown); }
+  .dgrid button:hover { border-color:var(--sage); background:rgba(168,191,160,.18); }
+  .drow { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .dquick { font-size:13px; border:1.5px solid var(--blue); border-radius:11px; padding:6px 14px; background:rgba(156,184,200,.14); color:#56707e; cursor:pointer; }
+  .dtext, .ddate { width:100%; border:1.5px solid var(--lbrown); border-radius:10px; padding:9px 11px; font-family:'Noto Serif',serif; font-size:14px; margin-bottom:10px; }
+  .ddate { border-color:var(--blue); }
+  .dset { display:block; width:100%; text-align:center; font-family:'Caveat',cursive; font-size:18px; color:#fff; background:var(--sage); border:2px solid #93ab8b; border-radius:13px; padding:8px; cursor:pointer; box-shadow:2px 3px 0 var(--shadow); margin-top:10px; }
   .editfield { margin-top:8px; display:none; gap:6px; }
   .editfield.show { display:flex; }
   .editfield input { flex:1; border:1.5px solid var(--blue); border-radius:9px; padding:5px 9px; font-size:13px; font-family:'Noto Serif',serif; }
@@ -115,7 +136,7 @@
   <div class="spec"><b>write</b> only on confirm</div>
   <div class="spec"><b>schema</b> unchanged (no migration)</div>
 </div>
-<p class="tryline">try: tap a suggestion · answer the date chip or 📅 pick any day · tap the category chip to change it · Save. Or type "ramen" (no amount).</p>
+<p class="tryline">try: tap a suggestion, then <b>tap any field</b> (amount, merchant, date, category) — a bottom drawer opens with the right selector. Or type "ramen" (no amount).</p>
 
 <div class="app">
   <div class="phone">
@@ -152,6 +173,8 @@
       <div class="tab"><div class="g">✦</div>Minds</div>
       <div class="tab"><div class="g">☼</div>Settings</div>
     </div>
+    <div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+    <div class="drawer" id="drawer"><div class="grip"></div><div id="drawerBody"></div></div>
     <div class="toast" id="toast"></div>
   </div>
 </div>
@@ -205,14 +228,12 @@ function cardHTML(id, d){
     <div class="crow">
       <div class="ico">${d.icon}</div>
       <div class="cmain">
-        <div class="merchant edit" onclick="editMerchant(${id})">${d.merchant||'(tap to name)'}</div>
-        <div class="meta2"><span class="chip catchip" id="cat${id}" onclick="pickCat(${id})">${d.category} ▾</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| '<span class=needfield>—</span>'}</span></div>
+        <div class="merchant edit" onclick="openDrawer(${id},'merchant')">${d.merchant||'(tap to name)'}</div>
+        <div class="meta2"><span class="chip catchip" id="cat${id}" onclick="openDrawer(${id},'category')">${d.category} ▾</span> · <span class="date edit" id="date${id}" onclick="openDrawer(${id},'date')">${d.date|| '<span class=needfield>—</span>'}</span></div>
       </div>
-      <div class="amount ${needsAmount?'req':''}" id="amt${id}" onclick="editAmount(${id})">${needsAmount?'amount required':'¥'+fmt(d.amount)}</div>
+      <div class="amount ${needsAmount?'req':''}" id="amt${id}" onclick="openDrawer(${id},'amount')">${needsAmount?'amount required':'¥'+fmt(d.amount)}</div>
     </div>
-    <div class="catpicker" id="cp${id}"></div>
     <div class="qrow" id="q${id}">${needsDate?dateChips(id):''}</div>
-    <div class="editfield" id="ef${id}"><input id="efin${id}" inputmode="decimal" placeholder="enter value"><button onclick="applyEdit(${id})">set</button></div>
     <div class="actions">
       <button class="btn save" id="save${id}" ${(needsAmount||needsDate)?'disabled':''} onclick="save(${id})">Save to journal</button>
       <button class="btn" onclick="discard(${id})">Discard</button>
@@ -221,34 +242,45 @@ function cardHTML(id, d){
 }
 function dateChips(id){
   return `<div class="q">When was it? <span style="color:var(--lbrown);font-size:11px">(no date in your text)</span></div>
-    <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button><button class="chip" onclick="pickDate(${id})">📅 Pick a date…</button></div>`;
+    <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button><button class="chip" onclick="openDrawer(${id},'date')">📅 Pick a date…</button></div>`;
 }
 // Real impl: the picker iterates BillCategory.allCases, labels with englishName,
 // and passes category.rawValue. Three labels differ from their raw value
 // (Hotel->accommodation, Fun->entertainment, Other->misc), so the chip shows the
 // display name while the carried value is the raw — never the label.
+// Picker iterates BillCategory.allCases, labels with englishName, carries rawValue
+// (Hotel->accommodation, Fun->entertainment, Other->misc — never the label).
 const CATS = [['Food','food'],['Transport','transport'],['Hotel','accommodation'],['Shopping','shopping'],['Fun','entertainment'],['Utilities','utilities'],['Medical','medical'],['Education','education'],['Subscription','subscription'],['Other','misc']];
-function pickCat(id){
-  const cp=$('cp'+id); if(!cp) return;
-  if(cp.classList.contains('show')){ cp.classList.remove('show'); return; }
-  cp.innerHTML = CATS.map(c=>`<button onclick="chooseCat(${id},'${c[1]}')">${c[0]}</button>`).join('');
-  cp.classList.add('show');
+const CAT_ICON = {food:'🍜',transport:'🚕',accommodation:'🏨',shopping:'🛍',entertainment:'🎉',utilities:'💡',medical:'➕',education:'📚',subscription:'🔁',misc:'🧾'};
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const RECENTS = ['Ichiran Ramen','MK Taxi','Lawson','Caffè Roma'];
+
+// ----- Bottom edit drawer: tap any field -> the field-appropriate selector.
+// Date & category are pure selection; amount & merchant host a focused control
+// (number pad / text + recent chips) in the drawer — no inline input boxes.
+let DC = { id:null, field:null, buf:'' };
+function openDrawer(id, field){ DC = { id, field, buf:'' }; $('drawerBody').innerHTML = drawerBody(id, field); $('drawer').classList.add('open'); $('scrim').classList.add('open'); }
+function closeDrawer(){ $('drawer').classList.remove('open'); $('scrim').classList.remove('open'); }
+function drawerBody(id, field){
+  if(field==='amount') return `<h5>Enter amount</h5><div class="dnum" id="dnum">¥0</div>
+    <div class="keypad">${['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k=>`<button onclick="pad('${k}')">${k}</button>`).join('')}</div>
+    <button class="dset" onclick="setAmount()">Set amount</button>`;
+  if(field==='category') return `<h5>Choose a category</h5><div class="dgrid">${CATS.map(c=>`<button onclick="chooseCat(${id},'${c[1]}')">${CAT_ICON[c[1]]} ${c[0]}</button>`).join('')}</div>`;
+  if(field==='date') return `<h5>When was it?</h5><div class="drow"><span class="dquick" onclick="setDate('Today')">Today</span><span class="dquick" onclick="setDate('Yesterday')">Yesterday</span></div>
+    <input type="date" class="ddate" id="ddate"><button class="dset" onclick="setDateFromPicker()">Set date</button>`;
+  if(field==='merchant') return `<h5>Merchant</h5><input class="dtext" id="dmerch" placeholder="Store or company name"><div class="drow">${RECENTS.map(r=>`<span class="dquick" style="border-color:var(--lbrown);background:var(--cream);color:var(--brown)" onclick="document.getElementById('dmerch').value='${r}'">${r}</span>`).join('')}</div><button class="dset" onclick="setMerchant()">Set merchant</button>`;
+  return '';
 }
+function pad(k){ if(k==='⌫'){ DC.buf=DC.buf.slice(0,-1); } else if(k==='.'){ if(!DC.buf.includes('.')) DC.buf += DC.buf===''?'0.':'.'; } else { DC.buf+=k; } $('dnum').textContent='¥'+(DC.buf||'0'); }
+function setAmount(){ const n=parseFloat(DC.buf); if(isNaN(n)||n<=0){ toast('Enter an amount'); return; } const c=$('card'+DC.id); c.dataset.amount=n; const a=$('amt'+DC.id); a.textContent='¥'+fmt(n); a.classList.remove('req'); closeDrawer(); setReadyIfComplete(DC.id); }
+function setMerchant(){ const v=$('dmerch').value.trim(); if(!v){ toast('Enter a merchant'); return; } $('card'+DC.id).querySelector('.merchant').textContent=v; closeDrawer(); }
+function setDate(label){ answerDate(DC.id, label); closeDrawer(); }
+function setDateFromPicker(){ const v=$('ddate').value; if(!v){ toast('Choose a date'); return; } const p=v.split('-'); setDate(MONTHS[parseInt(p[1])-1]+' '+parseInt(p[2])); }
 function chooseCat(id, raw){
   const disp=(CATS.find(c=>c[1]===raw)||['',raw])[0];
   const chip=$('cat'+id); chip.innerHTML = disp+' ▾'; chip.dataset.raw = raw;
-  $('cp'+id).classList.remove('show');
+  closeDrawer();
   toast('Category → '+disp+' (stored as "'+raw+'") — change anytime before saving.');
-}
-function pickDate(id){
-  $('q'+id).innerHTML = `<div class="q">Pick a date:</div><div class="dateinput"><input type="date" id="di${id}"><button class="chip" onclick="applyPickedDate(${id})">set</button></div>`;
-  $('di'+id).focus();
-}
-function applyPickedDate(id){
-  const v=$('di'+id).value; if(!v){ toast('Choose a date first'); return; }
-  const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const parts=v.split('-');
-  answerDate(id, m[parseInt(parts[1])-1]+' '+parseInt(parts[2]));  // MMM d, matching Date.relativeLabel
 }
 function fmt(n){ return Number(n).toLocaleString('en-US',{maximumFractionDigits:2}); }
 function setReadyIfComplete(id){
@@ -263,23 +295,10 @@ function answerDate(id, label){
   const c=$('card'+id); c.dataset.date=label; $('date'+id).innerHTML=label; $('q'+id).innerHTML='';
   setReadyIfComplete(id);
 }
-let editMode = {};
-function editAmount(id){ editMode[id]='amount'; openEdit(id,'amount (number)'); }
-function editMerchant(id){ editMode[id]='merchant'; openEdit(id,'merchant name'); }
-function editDate(id){ editMode[id]='date'; openEdit(id,'date e.g. Today'); }
-function openEdit(id, ph){ const ef=$('ef'+id); ef.classList.add('show'); const i=$('efin'+id); i.placeholder=ph; i.value=''; i.focus(); }
-function applyEdit(id){
-  const c=$('card'+id); const v=$('efin'+id).value.trim(); const mode=editMode[id]; if(!v){ return; }
-  if(mode==='amount'){ const n=parseFloat(v.replace(/,/g,'')); if(isNaN(n)){toast('Enter a number');return;} c.dataset.amount=n; const a=$('amt'+id); a.textContent='¥'+fmt(n); a.classList.remove('req'); }
-  if(mode==='merchant'){ c.querySelector('.merchant').textContent=v; }
-  if(mode==='date'){ c.dataset.date=v; $('date'+id).innerHTML=v; $('q'+id).innerHTML=''; }
-  $('ef'+id).classList.remove('show');
-  setReadyIfComplete(id);
-}
 function save(id){
   const c=$('card'+id); if($('save'+id).disabled){ toast('Fix the highlighted field first.'); return; }
   const amt=Number(c.dataset.amount);
-  c.querySelector('.actions').remove(); $('q'+id).innerHTML=''; $('ef'+id).remove();
+  c.querySelector('.actions').remove(); $('q'+id).innerHTML='';
   c.classList.remove('needs');
   c.insertAdjacentHTML('afterbegin','<div class="stamp">in journal ✓</div>');
   savedCount++; savedTotal+=amt; $('count').textContent='¥'+fmt(savedTotal)+' · '+savedCount+' saved';
