@@ -103,6 +103,8 @@ final class RecordTabUITests: XCTestCase {
 
         let amountField = app.textFields["drawer-amount-field"]
         XCTAssertTrue(amountField.waitForExistence(timeout: 5), "Tapping save with no amount should open the amount drawer")
+        // The blocked save must not have recorded the card (no "In the journal" yet).
+        XCTAssertFalse(app.staticTexts["In the journal"].exists, "A no-amount card must not persist on the blocked save")
         amountField.tap()
         amountField.typeText("980")
         app.buttons["drawer-set"].tap()
