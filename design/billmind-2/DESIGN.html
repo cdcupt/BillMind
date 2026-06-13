@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind 2.0 — Design Document</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--paper:#F7F4EE;--page:#fffdf9;--ink:#1B201D;--soft:#5f655f;--rule:#e4ded2;--card:#fff;
+    --pine:#1F6F5C;--terra:#C8643C;--sand:#E9C46A;--gate:#B23A3A;--blue:#2D6CA8;--violet:#7C5BA6;
+    --sans:'Inter',system-ui,sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'IBM Plex Mono',monospace}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;font-size:15.5px;overflow-x:clip}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px;overflow-x:clip}
+  header{background:linear-gradient(160deg,#23806A,#13473C);color:#F7F4EE;padding:54px 0 40px;text-align:center}
+  header .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.8}
+  header h1{font-family:var(--serif);font-size:clamp(34px,7vw,60px);font-weight:600;letter-spacing:-.015em;margin:8px 0 4px}
+  header h1 em{font-style:italic;color:var(--sand)}
+  header p{max-width:600px;margin:10px auto 0;opacity:.92;font-size:16px}
+  header .meta{margin-top:18px;font-size:12.5px;opacity:.8;font-family:var(--mono)}
+  .tocbar{position:sticky;top:0;z-index:10;background:rgba(247,244,238,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);overflow-x:auto}
+  .tocbar .in{display:flex;gap:4px;padding:9px 16px;max-width:920px;margin:0 auto;white-space:nowrap}
+  .tocbar a{font-size:12.5px;color:var(--soft);text-decoration:none;padding:4px 10px;border-radius:8px}
+  .tocbar a:hover{background:#ece5d8;color:var(--ink)}
+  section{padding:38px 0;border-bottom:1px solid var(--rule)}
+  h2{font-family:var(--serif);font-size:28px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:baseline;gap:11px;margin-bottom:6px}
+  h2 .n{font-family:var(--mono);font-size:14px;color:var(--terra);font-weight:500}
+  h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:22px 0 7px}
+  h4{font-size:14px;font-weight:700;margin:16px 0 5px;letter-spacing:.01em}
+  p{margin:9px 0}
+  .lead{font-size:17px;color:#33372f}
+  ul,ol{margin:9px 0 9px 4px;padding-left:20px}
+  li{margin:5px 0}
+  b,strong{font-weight:600}
+  code{font-family:var(--mono);font-size:.88em;background:#efe9dd;border-radius:5px;padding:1px 5px;overflow-wrap:anywhere}
+  a{color:var(--blue)}
+  .callout{background:var(--card);border:1.5px solid var(--rule);border-left:4px solid var(--pine);border-radius:12px;padding:14px 18px;margin:16px 0}
+  .callout.t{border-left-color:var(--terra)} .callout.s{border-left-color:var(--sand)} .callout.g{border-left-color:var(--gate)}
+  .callout h4{margin-top:0;color:var(--pine)} .callout.t h4{color:var(--terra)} .callout.g h4{color:var(--gate)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
+  .cardbox{background:var(--card);border:1.5px solid var(--rule);border-radius:13px;padding:15px 17px}
+  .cardbox h4{margin-top:0}
+  .cardbox .tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+  .tag.pine{background:rgba(31,111,92,.13);color:var(--pine)} .tag.terra{background:rgba(200,100,60,.14);color:var(--terra)} .tag.sand{background:rgba(180,140,30,.16);color:#8a6d12} .tag.blue{background:rgba(45,108,168,.13);color:var(--blue)} .tag.violet{background:rgba(124,91,166,.14);color:var(--violet)}
+  .scrollx{overflow-x:auto;margin:16px 0;border:1px solid var(--rule);border-radius:12px}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:13.5px;background:var(--card)}
+  th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{background:#efe9dd;font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:#4a463e}
+  tr:last-child td{border-bottom:none}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .sw{width:78px;border-radius:10px;overflow:hidden;border:1px solid var(--rule);font-size:10px}
+  .sw .c{height:46px} .sw .l{padding:4px 6px;background:var(--card);font-family:var(--mono)}
+  .mockcta{display:flex;align-items:center;gap:16px;background:var(--card);border:1.5px solid var(--pine);border-radius:14px;padding:16px 20px;margin:18px 0;flex-wrap:wrap}
+  .mockcta .em{width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,#23806A,#13473C);display:grid;place-items:center;flex:none}
+  .mockcta .tx{flex:1;min-width:180px} .mockcta .tx b{font-family:var(--serif);font-size:17px}
+  .mockcta a.go{background:var(--terra);color:#fff;text-decoration:none;font-weight:600;padding:9px 18px;border-radius:11px;font-size:14px}
+  .flow{counter-reset:s;margin:14px 0}
+  .flow .st{display:flex;gap:13px;padding:9px 0;border-bottom:1px dashed var(--rule)}
+  .flow .st:last-child{border-bottom:none}
+  .flow .st .num{counter-increment:s;font-family:var(--serif);font-weight:600;color:var(--terra);flex:none;width:26px;font-size:18px}
+  .flow .st .num::before{content:counter(s)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;border-radius:6px;padding:1px 7px;border:1px solid}
+  .pill.read{border-color:var(--pine);color:var(--pine)} .pill.write{border-color:var(--terra);color:var(--terra)} .pill.act{border-color:#8a6d12;color:#8a6d12;background:rgba(233,196,106,.13)}
+  footer{text-align:center;padding:34px 22px 60px;color:var(--soft);font-size:13px;font-style:italic}
+  .gate{background:#fbf3ec;border:2px dashed var(--terra);border-radius:14px;padding:20px;margin:24px 0;text-align:center}
+  .gate .g{font-family:var(--mono);font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--terra)}
+  .gate h3{font-family:var(--serif);margin:4px 0 8px}
+  @media(max-width:600px){h2{font-size:23px}.lead{font-size:15.5px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Design Document · Pipeline Step 3</div>
+  <h1>BillMind 2.0 — <em>a ledger that talks</em></h1>
+  <p>The interaction and visual design for an AI agent for travel and money: one home where your trip's bills and the agent that captures, computes, and answers live in a single scroll.</p>
+  <div class="meta">Designer + Coordinator · Voyage direction · for Gate 1 · 2026-06-13</div>
+</header>
+
+<div class="tocbar"><div class="in">
+  <a href="#thesis">Thesis</a>
+  <a href="#visual">Visual</a>
+  <a href="#ia">Architecture</a>
+  <a href="#home">Record home</a>
+  <a href="#agent">Agent model</a>
+  <a href="#flows">Flows</a>
+  <a href="#auth">Auth & privacy</a>
+  <a href="#states">States</a>
+  <a href="#statsminds">Stats & Minds</a>
+  <a href="#web">Web</a>
+  <a href="#risks">Risks</a>
+  <a href="#scope">Scope</a>
+</div></div>
+
+<div class="wrap">
+
+<section id="thesis">
+  <h2><span class="n">01</span> Design thesis</h2>
+  <p class="lead">BillMind 2.0 is, first, an <b>AI agent for travel and money</b>. The design's whole job is to make that identity legible and trustworthy on the first screen — not as a chat feature bolted onto a ledger, nor a ledger bolted onto a chat, but <b>one surface that is both</b>.</p>
+  <p>The product's chosen icon — Concept A, a receipt whose "bottom line" is an AI spark — is the thesis in one mark: <em>a bill that thinks</em>. Every surface should read as a calm, editorial travel ledger that you can talk to, that does the math for you, and that <b>never guesses a number it could compute</b>.</p>
+  <div class="callout t"><h4>The one design decision that frames everything</h4><p>The Record home is <b>two layers in one scroll</b>: a permanent <b>ledger</b> (the trip's saved bills, day-grouped — what syncs and sums) and an ephemeral <b>conversation</b> (what you typed, what the agent answered, drafts mid-flight). They are visually distinct but share one scroll, with capture pinned at the bottom. Everything below honors that single-surface promise.</p></div>
+</section>
+
+<section id="visual">
+  <h2><span class="n">02</span> Visual direction — "Voyage"</h2>
+  <p>Warm, editorial, paper-and-ink — disciplined contrast, strong accents, character. It honors the PM's standing preferences (light backgrounds, near-black text, strong accent colors, list/timeline navigation) while elevating the old hand-sketch look into something that reads as a real, intentional product.</p>
+  <div class="swatches">
+    <div class="sw"><div class="c" style="background:#F7F4EE"></div><div class="l">paper<br>#F7F4EE</div></div>
+    <div class="sw"><div class="c" style="background:#1B201D"></div><div class="l" style="color:#1B201D">ink<br>#1B201D</div></div>
+    <div class="sw"><div class="c" style="background:#1F6F5C"></div><div class="l" style="color:#1F6F5C">pine<br>#1F6F5C</div></div>
+    <div class="sw"><div class="c" style="background:#C8643C"></div><div class="l" style="color:#C8643C">terra<br>#C8643C</div></div>
+    <div class="sw"><div class="c" style="background:#E9C46A"></div><div class="l" style="color:#8a6d12">sand<br>#E9C46A</div></div>
+    <div class="sw"><div class="c" style="background:#B23A3A"></div><div class="l" style="color:#B23A3A">gate<br>#B23A3A</div></div>
+  </div>
+  <div class="grid">
+    <div class="cardbox"><h4>Type</h4><p><b>Fraunces</b> (serif display) for headings, trip names, and every money figure that matters. <b>Inter</b> for UI. <b>IBM Plex Mono</b> + <code>tabular-nums</code> for ledger amounts so columns align.</p></div>
+    <div class="cardbox"><h4>Color as meaning, not decoration</h4><p><b>Pine</b> = informational / done / computed. <b>Terra</b> = needs you (a draft to confirm). <b>Sand</b> = about to change money or people (v2 actions). <b>Gate red</b> = destructive. This is a <em>semantic</em> system the user learns.</p></div>
+    <div class="cardbox"><h4>Texture & depth</h4><p>Day-grouped timeline with a left rail; soft surfaces and shadows for cards; the count-up of tabular figures as a signature motion. Restraint over flourish.</p></div>
+  </div>
+  <p>The mascot (the cat, "Mochi") stays as the trip emblem, the empty-state character, and the agent's thinking-companion — but the terracotta <b>spark</b>, not the animal, is now the hero mark.</p>
+</section>
+
+<section id="ia">
+  <h2><span class="n">03</span> Information architecture</h2>
+  <p>Four tabs. The old <b>Journals</b> tab is gone — its browse job is absorbed into the Record home's ledger layer. We also <b>rename "Journal" → "Trip"</b> throughout (this is a travel-money agent; "trip" is the language the agent itself speaks — "your trip to Osaka").</p>
+  <div class="scrollx"><table>
+    <tr><th>Tab</th><th>Purpose</th><th>Agent relationship</th></tr>
+    <tr><td><b>Record</b></td><td>The home. Capture + ask + browse this trip's bills, all in one scroll.</td><td>The agent's primary surface — the conversation lives here.</td></tr>
+    <tr><td><b>Stats</b></td><td>Totals, category breakdown, trends. A <code>This trip ⇄ All trips</code> toggle.</td><td>Built as reusable components the agent can <b>embed</b> in answers and <b>drive</b> as a tool.</td></tr>
+    <tr><td><b>Minds</b></td><td>Generated infographic timelines — the emotional payoff, one per trip.</td><td>"Make a Mind" becomes a v2 agent <b>action</b>.</td></tr>
+    <tr><td><b>Settings</b></td><td>Account, sync, privacy &amp; AI, export, <b>Delete account</b>.</td><td>Net-new account layer (the app had no account before).</td></tr>
+  </table></div>
+</section>
+
+<section id="home">
+  <h2><span class="n">04</span> The Record home</h2>
+  <p class="lead">Three jobs — converse, browse, capture — on one surface. Top to bottom:</p>
+  <div class="flow">
+    <div class="st"><span class="num"></span><div><b>Trip header (sticky, collapsible).</b> Emblem, trip name in Fraunces with a <code>▾</code> switcher, dates, and the <b>running total in tabular figures</b> — the single most important number on screen. Collapses to a slim bar on scroll so the timeline owns the screen.</div></div>
+    <div class="st"><span class="num"></span><div><b>The ledger (browse).</b> Saved bills grouped by <b>day dividers</b> with a left rail and per-day subtotals; amounts right-aligned and tabular. Tapping a bill opens detail. This is the permanent, synced truth.</div></div>
+    <div class="st"><span class="num"></span><div><b>The conversation (live edge).</b> New messages, agent answers, and draft cards appear at the bottom, above the input. A confirmed draft <b>animates up and docks</b> into its day slot in the ledger.</div></div>
+    <div class="st"><span class="num"></span><div><b>The capture / ask bar (pinned).</b> One input does both jobs — see §05. A camera affordance routes photos to server-side recognition.</div></div>
+  </div>
+
+  <h3>One input, not two</h3>
+  <p>There is <b>no capture/ask mode toggle</b>. A toggle would re-introduce exactly the tab-hop the merge exists to kill. The agent routes intent: a number ("ramen 2840") becomes a capture draft; a question ("how much on food?") becomes a computed answer. When intent is genuinely ambiguous, the agent asks with two chips rather than guessing on money (§05, §10).</p>
+
+  <h3>How a confirmed bill lands</h3>
+  <p>Confirming a draft is a physical hand-off, and it <b>is</b> the product's core loop made visible: the card flips to a pine "saved" state, animates up and docks into its day group, and the day subtotal + trip total <b>count up</b> to absorb it. A slim "✓ saved Ramen ¥2,840 → Today" receipt line stays in the conversation so history reads coherently without duplicating the whole card.</p>
+
+  <h3>Switching trips</h3>
+  <p>The trip name <code>▾</code> opens a <b>sheet</b> of trips (cover, name, dates, total, member avatars in v2) — not an inline menu, so it scales past a handful of trips and gives the cover art room. Switching <b>swaps the whole surface</b>: the conversation is <em>per-trip</em>, so switching trips changes who you're talking to. The agent is always trip-scoped by default; cross-trip questions are answered via the Stats "All trips" tool (§09).</p>
+
+  <div class="mockcta">
+    <div class="em"><svg width="26" height="26" viewBox="0 0 40 40"><path d="M8 14 L11 4 L17 11 Z" fill="#F7F4EE"/><path d="M32 14 L29 4 L23 11 Z" fill="#F7F4EE"/><ellipse cx="20" cy="22" rx="13" ry="12" fill="#F7F4EE"/><circle cx="15.4" cy="20.5" r="1.5" fill="#13473C"/><circle cx="24.6" cy="20.5" r="1.5" fill="#13473C"/></svg></div>
+    <div class="tx"><b>See it move.</b><br>The interactive mockup demonstrates the full loop — and the answers genuinely sum the ledger, so "computed, not guessed" is real, not faked.</div>
+    <a class="go" href="DESIGN-mockup.html">Open mockup →</a>
+  </div>
+</section>
+
+<section id="agent">
+  <h2><span class="n">05</span> The agent interaction model</h2>
+  <p>The thread must make "this is an <b>answer</b>" vs. "this is a <b>bill to confirm</b>" vs. "this is an <b>action</b> I'm about to take" instantly legible. We use <b>shape + accent color</b> as a type system.</p>
+  <div class="grid">
+    <div class="cardbox"><span class="tag pine">answer</span><h4>Computed Q&amp;A</h4><p>Left-aligned text with an inline <b>tool-result chip</b>. Read-only — never touches the ledger. <span class="pill read">read = instant</span></p></div>
+    <div class="cardbox"><span class="tag terra">draft</span><h4>Capture card</h4><p>The editable bill card, <b>terracotta border = "needs you"</b>. Confirm is the only thing that writes. <span class="pill write">write = confirmed</span></p></div>
+    <div class="cardbox"><span class="tag sand">action · v2</span><h4>Action proposal</h4><p>A card with a clear primary action + Confirm/Cancel, <b>sand = "about to change things"</b>. Never auto-executes on money/people. <span class="pill act">act = confirmed</span></p></div>
+  </div>
+
+  <h3>The guarantee, made visible: tool-result components</h3>
+  <p class="lead">A chatty model with a number in prose looks identical whether the number was computed or hallucinated. So we enforce, <b>at the design-system level</b>, that every figure the agent states lives inside a "computed" component with tappable provenance.</p>
+  <div class="scrollx"><table>
+    <tr><th>Tool result</th><th>Renders as</th></tr>
+    <tr><td>Computed total</td><td>A <b>result chip</b>: the figure in large tabular Fraunces, a one-line basis ("food · Osaka · 8 bills"), a <code>computed ✓</code> mark, and tap-to-expand the underlying bills. The single most important trust surface in the app.</td></tr>
+    <tr><td>Category breakdown</td><td>A compact bar/donut drawn from the <b>Stats design system</b> (same components, embedded) — tap opens Stats filtered to that view.</td></tr>
+    <tr><td>Draft bill</td><td>The editable capture card.</td></tr>
+    <tr><td>Day / trip recap</td><td>A short structured summary (total, top categories, notable bills) with a "see in Stats / make a Mind" affordance.</td></tr>
+  </table></div>
+  <div class="callout t"><h4>Design invariant (and a QA test point)</h4><p>If a number is not wrapped in a tool-result component, <b>it's a bug</b>. Prose answers reference figures only by pointing at their chip. This makes the backend's "never guess money" guarantee a <em>visible</em>, testable property of the UI.</p></div>
+
+  <h3>Thinking, answers, actions</h3>
+  <ul>
+    <li><b>Thinking / tool-running:</b> an inline status line named by the tool — "Reading receipt…", "Adding up 8 bills…" — with the brand <b>spark</b> pulsing. Phrasing it as <em>what tool is running</em> teaches the user that the agent computes. Not a generic spinner.</li>
+    <li><b>Answers</b> stream inline and never touch the ledger (read-only by construction).</li>
+    <li><b>Actions (v2)</b> appear as proposal cards that explicitly ask before mutating ("Split this ¥6,000 dinner 3 ways?"); a confirmed action that creates a bill docks into the timeline exactly like a capture.</li>
+  </ul>
+  <p><b>Confirmation discipline:</b> read = instant, write = always confirmed. Color encodes it (pine/terra/sand). This is a stated, testable invariant, not a suggestion.</p>
+</section>
+
+<section id="flows">
+  <h2><span class="n">06</span> Key flows</h2>
+  <h3>Capture (text or photo) → confirm → land</h3>
+  <div class="flow">
+    <div class="st"><span class="num"></span><div>User types "ramen 2840" or snaps a receipt. Text parses locally for an instant card; a photo round-trips to server-side recognition (status line while it reads).</div></div>
+    <div class="st"><span class="num"></span><div>A <b>draft card</b> appears (terracotta) with merchant, amount, category, date. Missing essentials surface as inline chips; <b>money is never invented</b> — a missing amount blocks save.</div></div>
+    <div class="st"><span class="num"></span><div>User edits via the <b>edit drawer</b> (date picker / category grid / number pad / merchant) — selection surfaces, not free-text boxes, wherever possible.</div></div>
+    <div class="st"><span class="num"></span><div><b>Confirm</b> → card docks up into the ledger, totals count up, a slim receipt line remains in the conversation.</div></div>
+  </div>
+  <h3>Ask anything → computed answer</h3>
+  <div class="flow">
+    <div class="st"><span class="num"></span><div>User asks "how much on food?" The agent picks the right tool (<code>compute_totals</code> filtered to food).</div></div>
+    <div class="st"><span class="num"></span><div>Thinking line: "Adding up 8 food bills…" (spark pulsing).</div></div>
+    <div class="st"><span class="num"></span><div>A <b>computed result chip</b> resolves in place — the figure, its basis, a <code>computed ✓</code> mark, and tap-to-expand the exact bills it summed. The ledger is untouched.</div></div>
+  </div>
+  <h3>Ambiguous input → disambiguation</h3>
+  <p>"Dinner in Kyoto" (a place, no number, no question word) is ambiguous. The agent <b>does not silently create a bill</b>; it offers two chips: <span class="pill write">Add as a bill</span> <span class="pill read">Answer a question</span>. Cheaper than a mode toggle, and it protects money.</p>
+</section>
+
+<section id="auth">
+  <h2><span class="n">07</span> Onboarding, auth &amp; privacy</h2>
+  <h3>First run</h3>
+  <p><code>Splash → one value screen → Auth → (first sign-in) optional local-data import → Record home (empty-trip prompt)</code>. The icon plus a Fraunces line — "Talk to your trips. BillMind does the math." — carries the value screen.</p>
+
+  <h3>Auth — Apple + Google at parity (Guideline 4.8)</h3>
+  <ul>
+    <li>Both buttons <b>same width, same prominence, stacked</b>. Sign in with Apple uses Apple's native button styling; Google sits directly below at identical size. No visual hierarchy implying a preferred provider — that parity is the 4.8 requirement and a rejection risk if violated.</li>
+    <li>Apple private-relay email is handled silently; we request only name + email.</li>
+  </ul>
+
+  <div class="callout g"><h4>The privacy notice must be rewritten (compliance + trust)</h4><p>The v1 notice literally says <em>"Your journals and bills stay on this device. No servers, no account."</em> — <b>this is now false.</b> The new copy is honest and earns trust rather than burying the change:</p>
+  <ul style="margin-top:6px">
+    <li>"Your trips sync to <b>your</b> BillMind server, so they're on every device and safely backed up."</li>
+    <li>"Receipt photos are sent to the server <b>to read them into bills</b> — that's how recognition works without a key on your phone."</li>
+    <li>"You're in control: <b>export or delete your account and all its data</b> anytime."</li>
+  </ul>
+  <p>Positioned where true as <em>the user's own VPS</em> — a genuine differentiator for a privacy-minded audience.</p></div>
+
+  <h3>Account + Delete account (Guideline 5.1.1(v))</h3>
+  <p>A real Settings → Account section: identity (provider + relay email), sign out, sync controls, and <b>Delete account</b>. Deletion is:</p>
+  <ul>
+    <li><b>Reachable in-app</b> (Apple-mandated; not a web redirect).</li>
+    <li><b>Two-step and honest:</b> "permanently deletes your account, all trips, bills, and receipt images from the server. This cannot be undone." A real <code>DELETE /account</code>, not a sign-out.</li>
+    <li>Styled as a destructive zone (gate red), visually separated from sign-out so no one taps it by accident. QA verifies it actually <b>purges server data + receipt blobs + tokens</b>.</li>
+  </ul>
+</section>
+
+<section id="states">
+  <h2><span class="n">08</span> States — each designed as a first-class screen</h2>
+  <p>The local-first <em>feel</em> of v1 must survive the move to a server. Optimistic writes show instantly; sync reconciles behind a hairline; offline degrades honestly instead of spinning.</p>
+  <div class="scrollx"><table>
+    <tr><th>State</th><th>Treatment</th></tr>
+    <tr><td><b>Empty — no trips</b></td><td>Mascot emblem + "Start your first trip." One warm CTA, not a sad blank.</td></tr>
+    <tr><td><b>Empty — trip, no bills</b></td><td>The agent opens the conversation: "Tell me about a bill — like 'ramen 2840' — or snap a receipt. Ask me anything about your spending too." Doubles as onboarding for the dual input.</td></tr>
+    <tr><td><b>Syncing</b></td><td>A thin pine hairline / "syncing…" in the collapsed header. Never blocks the UI — optimistic local writes show first.</td></tr>
+    <tr><td><b>Offline</b></td><td>A slim persistent banner. <b>Text capture still works locally;</b> photo-recognition and Q&amp;A are gracefully disabled with an explanation (they need the server). Honest degradation, not an infinite spinner.</td></tr>
+    <tr><td><b>Agent thinking / tool running</b></td><td>Inline status line named by the tool + pulsing spark. Bounded; shows an elapsed cue if slow.</td></tr>
+    <tr><td><b>Error</b></td><td>Inline on the relevant card/answer, with <b>Retry</b>. Human copy, never raw codes.</td></tr>
+    <tr><td><b>Quota hit</b></td><td>A calm, non-alarming card: "You've used today's AI recognition. Text capture still works — try typing the bill, or come back tomorrow." Always offers the manual path so the user is never stuck. Tie to a future paid tier without dark patterns.</td></tr>
+  </table></div>
+</section>
+
+<section id="statsminds">
+  <h2><span class="n">09</span> Stats &amp; Minds as agent-drivable tools</h2>
+  <p>The key idea: Stats and Minds aren't only tabs — they're <b>tools the agent can drive</b>, rendered by the <b>same components</b> whether you tapped the tab or asked the agent.</p>
+  <div class="grid">
+    <div class="cardbox"><span class="tag blue">Stats</span><h4>One chart system, two entry points</h4><p>A <code>This trip ⇄ All trips</code> segmented control (trip-scoped by default, matching the agent). Big total (tabular Fraunces), category breakdown, trend — built as reusable components so the agent embeds the exact same bar/donut inline in an answer. An answer's breakdown chip deep-links into Stats; Stats can "ask about this" to seed the agent. Two-way.</p></div>
+    <div class="cardbox"><span class="tag violet">Minds</span><h4>Where the agent acts</h4><p>A gallery of generated infographics, one per trip. In the agent model, "make a Mind for this trip" is a <b>v2 action tool</b> → a sand action-proposal card → on confirm, generation runs (tool-running state) → the result lands in the gallery with a thread receipt. Minds is the brand's emotional payoff; keep it visually rich.</p></div>
+  </div>
+  <p>This is also the answer to the cross-trip-question IA problem: the home agent stays trip-scoped; "all trips" lives behind the Stats toggle, and the agent answers lifetime questions by <b>driving that tool</b> — never by secretly going global.</p>
+</section>
+
+<section id="web">
+  <h2><span class="n">10</span> Web client (v1 minimal)</h2>
+  <p>Frame it as <b>"the reviewer's surface"</b> — the persona who sits at a browser to tidy up and see numbers on a wide screen. v1 is <b>read + light capture, not the full agent</b>:</p>
+  <ul>
+    <li><b>Sign in</b> — Apple + Google parity (web OAuth), same as iOS.</li>
+    <li><b>Trip list → trip view</b> — the same day-grouped timeline + running total, in a two-column wide layout the phone can't afford (timeline left, trip summary/stats right).</li>
+    <li><b>Basic capture</b> — text/photo into the same recognize → draft → confirm flow; editing a draft is fine.</li>
+    <li><b>Account / Delete</b> present (parity matters; deletion isn't iOS-only).</li>
+    <li><b>Same Voyage tokens</b> — paper, ink, pine, terra, Fraunces/Inter — so it's unmistakably BillMind. The API is the shared contract; the design language is the shared <em>feel</em>.</li>
+  </ul>
+  <p><b>Explicitly out of v1 web:</b> Minds generation, collaboration UI, the full streaming agent surface. That boundary keeps scope honest.</p>
+</section>
+
+<section id="risks">
+  <h2><span class="n">11</span> Design risks &amp; resolved questions</h2>
+  <div class="grid">
+    <div class="cardbox"><h4>① Capture/ask intent ambiguity</h4><p>One input, two jobs will misfire. <b>Resolution:</b> agent routing by default; low-confidence → two-chip disambiguation; never a silent bill on money. Keep the single input.</p></div>
+    <div class="cardbox"><h4>② "Computed" is invisible if we're sloppy</h4><p>A hallucinated number looks like a real one. <b>Resolution:</b> the tool-result-component rule (§05) at the design-system level — numbers only ever appear in a "computed" chip with provenance.</p></div>
+    <div class="cardbox"><h4>③ Losing the local-first feel</h4><p>Sync can make the app feel laggy. <b>Resolution:</b> optimistic local writes, sync as a background hairline, honest offline degradation (§08).</p></div>
+    <div class="cardbox"><h4>④ Conversation vs. ledger clutter</h4><p>Every saved bill leaving a full card + a ledger row gets noisy over a long trip. <b>Resolution:</b> land + collapse to a slim receipt line; the <b>conversation is session-scoped, the ledger is permanent</b>.</p></div>
+  </div>
+  <h4>Resolved IA questions (Designer's recommendation)</h4>
+  <ul>
+    <li><b>Journal → Trip:</b> rename now, in the schema migration. The agent speaks "trip."</li>
+    <li><b>Cross-trip questions:</b> Stats "All trips" toggle, driven by the agent as a tool.</li>
+    <li><b>One input vs. two:</b> one, disambiguated by chips.</li>
+    <li><b>Conversation persistence:</b> session-scoped conversation, permanent ledger.</li>
+    <li><b>Mascot:</b> emblem + empty-state + thinking-companion; the spark is the hero mark.</li>
+  </ul>
+  <div class="callout"><h4>Technical decisions the kickoff settled (detail belongs to the Tech Document)</h4><p>Carried forward so the design and build agree: <b>Swift/Vapor backend</b> reusing the verified agent core verbatim; <b>server-authoritative card state</b> with the client rendering a <code>CardDTO</code> and keeping a local text-capture fallback; <b>SwiftData as offline cache</b> + poll / per-bill last-write-wins sync; <b>REST + JSON</b> with SSE streaming; <b>React + Vite</b> web; <b>monorepo</b> with OpenAPI as the contract.</p></div>
+</section>
+
+<section id="scope">
+  <h2><span class="n">12</span> Phasing &amp; what's in the mockup</h2>
+  <div class="grid">
+    <div class="cardbox"><span class="tag pine">v1 — Foundation + agent</span><h4>This document's focus</h4><p>Accounts (Apple+Google), sync + backup, server-side recognition, the merged Record home, the agent for <b>capture + read-only Q&amp;A</b>, Stats, Minds (existing generation), iOS primary + minimal web, full Apple compliance.</p></div>
+    <div class="cardbox"><span class="tag sand">v2 — Collaboration + agent actions</span><h4>Designed-for, not built yet</h4><p>Shared/collaborative trips, per-person balances, and agent <b>actions</b> (split, invite, generate-a-Mind) via sand action-proposal cards. The type system already reserves their slot.</p></div>
+  </div>
+  <p>The interactive mockup makes the <b>v1 core loop</b> tangible: the two-layer Record home (capture → confirm → dock, and ask → computed answer with provenance), the Apple+Google parity auth, and the Account + Delete screen. It is verified at desktop / 390 / 320 with no overflow, and its answers compute live from the ledger.</p>
+  <div class="mockcta">
+    <div class="em"><svg width="26" height="26" viewBox="0 0 40 40"><path d="M8 14 L11 4 L17 11 Z" fill="#F7F4EE"/><path d="M32 14 L29 4 L23 11 Z" fill="#F7F4EE"/><ellipse cx="20" cy="22" rx="13" ry="12" fill="#F7F4EE"/><circle cx="15.4" cy="20.5" r="1.5" fill="#13473C"/><circle cx="24.6" cy="20.5" r="1.5" fill="#13473C"/></svg></div>
+    <div class="tx"><b>The mockup is the design.</b><br>Read this document alongside it.</div>
+    <a class="go" href="DESIGN-mockup.html">Open mockup →</a>
+  </div>
+</section>
+
+<div class="gate">
+  <div class="g">⟢ Gate 1 ⟣</div>
+  <h3>Confirm the design</h3>
+  <p>This Design Document + the interactive mockup are the Gate 1 deliverable. The Coordinator stops here for the PM to confirm the design serves the goal — an AI agent for travel and money — before any technical design begins.</p>
+</div>
+
+</div>
+<footer>BillMind 2.0 · Design Document · Pipeline Step 3 · Designer + Coordinator · Voyage direction</footer>
+</body>
+</html>

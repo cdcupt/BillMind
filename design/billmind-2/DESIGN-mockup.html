@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind 2.0 — Interactive Design Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--paper:#F7F4EE;--ink:#1B201D;--soft:#6b675f;--rule:#e4ded2;--card:#fff;--pine:#1F6F5C;--terra:#C8643C;--sand:#E9C46A;--gate:#B23A3A;--blue:#2D6CA8;
+    --sans:'Inter',system-ui,sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'IBM Plex Mono',monospace}
+  body{background:#ECE6DA;font-family:var(--sans);color:var(--ink);padding:34px 16px 70px}
+  .head{max-width:1180px;margin:0 auto 8px;text-align:center}
+  .head h1{font-family:var(--serif);font-size:clamp(30px,5vw,46px);font-weight:600;letter-spacing:-.01em}
+  .head h1 em{font-style:italic;color:var(--pine)}
+  .head p{color:var(--soft);font-size:14.5px;margin-top:6px}
+  .try{font-family:var(--mono);font-size:12px;color:var(--terra);margin-top:10px}
+  .stage{display:flex;gap:30px;justify-content:center;align-items:flex-start;flex-wrap:wrap;max-width:1180px;margin:26px auto 0}
+  .slot{width:min(372px,calc(100vw - 36px))}
+  .label{font-family:var(--serif);font-size:20px;margin-bottom:3px}
+  .sub{font-size:12px;color:var(--soft);font-style:italic;margin-bottom:12px}
+  /* phone */
+  .phone{background:var(--paper);border-radius:42px;border:1.5px solid #d8d0c2;overflow:hidden;position:relative;box-shadow:0 22px 50px rgba(27,32,29,.16);height:740px;display:flex;flex-direction:column}
+  .status{height:36px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 5px;font-size:12.5px;font-weight:700}
+  /* trip header */
+  .thead{padding:8px 18px 12px;border-bottom:1px solid var(--rule);background:var(--paper);z-index:3}
+  .thead .row{display:flex;align-items:center;gap:11px}
+  .emblem{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#23806A,#13473C);display:grid;place-items:center;flex:none}
+  .tmeta{flex:1;min-width:0}
+  .tmeta .nm{font-family:var(--serif);font-size:19px;font-weight:600;display:flex;align-items:center;gap:5px;cursor:pointer}
+  .tmeta .nm .chev{color:var(--blue);font-size:13px}
+  .tmeta .dt{font-size:11.5px;color:var(--soft)}
+  .ttotal{text-align:right}
+  .ttotal .lab{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  .ttotal .amt{font-family:var(--serif);font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+  /* scroll */
+  .scroll{flex:1;overflow-y:auto;scroll-behavior:smooth;padding:6px 0 8px}
+  .day{display:flex;align-items:center;gap:10px;padding:14px 18px 6px}
+  .day .dl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600}
+  .day .line{flex:1;height:1px;background:var(--rule)}
+  .day .ds{font-size:11.5px;color:var(--soft);font-variant-numeric:tabular-nums}
+  .bill{display:flex;align-items:center;gap:12px;padding:9px 18px;position:relative}
+  .bill::before{content:"";position:absolute;left:30px;top:-9px;bottom:-9px;width:2px;background:var(--rule);z-index:0}
+  .bill .ico{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;z-index:1}
+  .bill .bm{flex:1;min-width:0}
+  .bill .bm .mn{font-size:14.5px;font-weight:600}
+  .bill .bm .ct{font-size:11px;color:var(--soft)}
+  .bill .ba{font-family:var(--mono);font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bill.drop{animation:drop .5s ease}
+  @keyframes drop{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
+  /* conversation layer */
+  .convo{border-top:1px dashed var(--rule);margin-top:8px;padding:10px 18px 4px}
+  .ctag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:8px}
+  .msg{margin-bottom:10px}
+  .msg.you{display:flex;justify-content:flex-end}
+  .msg.you span{background:#efe6d6;border:1px solid #e3d6bf;border-radius:14px 14px 4px 14px;padding:7px 12px;font-size:13px;max-width:80%}
+  .agent{font-size:13px;line-height:1.5;color:#39352e}
+  .agent .who{font-family:var(--serif);font-size:13px;color:var(--pine);font-style:italic;display:block;margin-bottom:1px}
+  /* thinking */
+  .think{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--soft);padding:2px 0}
+  .spark{width:15px;height:15px;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+  /* computed answer chip */
+  .ans{background:var(--card);border:1.5px solid var(--pine);border-radius:14px;padding:12px 14px;margin-top:4px;box-shadow:0 4px 14px rgba(31,111,92,.1)}
+  .ans .fig{font-family:var(--serif);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--pine);line-height:1}
+  .ans .basis{font-size:12px;color:var(--soft);margin-top:3px;display:flex;align-items:center;gap:6px}
+  .ans .mark{font-family:var(--mono);font-size:9.5px;color:var(--pine);border:1px solid var(--pine);border-radius:5px;padding:1px 6px}
+  .ans .prov{margin-top:9px;border-top:1px dashed var(--rule);padding-top:7px;display:none}
+  .ans.open .prov{display:block}
+  .ans .prov .pr{display:flex;justify-content:space-between;font-size:11.5px;color:#4a463e;padding:2px 0}
+  .ans .more{font-size:11.5px;color:var(--blue);cursor:pointer;margin-top:6px;display:inline-block}
+  /* draft card */
+  .draft{background:var(--card);border:2px solid var(--terra);border-radius:14px;padding:11px 13px;margin-top:4px;box-shadow:0 4px 14px rgba(200,100,60,.1);animation:drop .35s ease}
+  .draft .dh{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .draft .badge{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--terra);border:1px solid var(--terra);border-radius:5px;padding:1px 7px}
+  .draft .row{display:flex;align-items:center;gap:10px}
+  .draft .dm{flex:1}.draft .dm .mn{font-size:14.5px;font-weight:600}.draft .dm .ct{font-size:11px;color:var(--soft)}
+  .draft .da{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
+  .draft .acts{display:flex;gap:8px;margin-top:9px}
+  .savedline{font-size:12px;color:var(--pine);padding:3px 0;display:flex;align-items:center;gap:6px}
+  /* disambig */
+  .disamb{background:#fbf6ec;border:1.5px dashed var(--sand);border-radius:13px;padding:10px 12px;margin-top:4px}
+  .disamb p{font-size:12.5px;margin-bottom:8px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:12.5px;border:1.5px solid var(--blue);border-radius:11px;padding:4px 12px;background:rgba(45,108,168,.08);color:#2D6CA8;cursor:pointer}
+  .btn{font-size:13px;font-weight:600;border-radius:11px;padding:5px 14px;border:1.6px solid;cursor:pointer;background:none}
+  .btn.save{background:var(--pine);color:#fff;border-color:#176253}
+  .btn.ghost{color:var(--soft);border-color:var(--rule)}
+  /* input */
+  .inbar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--rule);background:var(--paper)}
+  .inbar .ic{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--rule);display:grid;place-items:center;flex:none;cursor:pointer;color:var(--pine)}
+  .inbar input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:var(--sans);font-size:13.5px}
+  .inbar input::placeholder{color:var(--soft)}
+  .inbar .send{width:34px;height:34px;border-radius:50%;background:var(--terra);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+  .suggest{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 8px}
+  .suggest button{font-size:11.5px;border:1.5px dashed var(--rule);border-radius:10px;padding:4px 10px;background:var(--card);cursor:pointer;color:var(--soft);font-family:var(--sans)}
+  /* tabbar */
+  .tabs{display:flex;justify-content:space-around;padding:8px 4px 12px;border-top:1px solid var(--rule);background:var(--paper)}
+  .tab{text-align:center;font-size:10px;color:var(--soft)}
+  .tab .g{font-size:18px;line-height:1.1}
+  .tab.on{color:var(--terra);font-weight:700}
+  /* static panels */
+  .panel{padding:0 0 18px}
+  .authbody{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 26px;text-align:center;gap:8px}
+  .auth-ico{width:88px;height:88px;border-radius:22px;background:linear-gradient(135deg,#23806A,#13473C);display:grid;place-items:center;margin-bottom:6px}
+  .authbody h2{font-family:var(--serif);font-size:26px;font-weight:600}
+  .authbody .tl{color:var(--soft);font-size:14px;max-width:240px;margin-bottom:14px}
+  .signbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:13px;padding:12px;font-size:15px;font-weight:600;border:1.5px solid}
+  .signbtn.apple{background:#000;color:#fff;border-color:#000}
+  .signbtn.google{background:#fff;color:#1f1f1f;border-color:#dadce0}
+  .authnote{font-size:11.5px;color:var(--soft);margin-top:12px;line-height:1.5}
+  .authnote a{color:var(--blue)}
+  /* account */
+  .acct{flex:1;overflow-y:auto;padding:6px 0}
+  .sec{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);padding:14px 18px 5px}
+  .arow{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--rule);font-size:14px}
+  .arow .v{color:var(--soft);font-size:13px}
+  .danger{margin:18px;border:1.5px solid var(--gate);border-radius:13px;padding:14px}
+  .danger h4{color:var(--gate);font-family:var(--serif);font-size:16px;margin-bottom:5px}
+  .danger p{font-size:12px;color:#7a4a4a;line-height:1.5;margin-bottom:10px}
+  .danger button{width:100%;background:var(--gate);color:#fff;border:none;border-radius:11px;padding:11px;font-size:14px;font-weight:600}
+  .toast{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:12px;padding:7px 14px;border-radius:13px;opacity:0;transition:.3s;pointer-events:none;max-width:84%;text-align:center;z-index:20}
+  .toast.on{opacity:.95}
+  .notes{max-width:1180px;margin:40px auto 0;display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+  .note{width:340px;max-width:calc(100vw - 36px);background:var(--card);border:1.5px solid var(--rule);border-radius:14px;padding:16px 18px}
+  .note h3{font-family:var(--serif);font-size:18px;margin-bottom:6px}
+  .note.t h3{color:var(--terra)} .note.p h3{color:var(--pine)} .note.b h3{color:var(--blue)}
+  .note ul{list-style:none;font-size:13px;line-height:1.5}
+  .note li{padding:3px 0 3px 15px;position:relative}
+  .note li::before{content:"›";position:absolute;left:0;color:var(--soft)}
+  footer{max-width:1180px;margin:36px auto 0;text-align:center;font-size:12px;color:var(--soft);font-style:italic}
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>BillMind 2.0 — <em>a ledger that talks</em></h1>
+  <p>The Record home: one scroll holding your trip's bills <em>and</em> the agent that captures and answers. Every number is computed from the ledger, never guessed.</p>
+  <p class="try">try in the first phone: tap a suggestion, or type "ramen 2840" (capture), "how much on food?" (computed answer), or "dinner in kyoto" (ambiguous).</p>
+</div>
+
+<div class="stage">
+  <!-- PHONE 1: Record home (interactive) -->
+  <div class="slot">
+    <div class="label">1 · Record home</div>
+    <div class="sub">ledger + conversation, one scroll · the agent surface</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>BillMind</span><span>⌁ 100%</span></div>
+      <div class="thead">
+        <div class="row">
+          <div class="emblem"><svg width="22" height="22" viewBox="0 0 40 40"><path d="M8 14 L11 4 L17 11 Z" fill="#F7F4EE"/><path d="M32 14 L29 4 L23 11 Z" fill="#F7F4EE"/><ellipse cx="20" cy="22" rx="13" ry="12" fill="#F7F4EE"/><circle cx="15.4" cy="20.5" r="1.5" fill="#13473C"/><circle cx="24.6" cy="20.5" r="1.5" fill="#13473C"/></svg></div>
+          <div class="tmeta"><div class="nm" onclick="toast('Trip switcher: a sheet of trips with cover, total, members.')">Osaka Trip <span class="chev">▾</span></div><div class="dt">Apr 5 – Apr 9 · ¥ JPY · synced</div></div>
+          <div class="ttotal"><div class="lab">Trip total</div><div class="amt" id="ttotal">¥16,520</div></div>
+        </div>
+      </div>
+      <div class="scroll" id="scroll">
+        <div id="ledger"></div>
+        <div class="convo">
+          <div class="ctag">— today's conversation —</div>
+          <div class="msg"><div class="agent"><span class="who">Mochi</span>Tell me about a bill — like "ramen 2840" — or snap a receipt. You can ask me anything about your spending, too.</div></div>
+          <div id="thread"></div>
+        </div>
+        <div style="height:6px"></div>
+      </div>
+      <div class="suggest" id="suggest">
+        <button onclick="sendText('ramen 2840')">"ramen 2840"</button>
+        <button onclick="sendText('how much on food?')">"how much on food?"</button>
+        <button onclick="sendText('dinner in kyoto')">"dinner in kyoto"</button>
+      </div>
+      <div class="inbar">
+        <div class="ic" onclick="toast('Photo capture → server-side recognition (no key on device).')">⊞</div>
+        <input id="inp" placeholder="Tell Mochi about a bill, or ask…" onkeydown="if(event.key==='Enter')sendTyped()">
+        <div class="send" onclick="sendTyped()">↑</div>
+      </div>
+      <div class="tabs">
+        <div class="tab on"><div class="g">◉</div>Record</div>
+        <div class="tab"><div class="g">∿</div>Stats</div>
+        <div class="tab"><div class="g">✦</div>Minds</div>
+        <div class="tab"><div class="g">☰</div>Settings</div>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">Confirmed bills <b>dock up into the ledger</b> & the total counts up. Answers stay in the conversation and never touch the ledger.</p>
+  </div>
+
+  <!-- PHONE 2: Auth (static) -->
+  <div class="slot">
+    <div class="label">2 · Sign in</div>
+    <div class="sub">Apple + Google at parity (Guideline 4.8)</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span></span><span>⌁ 100%</span></div>
+      <div class="authbody">
+        <div class="auth-ico"><svg width="46" height="46" viewBox="0 0 100 100"><path d="M30 30 Q30 24 36 24 L64 24 Q70 24 70 30 L70 66 L63 73 L56 66 L49 73 L42 66 L35 73 L30 66 Z" fill="#F7F4EE"/><rect x="37" y="35" width="22" height="3" rx="1.5" fill="#1F6F5C" opacity=".3"/><path d="M50,48 L52,55 L59,57 L52,59 L50,66 L48,59 L41,57 L48,55 Z" fill="#E07B3C"/></svg></div>
+        <h2>Welcome to BillMind</h2>
+        <p class="tl">Talk to your trips. BillMind does the math.</p>
+        <button class="signbtn apple"> Sign in with Apple</button>
+        <button class="signbtn google">G&nbsp;&nbsp;Sign in with Google</button>
+        <p class="authnote">Your trips sync to <b>your</b> BillMind server, so they're on every device and backed up. <a>Privacy policy</a></p>
+      </div>
+      <div class="tabs" style="opacity:.4"><div class="tab"><div class="g">◉</div>Record</div><div class="tab"><div class="g">∿</div>Stats</div><div class="tab"><div class="g">✦</div>Minds</div><div class="tab"><div class="g">☰</div>Settings</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">Both buttons equal width &amp; prominence. Apple private-relay email handled silently.</p>
+  </div>
+
+  <!-- PHONE 3: Account + Delete (static) -->
+  <div class="slot">
+    <div class="label">3 · Account</div>
+    <div class="sub">in-app account deletion (Guideline 5.1.1(v))</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>Account</span><span>⌁ 100%</span></div>
+      <div class="acct">
+        <div class="sec">Identity</div>
+        <div class="arow">Signed in with<span class="v"> Apple</span></div>
+        <div class="arow">Email<span class="v">erik@privaterelay…</span></div>
+        <div class="sec">Sync &amp; data</div>
+        <div class="arow">Sync<span class="v">On · just now</span></div>
+        <div class="arow">Export my data<span class="v">›</span></div>
+        <div class="arow">Privacy &amp; AI<span class="v">›</span></div>
+        <div class="sec">Session</div>
+        <div class="arow">Sign out<span class="v">›</span></div>
+        <div class="danger">
+          <h4>Delete account</h4>
+          <p>Permanently deletes your account, all trips, bills, and receipt images <b>from the server</b>. This cannot be undone.</p>
+          <button onclick="toast('Two-step confirm → DELETE /account purges server data + local cache + tokens.')">Delete account…</button>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab"><div class="g">◉</div>Record</div><div class="tab"><div class="g">∿</div>Stats</div><div class="tab"><div class="g">✦</div>Minds</div><div class="tab on"><div class="g">☰</div>Settings</div></div>
+      <div class="toast" id="toast3"></div>
+    </div>
+    <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">A real destructive flow, not a sign-out — Apple-mandated &amp; QA-verified to purge server data.</p>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note p"><h3>The two-layer scroll</h3><ul>
+    <li>Ledger = permanent, synced, day-grouped bills</li>
+    <li>Conversation = ephemeral working layer (capture + answers)</li>
+    <li>Confirm → the bill docks up into the ledger, total counts up</li>
+    <li>Conversation is per-trip; switching trips swaps the whole surface</li></ul></div>
+  <div class="note t"><h3>"Computed, not guessed"</h3><ul>
+    <li>Every number lives in a tool-result chip with a "computed" mark</li>
+    <li>Tap a chip → the exact bills it summed (provenance = trust)</li>
+    <li>In this mockup the answers really sum the ledger — try adding a bill, then "how much on food?"</li>
+    <li>If a number isn't in a chip, it's a bug (a QA test point)</li></ul></div>
+  <div class="note b"><h3>One input, two jobs</h3><ul>
+    <li>The agent routes intent: number → capture; question → answer</li>
+    <li>Ambiguous → two chips, never a silent bill on money</li>
+    <li>No mode toggle (that re-introduces the tab-hop the merge kills)</li>
+    <li>Read = instant · write = always confirmed</li></ul></div>
+</div>
+
+<footer>BillMind 2.0 · interactive design mockup · Voyage direction · Designer + Coordinator · for Gate 1</footer>
+
+<script>
+'use strict';
+// --- bill model (the "ledger" the tools compute over) ---
+const CAT = {food:{c:'#C8643C',n:'Food'},transport:{c:'#2D6CA8',n:'Transport'},accommodation:{c:'#7C5BA6',n:'Hotel'},shopping:{c:'#B5497E',n:'Shopping'},misc:{c:'#6b675f',n:'Other'}};
+let bills = [
+  {id:1,day:'Today',merchant:'MK Taxi',amount:3200,cat:'transport'},
+  {id:2,day:'Today',merchant:'Lawson',amount:680,cat:'food'},
+  {id:3,day:'Yesterday',merchant:'Ichiran Ramen',amount:2840,cat:'food'},
+  {id:4,day:'Yesterday',merchant:'Hotel Granvia',amount:9800,cat:'accommodation'},
+];
+let nextId=5;
+const $=id=>document.getElementById(id);
+const fmt=n=>'¥'+Number(n).toLocaleString('en-US');
+const days=['Today','Yesterday'];
+function tripTotal(){return bills.reduce((s,b)=>s+b.amount,0)}
+function daySubtotal(d){return bills.filter(b=>b.day===d).reduce((s,b)=>s+b.amount,0)}
+function icoSVG(cat){const c=CAT[cat].c;return `<div class="ico" style="background:${c}1f"><div style="width:13px;height:13px;border-radius:4px;background:${c}"></div></div>`}
+function renderLedger(){
+  let h='';
+  for(const d of days){
+    const ds=bills.filter(b=>b.day===d);
+    if(!ds.length)continue;
+    h+=`<div class="day"><span class="dl">${d}</span><span class="line"></span><span class="ds">${fmt(daySubtotal(d))}</span></div>`;
+    for(const b of ds){
+      h+=`<div class="bill" id="bill${b.id}"><div class="ico" style="background:${CAT[b.cat].c}1f"><div style="width:13px;height:13px;border-radius:4px;background:${CAT[b.cat].c}"></div></div><div class="bm"><div class="mn">${b.merchant}</div><div class="ct">${CAT[b.cat].n}</div></div><div class="ba">${fmt(b.amount)}</div></div>`;
+    }
+  }
+  $('ledger').innerHTML=h;
+}
+renderLedger();
+function toast(m,el){const t=$(el||'toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2800)}
+function scrollEnd(){const s=$('scroll');s.scrollTop=s.scrollHeight}
+function addYou(t){$('thread').insertAdjacentHTML('beforeend',`<div class="msg you"><span>${t}</span></div>`);scrollEnd()}
+function addAgent(html){$('thread').insertAdjacentHTML('beforeend',`<div class="msg"><div class="agent"><span class="who">Mochi</span>${html}</div></div>`);scrollEnd()}
+
+const SPARK='<svg class="spark" viewBox="-1 -1 2 2"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z" fill="#C8643C"/></svg>';
+
+function parse(t){
+  const m=t.match(/([\d][\d,\.]*)/);const amt=m?parseFloat(m[1].replace(/,/g,'')):null;
+  const l=t.toLowerCase();
+  const cat=/taxi|train|bus|metro|uber/.test(l)?'transport':/hotel|inn|stay/.test(l)?'accommodation':/ramen|sushi|dinner|lunch|coffee|food|cafe|breakfast|drink|konbini|lawson/.test(l)?'food':/shop|store|uniqlo|muji/.test(l)?'shopping':'misc';
+  const merchant=t.replace(m?m[0]:'','').replace(/cash|card|yen|in|the|at/gi,'').trim().split(/\s+/).filter(Boolean).slice(0,3).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')||'Unknown';
+  return {amt,cat,merchant};
+}
+const isQuestion=t=>/how much|what|which|total|average|spend|spent|did i|do i|am i|over budget|balance|owe|breakdown|summary/i.test(t);
+
+function sendTyped(){const v=$('inp').value.trim();if(v){$('inp').value='';sendText(v)}}
+function sendText(t){
+  $('suggest')?.remove();
+  addYou(t);
+  if(isQuestion(t)){ answer(t); return; }
+  const p=parse(t);
+  if(p.amt===null){ // no number, not a question -> ambiguous
+    disamb(t); return;
+  }
+  capture(p);
+}
+
+// --- capture flow ---
+function capture(p){
+  const id='d'+Date.now();
+  $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}">
+    <div class="dh"><span class="badge">draft · confirm to save</span></div>
+    <div class="row"><div class="ico" style="background:${CAT[p.cat].c}1f;width:36px;height:36px"><div style="width:12px;height:12px;border-radius:4px;background:${CAT[p.cat].c}"></div></div>
+      <div class="dm"><div class="mn">${p.merchant}</div><div class="ct">${CAT[p.cat].n} · Today</div></div>
+      <div class="da">${fmt(p.amt)}</div></div>
+    <div class="acts"><button class="btn save" onclick="confirmDraft('${id}','${p.merchant}',${p.amt},'${p.cat}')">Save to trip</button><button class="btn ghost" onclick="document.getElementById('${id}').remove()">Discard</button></div>
+  </div>`);
+  scrollEnd();
+}
+function confirmDraft(id,merchant,amt,cat){
+  bills.unshift({id:nextId++,day:'Today',merchant,amount:amt,cat});
+  renderLedger();
+  const el=$(id); if(el) el.outerHTML=`<div class="savedline">✓ saved ${merchant} ${fmt(amt)} → Today</div>`;
+  // animate the new bill + count up total
+  const nb=document.querySelector('#ledger .bill'); if(nb) nb.classList.add('drop');
+  countUp('ttotal', tripTotal());
+  toast('Saved — the only write. It docked into Today.');
+  scrollEnd();
+}
+function countUp(elId,to){
+  const el=$(elId); const from=parseInt(el.textContent.replace(/[^\d]/g,''))||0;
+  const t0=performance.now ? null : 0; const dur=600; let start;
+  function step(ts){ if(start==null)start=ts; const k=Math.min(1,(ts-start)/dur); const v=Math.round(from+(to-from)*(k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2)); el.textContent=fmt(v); if(k<1)requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+}
+
+// --- answer flow (really computes from the ledger) ---
+function answer(t){
+  const l=t.toLowerCase();
+  // pick a category if mentioned, else trip total
+  let cat=null;
+  for(const k in CAT){ if(l.includes(CAT[k].n.toLowerCase())||(k==='food'&&/food|eat|ate/.test(l))||(k==='transport'&&/transport|taxi|travel/.test(l))) cat=k; }
+  const think=document.createElement('div'); think.className='msg';
+  const matched = cat?bills.filter(b=>b.cat===cat):bills;
+  think.innerHTML=`<div class="agent"><span class="who">Mochi</span><div class="think">${SPARK} ${cat?'Adding up '+matched.length+' '+CAT[cat].n.toLowerCase()+' bills…':'Adding up '+matched.length+' bills…'}</div></div>`;
+  $('thread').appendChild(think); scrollEnd();
+  setTimeout(()=>{
+    const sum=matched.reduce((s,b)=>s+b.amount,0);
+    const basis=(cat?CAT[cat].n+' · ':'')+'Osaka Trip · '+matched.length+' bills';
+    const prov=matched.map(b=>`<div class="pr"><span>${b.merchant} · ${b.day}</span><span>${fmt(b.amount)}</span></div>`).join('');
+    think.innerHTML=`<div class="agent"><span class="who">Mochi</span>
+      You've spent <b>${fmt(sum)}</b>${cat?' on '+CAT[cat].n.toLowerCase():''} on this trip.
+      <div class="ans" id="a${Date.now()}" onclick="this.classList.toggle('open')">
+        <div class="fig">${fmt(sum)}</div>
+        <div class="basis">${basis} <span class="mark">computed ✓</span></div>
+        <span class="more">tap to see the bills ▾</span>
+        <div class="prov">${prov}</div>
+      </div></div>`;
+    scrollEnd();
+  },1100);
+}
+
+// --- disambiguation ---
+function disamb(t){
+  const id='x'+Date.now();
+  $('thread').insertAdjacentHTML('beforeend',`<div class="msg" id="${id}"><div class="agent"><span class="who">Mochi</span>
+    <div class="disamb"><p>Did you mean to log a bill, or ask a question about "${t}"?</p>
+    <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();capture(parseFor('${t.replace(/'/g,'')}',true))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
+  scrollEnd();
+}
+function parseFor(t,forceAmt){const p=parse(t);if(forceAmt&&p.amt===null)p.amt=0;return p}
+</script>
+</body>
+</html>
