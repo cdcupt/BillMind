@@ -185,6 +185,26 @@
     <li><b>Actions (v2)</b> appear as proposal cards that explicitly ask before mutating ("Split this ¥6,000 dinner 3 ways?"); a confirmed action that creates a bill docks into the timeline exactly like a capture.</li>
   </ul>
   <p><b>Confirmation discipline:</b> read = instant, write = always confirmed. Color encodes it (pine/terra/sand). This is a stated, testable invariant, not a suggestion.</p>
+
+  <h3>When the agent declines — safety &amp; moderation</h3>
+  <p>Because the agent sends user text on <em>our</em> provider key, harmful or policy-violating input is screened out <b>before</b> it ever reaches the model — both to protect the account (a suspended key kills the agent for everyone) and to meet App Store rules. The full mechanism (provider moderation, thresholds, injection defense, audit) lives in the Tech Document §06; here is how it <em>reads</em> on the surface.</p>
+  <div class="callout t"><h4>The make-or-break rule: never block a lawful expense</h4><p>A money agent constantly sees regulated-merchant text — "liquor store 30", "cannabis dispensary 80", "gun range 45", a pharmacy charge. Those are <b>lawful purchases, not harmful requests.</b> Moderation targets <b>intent</b> ("do something harmful / jailbreak the agent"), never the <b>noun</b>. And capture is local-first: canonical money phrasing is parsed on-device into a draft and <b>never reaches the model at all</b> — the strongest false-positive guard. Over-blocking a real expense would break the product, so the lawful-expense corpus is a blocking test.</p></div>
+  <h4>The decline treatment</h4>
+  <ul>
+    <li><b>Calm, never alarming.</b> A blocked request lands in the normal agent-reply slot as a quiet <b>"declined"</b> message — a neutral slate surface with a soft hand glyph, <b>not</b> gate-red (red is reserved for Delete-account and would imply the user did something criminal).</li>
+    <li><b>Honest.</b> It appears <b>instantly</b> with <b>no thinking line</b> — nothing was sent to the model, so faking "thinking" would lie. The reason/category is <b>never shown</b> (that would be a jailbreak oracle and would feel like an accusation to a false positive).</li>
+    <li><b>No Retry.</b> Resubmitting identical disallowed text is pointless and trains jailbreak behavior; instead the input bar stays fully enabled, the conversation isn't locked, and the ledger is untouched — the user simply types something else.</li>
+    <li><b>Borderline ≠ blocked.</b> An ambiguous money term routes into the <em>existing</em> two-chip disambiguation (<span class="pill write">Add as a bill</span> <span class="pill read">Answer a question</span>) — one tap, nothing lost. And a genuine expense that still trips gets a quiet "Add it manually →" recovery (offline, structured, never re-sent to the model).</li>
+  </ul>
+  <div class="scrollx"><table>
+    <tr><th>Case</th><th>What the user sees</th></tr>
+    <tr><td>Off-topic</td><td>"That's a bit outside my lane — I'm your travel-and-money agent. Ask me about your spending, or tell me about a bill."</td></tr>
+    <tr><td>Disallowed</td><td>"I can't help with that one. I'm here for travel and money — ask me about your spending."</td></tr>
+    <tr><td>Borderline</td><td>"Quick check — did you mean to record a purchase? Give me a name and an amount and I'll capture it." → two chips.</td></tr>
+    <tr><td>Quota (not moderation)</td><td>"You've used today's AI. You can still type a bill yourself — AI capture and questions are back tomorrow."</td></tr>
+  </table></div>
+  <h4>Report &amp; block (Apple Guideline 1.2)</h4>
+  <p>Every agent reply carries a quiet <b>"Report this reply"</b> affordance (a "•••" long-press, not a nagging flag) → a short reason sheet → an operator queue with a 24h review SLA. Settings → <b>Privacy &amp; AI</b> holds a standing "Report a problem with the AI" entry and a <b>"Pause AI replies"</b> toggle — the honest "block the source" control, since local text capture and the ledger keep working while AI is paused. Reports are purged with the account.</p>
 </section>
 
 <section id="flows">
