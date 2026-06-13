@@ -73,7 +73,7 @@
     <ul>
       <li>On launch, if <code>UserDefaults.standard.bool(forKey: "hasSeenFirstLaunchNotice")</code> is <code>false</code>, present the notice as a sheet over the root (<code>ContentView</code>).</li>
       <li>Tapping <strong>Get started</strong> sets the flag <code>true</code> and dismisses. It never appears again.</li>
-      <li>Purely informational — it does <strong>not</strong> block recording or viewing, and it does <strong>not</strong> grant AI consent. The existing <code>hasSeenFirstLaunchNotice</code> ≠ <code>hasConsentedToAIDataSharing</code>; the AI consent sheet still appears before the first AI call, unchanged.</li>
+      <li>Purely informational — it does <strong>not</strong> block recording or viewing, and it does <strong>not</strong> grant AI consent. the new <code>hasSeenFirstLaunchNotice</code> flag ≠ <code>hasConsentedToAIDataSharing</code>; the AI consent sheet still appears before the first AI call, unchanged.</li>
     </ul>
 
     <h2><span class="n">2</span>Storage — no schema change</h2>
@@ -84,7 +84,7 @@
       <li><strong>Title:</strong> "Welcome to BillMind"</li>
       <li>🔒 "Your journals and bills stay <strong>on this device</strong>. BillMind has no servers and no account."</li>
       <li>✨ "AI receipt recognition sends a photo to <strong>your chosen provider</strong> — and only after you agree, the first time."</li>
-      <li>🗂 "You can export or delete your data anytime in Settings."</li>
+      <li>🗂 "Delete any journal or bill anytime, right inside the app." <span style="color:var(--ink-soft);font-style:italic">(honest: Settings only backs up config/API keys, not bills; there is no delete-all — deletion is per-journal/per-bill.)</span></li>
       <li><strong>Link:</strong> "Read the Privacy Policy" → <code>https://cdcupt.github.io/BillMind/docs/privacy-policy.html</code> (opens in Safari)</li>
       <li><strong>Button:</strong> "Get started"</li>
     </ul>
@@ -129,7 +129,7 @@
             <h4>Welcome to BillMind</h4>
             <div class="pt"><span class="ic">🔒</span><span>Your journals and bills stay <b>on this device</b>. No servers, no account.</span></div>
             <div class="pt"><span class="ic">✨</span><span>AI recognition sends a photo to <b>your chosen provider</b> — only after you agree, the first time.</span></div>
-            <div class="pt"><span class="ic">🗂</span><span>Export or delete your data anytime in Settings.</span></div>
+            <div class="pt"><span class="ic">🗂</span><span>Delete any journal or bill anytime, right inside the app.</span></div>
             <span class="link">Read the Privacy Policy</span>
             <span class="cta">Get started</span>
           </div>
