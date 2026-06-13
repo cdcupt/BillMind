@@ -120,17 +120,31 @@
 <h2><span class="n">7</span>Privacy — a real posture change</h2>
 <div class="callout danger"><b>This inverts BillMind's headline promise.</b> v1 said "your data stays on this device, no servers, no account." v2 has accounts and a server holding users' financial data and receipt images, plus server-side AI. The <strong>privacy policy, the App Store data declarations, and the first-launch notice copy must all be rewritten</strong> to reflect cloud storage + accounts. This is a product/legal requirement, not a detail — called out here so it's owned from the start.</div>
 
-<h2><span class="n">8</span>Success criteria</h2>
+<h2><span class="n">8</span>App Store compliance (Apple)</h2>
+<p>Going server-backed with accounts triggers mandatory, approval-gating Apple requirements. These are first-class scope, not polish.</p>
+<div class="tablewrap"><table>
+  <tr><th>Guideline</th><th>Requirement</th><th>What we do</th></tr>
+  <tr><td><strong>4.8</strong> — Sign in with Apple</td><td>Because we offer Google sign-in, we <strong>must</strong> also offer Sign in with Apple at equal prominence; support the private email relay; request only name + email; no ad tracking via the login without consent.</td><td>Already in scope (Apple + Google). Design must give the Apple button parity; backend handles the relay address.</td></tr>
+  <tr><td><strong>5.1.1(v)</strong> — Account deletion</td><td><strong>Mandatory:</strong> an account that can be created must be deletable from inside the app — a real server-side delete, not just sign-out.</td><td>Account screen with "Delete account" → a <code>DELETE /account</code> endpoint that purges the user's server data.</td></tr>
+  <tr><td><strong>5.1.1 / 5.1.2</strong> — Privacy</td><td>Updated privacy policy (cloud + accounts + AI); accurate App Privacy "nutrition label" data declarations; a <code>PrivacyInfo.xcprivacy</code> manifest (required-reason APIs + collected data types).</td><td>Rewrite policy + labels + manifest; rewrite the first-launch notice ("stays on device" is no longer true).</td></tr>
+  <tr><td><strong>ATS</strong> — Transport security</td><td>All client↔server traffic over HTTPS/TLS with a valid certificate.</td><td>TLS on the VPS (reverse proxy + cert); no ATS exceptions.</td></tr>
+  <tr><td><strong>5.1.1(i)</strong> — Login gating</td><td>Don't force login unless the core features are account-based.</td><td>Justified — sync / sharing / server-AI are inherently account-based. State the justification in review notes.</td></tr>
+  <tr><td><strong>3.1</strong> — In-App Purchase <span style="color:var(--ink-soft)">(if monetized)</span></td><td>If a paid tier ever gates AI quota/premium, Apple IAP rules apply (limited exceptions).</td><td>Out of scope for v1 (free). Flagged because server-AI is a real recurring cost that may pressure a paid tier later.</td></tr>
+</table></div>
+<div class="callout"><strong>Flows into the pipeline:</strong> Design → Delete-Account screen, Apple-button parity, rewritten consent/notice. Tech → TLS, encryption-at-rest, the account-deletion endpoint, the privacy manifest. QA → an App Store compliance checklist as explicit test points.</div>
+
+<h2><span class="n">9</span>Success criteria</h2>
 <ul>
   <li>A user signs in with Apple (or Google) on two devices and sees the same trips and bills.</li>
   <li>Capturing a bill from a photo works with <strong>no provider key on the device</strong> (recognition runs server-side).</li>
   <li>A trip and its bills survive deleting + reinstalling the app (restored from the server on sign-in).</li>
   <li>Per-account AI quota is enforced (a user hitting the limit is told, not silently billed).</li>
   <li>The web client shows the same trips/bills as iOS for the same account.</li>
+  <li><strong>App Store compliance:</strong> Sign in with Apple offered at parity, in-app account deletion works (server data purged), privacy policy + labels + manifest updated, all traffic over TLS.</li>
   <li><span class="v2">(v2)</span> A companion accepts a trip invite and splits a bill; both see correct per-person balances.</li>
 </ul>
 
-<h2><span class="n">9</span>Risks &amp; open questions (for the kickoff)</h2>
+<h2><span class="n">10</span>Risks &amp; open questions (for the kickoff)</h2>
 <ul>
   <li><strong>Privacy/security burden</strong> — the server now holds financial data + images; encryption at rest, transport security, account deletion, and a real privacy policy are mandatory.</li>
   <li><strong>Backend stack</strong> — Swift (Vapor/Hummingbird, reuses the agent core) vs Node/TS / Python / Go (re-implement core). Backend Worker decides in the Infra Design.</li>
