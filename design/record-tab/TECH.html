@@ -118,6 +118,7 @@
 
 <h3>Core addition (agent core, with unit test)</h3>
 <p><code>RecordingSession.edit(cardID:field:value:)</code> — applies a direct field edit (tap-to-edit on a card), <strong>pins</strong> the field, and re-resolves the card (same machinery as <code>answer</code>, but not tied to an open clarify question). This is what makes a blocked/flagged card recoverable by editing rather than only by chip.</p>
+<p>One-line validator change: the missing-date gap lists <strong>Today and Yesterday</strong> as its chip options (computed from the injected <code>today</code>). Everything else for date/category correction is a UI affordance that calls <code>answer</code>/<code>edit</code> with an arbitrary value — no further core change.</p>
 
 <h3>The coordinator (the "session actor")</h3>
 <pre><code>@MainActor @Observable
@@ -147,6 +148,12 @@ final class RecordingCoordinator {
 <ul>
   <li><strong><code>DraftExtractor</code> emits <code>BillCategory</code> raw values</strong> (<code>food</code>, <code>transport</code>, <code>accommodation</code>, …), not display names — otherwise <code>BillValidator</code> flags every category as unknown. Its unit test asserts raw values.</li>
   <li><strong><code>AIRecognitionMapper</code> maps an unparseable date to <code>rawDateText</code></strong>: <code>AIRecognitionResult</code> gives <code>parsedDate: Date?</code> (nil on failure) plus the raw <code>date</code> string — set <code>draft.date = result.parsedDate</code> and, when that is nil but <code>result.date != nil</code>, <code>draft.rawDateText = result.date</code>, so the "date hard to read" gap path is exercised. An unknown <code>result.category</code> is carried to <code>categoryRaw</code> verbatim so the validator can flag it.</li>
+</ul>
+
+<h3>Clarify affordances — date &amp; category (user feedback)</h3>
+<ul>
+  <li><strong>Date — quick chips + a real picker.</strong> The date clarify offers <strong>Today</strong> and <strong>Yesterday</strong> chips for the common case, plus a <strong>"Pick a date…"</strong> control that opens a SwiftUI <code>DatePicker</code> (graphical) for any specific day — e.g. a receipt from earlier in the trip. All three resolve via <code>answer(cardID:, .date, .date(chosen))</code>; the core already accepts an arbitrary date, so the picker is UI-only.</li>
+  <li><strong>Category ("tag") — always one-tap changeable at recognition time.</strong> Every card renders its category as a <strong>tappable chip</strong> (icon + name). Tapping opens the 10-category picker (the grid reused from <code>AddBillManualView</code>), so the user can correct it the moment the card appears, <em>not only</em> when the agent is unsure. The agent cannot detect a <em>valid-but-wrong</em> category (it's not a gap), so the fix is to make the chip always editable rather than to add a clarify prompt. An <em>unknown</em> category is still highlighted via the validator's category gap; a confident guess is still one tap from change. Selecting maps to <code>edit(cardID:, .category, .category(raw))</code>.</li>
 </ul>
 
 <h2><span class="n">4</span>Data flow</h2>
@@ -189,11 +196,11 @@ final class RecordingCoordinator {
 <ul>
   <li><code>DraftExtractorTests</code>: amount parsing (<code>"ramen 2840"</code>, <code>"2,840"</code>, decimals), category keyword mapping, merchant extraction, <strong>no-amount → draft with <code>amount == nil</code></strong>, currency carried from journal.</li>
   <li><code>AIRecognitionMapperTests</code>: maps merchant/amount/category/currency/lineItems; unknown category preserved (so validate flags it); nil amount preserved.</li>
-  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap.</li>
+  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap; the missing-date gap offers both <strong>Today</strong> and <strong>Yesterday</strong> options.</li>
 </ul>
 <h3>E2E (XCUITest) — adversarial, three cases</h3>
 <ol class="flow">
-  <li><strong>Happy/clarify:</strong> create a journal → Record → select journal → type <code>ramen 2840</code> → answer the date chip → Save → assert the bill appears (merchant + amount) and the count increments.</li>
+  <li><strong>Happy/clarify + correction:</strong> create a journal → Record → select journal → type <code>ramen 2840</code> → answer the date chip (and, in a variant, use "Pick a date…" to set a specific day) → <strong>tap the category chip and change the category</strong> → Save → assert the bill appears with the <em>chosen</em> category, merchant, and amount, and the count increments.</li>
   <li><strong>Missing-amount blocked (3-step):</strong> type <code>ramen</code> → answer the date chip ("Today") → card is now in review with amount required → assert <strong>no bill is persisted</strong> (the journal count stays 0) → edit the amount → Save → the bill now persists.</li>
   <li><strong>Discard:</strong> a card can be discarded and never reaches the journal.</li>
 </ol>
@@ -212,7 +219,8 @@ final class RecordingCoordinator {
 <h2><span class="n">10</span>Definition of done <span style="font-size:14px;color:var(--ink-soft)">(all roles check against this)</span></h2>
 <ul class="dod">
   <li>Record tab present and reachable; selecting a journal enables capture.</li>
-  <li>Typing <code>ramen 2840</code> produces a card; the missing date is asked as one chip ("Today"); answering it makes the card saveable.</li>
+  <li>Typing <code>ramen 2840</code> produces a card; the missing date is asked with Today/Yesterday chips <strong>plus a "Pick a date…" picker</strong> for a specific day; answering it makes the card saveable.</li>
+  <li>The category is a tappable chip on every card and can be changed via the 10-category picker at recognition time, even when the agent was confident.</li>
   <li>Save writes exactly one <code>BillRecord</code> into the selected journal (appears in the journal, count + total update) and persists across relaunch.</li>
   <li>A card with no amount cannot be confirmed until an amount is entered (the agent's core guarantee holds in the UI).</li>
   <li>No SwiftData schema change; existing flows (manual add, import, Minds, stats) still work.</li>

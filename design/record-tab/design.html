@@ -62,6 +62,13 @@
   .chip { font-family:'Noto Serif',serif; font-size:12.5px; border:1.5px solid var(--blue); border-radius:11px 14px 10px 15px;
     padding:3px 12px; background:rgba(156,184,200,.12); color:#56707e; cursor:pointer; }
   .chip:hover { background:rgba(156,184,200,.25); }
+  .chip.catchip { cursor:pointer; border-color:var(--sage); background:rgba(168,191,160,.16); color:#5e7a50; }
+  .catpicker { display:none; flex-wrap:wrap; gap:5px; margin-top:7px; padding:7px; border:1.5px dashed var(--lbrown); border-radius:10px; background:var(--cream); }
+  .catpicker.show { display:flex; }
+  .catpicker button { font-size:11px; border:1.5px solid var(--lbrown); border-radius:9px; padding:3px 9px; background:var(--ww); cursor:pointer; font-family:'Noto Serif',serif; color:var(--brown); }
+  .catpicker button:hover { border-color:var(--sage); background:rgba(168,191,160,.2); }
+  .dateinput { margin-top:7px; display:flex; gap:6px; align-items:center; }
+  .dateinput input { border:1.5px solid var(--blue); border-radius:8px; padding:4px 8px; font-family:'Noto Serif',serif; font-size:12.5px; }
   .editfield { margin-top:8px; display:none; gap:6px; }
   .editfield.show { display:flex; }
   .editfield input { flex:1; border:1.5px solid var(--blue); border-radius:9px; padding:5px 9px; font-size:13px; font-family:'Noto Serif',serif; }
@@ -108,7 +115,7 @@
   <div class="spec"><b>write</b> only on confirm</div>
   <div class="spec"><b>schema</b> unchanged (no migration)</div>
 </div>
-<p class="tryline">try: tap a suggestion, or type "taxi 3200" / "ramen" (no amount) · answer the date chip · Save</p>
+<p class="tryline">try: tap a suggestion · answer the date chip or 📅 pick any day · tap the category chip to change it · Save. Or type "ramen" (no amount).</p>
 
 <div class="app">
   <div class="phone">
@@ -199,10 +206,11 @@ function cardHTML(id, d){
       <div class="ico">${d.icon}</div>
       <div class="cmain">
         <div class="merchant edit" onclick="editMerchant(${id})">${d.merchant||'(tap to name)'}</div>
-        <div class="meta2"><span class="chip" style="padding:1px 8px">${d.category}</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| '<span class=needfield>—</span>'}</span></div>
+        <div class="meta2"><span class="chip catchip" id="cat${id}" onclick="pickCat(${id})">${d.category} ▾</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| '<span class=needfield>—</span>'}</span></div>
       </div>
       <div class="amount ${needsAmount?'req':''}" id="amt${id}" onclick="editAmount(${id})">${needsAmount?'amount required':'¥'+fmt(d.amount)}</div>
     </div>
+    <div class="catpicker" id="cp${id}"></div>
     <div class="qrow" id="q${id}">${needsDate?dateChips(id):''}</div>
     <div class="editfield" id="ef${id}"><input id="efin${id}" inputmode="decimal" placeholder="enter value"><button onclick="applyEdit(${id})">set</button></div>
     <div class="actions">
@@ -213,7 +221,28 @@ function cardHTML(id, d){
 }
 function dateChips(id){
   return `<div class="q">When was it? <span style="color:var(--lbrown);font-size:11px">(no date in your text)</span></div>
-    <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button></div>`;
+    <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button><button class="chip" onclick="pickDate(${id})">📅 Pick a date…</button></div>`;
+}
+const CATS = ['Food','Transport','Hotel','Shopping','Fun','Utilities','Medical','Education','Subscription','Other'];
+function pickCat(id){
+  const cp=$('cp'+id); if(!cp) return;
+  if(cp.classList.contains('show')){ cp.classList.remove('show'); return; }
+  cp.innerHTML = CATS.map(c=>`<button onclick="chooseCat(${id},'${c}')">${c}</button>`).join('');
+  cp.classList.add('show');
+}
+function chooseCat(id, name){
+  $('cat'+id).innerHTML = name+' ▾'; $('cp'+id).classList.remove('show');
+  toast('Category set to '+name+' — change it anytime before saving.');
+}
+function pickDate(id){
+  $('q'+id).innerHTML = `<div class="q">Pick a date:</div><div class="dateinput"><input type="date" id="di${id}"><button class="chip" onclick="applyPickedDate(${id})">set</button></div>`;
+  $('di'+id).focus();
+}
+function applyPickedDate(id){
+  const v=$('di'+id).value; if(!v){ toast('Choose a date first'); return; }
+  const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const parts=v.split('-');
+  answerDate(id, m[parseInt(parts[1])-1]+' '+parseInt(parts[2])+', '+parts[0]);
 }
 function fmt(n){ return Number(n).toLocaleString('en-US',{maximumFractionDigits:2}); }
 function setReadyIfComplete(id){
