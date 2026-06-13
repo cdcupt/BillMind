@@ -197,7 +197,7 @@ final class RecordingCoordinator {
   <li><strong>Missing-amount blocked (3-step):</strong> type <code>ramen</code> → answer the date chip ("Today") → card is now in review with amount required → assert <strong>no bill is persisted</strong> (the journal count stays 0) → edit the amount → Save → the bill now persists.</li>
   <li><strong>Discard:</strong> a card can be discarded and never reaches the journal.</li>
 </ol>
-<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store. Assertions check the bill in the <strong>journal</strong> (navigate to JournalDetailView, reusing the existing <code>'2,840' OR '2840'</code> matcher), not the in-memory Record thread.</p>
+<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store — now extended to also mark the first-launch welcome notice as seen, so the notice doesn't derail this flow (see <code>design/first-launch-notice/SPEC.html</code>). Assertions check the bill in the <strong>journal</strong> (navigate to JournalDetailView, reusing the existing <code>'2,840' OR '2840'</code> matcher), not the in-memory Record thread.</p>
 
 <h2><span class="n">9</span>Risks &amp; mitigations</h2>
 <div class="tablewrap"><table>
