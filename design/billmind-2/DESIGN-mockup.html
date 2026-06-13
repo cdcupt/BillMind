@@ -77,11 +77,13 @@
   .dot.done{background:var(--pine);border-color:var(--pine)}
   .dot.active{border-color:var(--terra);background:#fff;animation:dotpulse 1.2s infinite}
   .dot.active.sand{border-color:var(--sand);animation:dotpulse-s 1.2s infinite}
+  .dot.active.blue{border-color:var(--blue);animation:dotpulse-b 1.2s infinite}
   .conn{width:2px;flex:1;min-height:12px;background:var(--rule);margin:2px 0}
   .conn.on{background:var(--pine)}
   @keyframes dotpulse{0%,100%{box-shadow:0 0 0 2px rgba(200,100,60,.22)}50%{box-shadow:0 0 0 5px rgba(200,100,60,.05)}}
   @keyframes dotpulse-s{0%,100%{box-shadow:0 0 0 2px rgba(233,196,106,.32)}50%{box-shadow:0 0 0 5px rgba(233,196,106,.06)}}
-  @media(prefers-reduced-motion:reduce){.dot.active,.dot.active.sand{animation:none}}
+  @keyframes dotpulse-b{0%,100%{box-shadow:0 0 0 2px rgba(45,108,168,.26)}50%{box-shadow:0 0 0 5px rgba(45,108,168,.05)}}
+  @media(prefers-reduced-motion:reduce){.dot.active,.dot.active.sand,.dot.active.blue{animation:none}}
   .framewrap{flex:1;min-width:0}
   .fhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .stagetag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
@@ -90,9 +92,9 @@
   .draft .da.dash{color:var(--terra);opacity:.78;font-family:var(--sans);font-weight:600}
   .checks{margin-top:9px;display:flex;flex-direction:column;gap:5px}
   .crow{font-size:12px;display:flex;align-items:center;gap:6px}
-  .crow.ok{color:var(--pine)} .crow.gap{color:var(--terra);font-weight:600} .crow.gap.soft{color:#9a7b1e}
+  .crow.ok{color:var(--pine)} .crow.gap{color:var(--terra);font-weight:600} .crow.gap.soft{color:#9a7b1e} .crow.gap.cat{color:var(--blue)}
   .vfoot{font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;color:var(--soft);margin-top:9px}
-  .vfoot.soft{color:#9a7b1e}
+  .vfoot.soft{color:#9a7b1e} .vfoot.cat{color:var(--blue)}
   .draft .dh{display:flex;align-items:center;gap:8px;margin-bottom:7px}
   .draft .badge{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--terra);border:1px solid var(--terra);border-radius:5px;padding:1px 7px}
   .draft .row{display:flex;align-items:center;gap:10px}
@@ -160,6 +162,28 @@
   .note ul{list-style:none;font-size:13px;line-height:1.5}
   .note li{padding:3px 0 3px 15px;position:relative}
   .note li::before{content:"›";position:absolute;left:0;color:var(--soft)}
+  /* Q&A mini-header + Stats components */
+  .qmini{padding:9px 16px 11px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:10px;background:var(--paper)}
+  .qmini .emblem{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#23806A,#13473C);display:grid;place-items:center;flex:none}
+  .qmini .nm{font-family:var(--serif);font-size:16px;font-weight:600}
+  .qmini .dt{font-size:11px;color:var(--soft)}
+  .qmini .tot{margin-left:auto;font-family:var(--serif);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+  .bars{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .bar{display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:9px;font-size:12px}
+  .bar .bl{color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .track{height:9px;border-radius:5px;background:#efe9dd;overflow:hidden}
+  .bar .fill{height:100%;border-radius:5px}
+  .bar .bv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px}
+  .recap{background:var(--card);border:1.5px solid var(--rule);border-radius:14px;padding:12px 14px;margin-top:4px}
+  .recap .rt{font-family:var(--serif);font-size:14px;color:var(--soft);margin-bottom:3px}
+  .recap .big{font-family:var(--serif);font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--pine);line-height:1}
+  .seg{display:flex;background:#efe9dd;border-radius:11px;padding:3px;margin:11px 14px}
+  .seg button{flex:1;border:none;background:none;font-family:var(--sans);font-size:12.5px;font-weight:600;padding:7px;border-radius:8px;color:var(--soft);cursor:pointer}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .statbig{text-align:center;padding:12px 0 2px}
+  .statbig .lab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  .statbig .v{font-family:var(--serif);font-size:38px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.05}
+  .statsec{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);padding:14px 16px 2px}
   footer{max-width:1180px;margin:36px auto 0;text-align:center;font-size:12px;color:var(--soft);font-style:italic}
 </style>
 </head>
@@ -167,7 +191,7 @@
 <div class="head">
   <h1>BillMind 2.0 — <em>a ledger that talks</em></h1>
   <p>The Record home: one scroll holding your trip's bills <em>and</em> the agent that captures and answers. Every number is computed from the ledger, never guessed.</p>
-  <p class="try">try the chips in the first phone — each capture walks the full pipeline on a stage rail: <b>Input → Recognize → Verify → (Clarify) → Confirm → Push</b>. "ramen 2840" passes clean; "dinner in kyoto" pauses to <b>ask for the amount</b> (never guessed); "scan a receipt" pauses to <b>ask which day</b>.</p>
+  <p class="try">try the chips in phone 1 — each capture walks the rail <b>Input → Recognize → Verify → (Clarify) → Confirm → Push</b>, and verification clarifies <b>amount, label &amp; date</b>: "ramen 2840" passes clean; "dinner in kyoto" asks the <b>amount</b> (never guessed); "stuff 1500" asks the <b>label</b>; "scan a receipt" is blurry and asks <b>all three</b>.</p>
 </div>
 
 <div class="stage">
@@ -196,8 +220,8 @@
       <div class="suggest" id="suggest">
         <button onclick="demoCapture('ramen 2840')">"ramen 2840" · clean</button>
         <button onclick="demoCapture('dinner in kyoto')">"dinner in kyoto" · needs amount</button>
-        <button onclick="photoCapture()">scan a receipt · needs date</button>
-        <button onclick="sendText('how much on food?')">"how much on food?"</button>
+        <button onclick="demoCapture('stuff 1500')">"stuff 1500" · needs label</button>
+        <button onclick="photoCapture()">scan a receipt · needs all three</button>
       </div>
       <div class="inbar">
         <div class="ic" onclick="photoCapture()">⊞</div>
@@ -260,6 +284,54 @@
       <div class="toast" id="toast3"></div>
     </div>
     <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">A real destructive flow, not a sign-out — Apple-mandated &amp; QA-verified to purge server data.</p>
+  </div>
+
+  <!-- PHONE 4: Ask anything (the agent's answer surface) -->
+  <div class="slot">
+    <div class="label">4 · Ask anything</div>
+    <div class="sub">the agent answers — every figure computed, with provenance</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>Ask BillMind</span><span>⌁ 100%</span></div>
+      <div class="qmini">
+        <div class="emblem"><svg width="20" height="20" viewBox="0 0 100 100"><path d="M30 30 Q30 24 36 24 L64 24 Q70 24 70 30 L70 66 L63 73 L56 66 L49 73 L42 66 L35 73 L30 66 Z" fill="#F7F4EE"/><rect x="37" y="35" width="22" height="3" rx="1.5" fill="#1F6F5C" opacity=".3"/><path d="M50,48 L52,55 L59,57 L52,59 L50,66 L48,59 L41,57 L48,55 Z" fill="#E07B3C"/></svg></div>
+        <div><div class="nm">Osaka Trip</div><div class="dt">talking to this trip</div></div>
+        <div class="tot">¥16,520</div>
+      </div>
+      <div class="scroll" id="qscroll">
+        <div class="convo" style="border-top:none;margin-top:0">
+          <div class="msg"><div class="agent"><span class="who">Mochi</span>Ask me anything about this trip — a total, a breakdown, a recap, your biggest expense. I compute every number from your bills; I never make one up.</div></div>
+          <div id="qthread"></div>
+        </div>
+        <div style="height:6px"></div>
+      </div>
+      <div class="suggest" id="qsuggest">
+        <button onclick="ask('food')">how much on food?</button>
+        <button onclick="ask('breakdown')">break down my spending</button>
+        <button onclick="ask('recap')">recap this trip</button>
+        <button onclick="ask('biggest')">biggest expense?</button>
+      </div>
+      <div class="inbar">
+        <div class="ic" onclick="toast('The same agent as Record — here focused on read-only questions.')">⊞</div>
+        <input id="qinp" placeholder="Ask about your spending…" onkeydown="if(event.key==='Enter')qsend()">
+        <div class="send" onclick="qsend()">↑</div>
+      </div>
+      <div class="tabs"><div class="tab on"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg></div>Record</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></div>Stats</div><div class="tab"><div class="g"><svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg></div>Minds</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg></div>Settings</div></div>
+      <div class="toast" id="toast4"></div>
+    </div>
+    <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">Read-only answers render as <b>tool-result components</b> — a computed chip, a category chart, a recap — never prose numbers.</p>
+  </div>
+
+  <!-- PHONE 5: Stats -->
+  <div class="slot">
+    <div class="label">5 · Stats</div>
+    <div class="sub">this trip ⇄ all trips · the chart system the agent embeds</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>Statistics</span><span>⌁ 100%</span></div>
+      <div class="seg" id="statseg"><button data-s="trip" class="on" onclick="renderStats('trip')">This trip</button><button data-s="all" onclick="renderStats('all')">All trips</button></div>
+      <div class="scroll"><div id="statbody"></div></div>
+      <div class="tabs"><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg></div>Record</div><div class="tab on"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></div>Stats</div><div class="tab"><div class="g"><svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg></div>Minds</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg></div>Settings</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">One chart system, two entry points — these bars are what the agent drops into an answer. Toggle <b>All trips</b> for the lifetime view.</p>
   </div>
 </div>
 
@@ -356,17 +428,21 @@ const wait=(fn,ms)=>setTimeout(fn, REDUCED?60:ms);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 // recognition NEVER invents an amount; a photo's date may be unreadable (a real gap)
 function recoP(t){ const p=parse(t); return {amt:p.amt,cat:p.cat,merchant:p.merchant,day:p.day,dateGap:false,src:t}; }
-function gapKind(d){ return d.amount==null ? 'amount' : (d.dateGap ? 'date' : null); }
+// the deterministic gaps, in priority order. Only 'amount' is a HARD gap (blocks the write).
+function gaps(d){ const g=[]; if(d.amount==null)g.push('amount'); if(d.catGap)g.push('category'); if(d.dateGap)g.push('date'); return g; }
+function topGap(d){ return gaps(d)[0]||null; }
 
 // entry points
 function demoCapture(t){ $('suggest')?.remove(); addYou(t); startCapture(recoP(t)); }
-function photoCapture(){ $('suggest')?.remove(); addYou('a receipt photo'); startCapture({amt:980,cat:'food',merchant:'Konbini',day:null,dateGap:true,src:'receipt photo'}); }
+// a blurry receipt: amount, category AND date all unreadable → the agent clarifies all three
+function photoCapture(){ $('suggest')?.remove(); addYou('a receipt photo'); startCapture({amt:null,cat:'misc',merchant:'Market',day:null,dateGap:true,src:'receipt photo'}); }
 
 // stage 1→2: input echoed (above) → recognition. Photos round-trip to the server first.
 function startCapture(p){
   const id='d'+(++draftSeq);
   drafts[id]={amount:p.amt, cat:p.cat, merchant:p.merchant||'New bill',
-    day:(p.dateGap?null:(p.day||'Today')), dateGap:!!p.dateGap, src:p.src||'', stage:'recognize', _hadGap:false};
+    day:(p.dateGap?null:(p.day||'Today')), dateGap:!!p.dateGap, catGap:(p.cat==='misc'),
+    src:p.src||'', stage:'recognize', _hadGap:false};
   const mount=()=>{ $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}"></div>`); advance(id,'recognize'); };
   if(p.src==='receipt photo'){
     const rec=document.createElement('div'); rec.className='msg'; rec.id=id+'rec';
@@ -379,23 +455,25 @@ function startCapture(p){
 // drive the pipeline forward; auto-advance only when there is no gap to clarify
 function advance(id, stage){
   const d=drafts[id]; if(!d) return; d.stage=stage;
-  if((stage==='verify'||stage==='clarify') && gapKind(d)) d._hadGap=true;
+  if((stage==='verify'||stage==='clarify') && gaps(d).length) d._hadGap=true;
   renderDraft(id); scrollEnd();
   if(stage==='recognize') d._t=wait(()=>advance(id,'verify'), 700);
   else if(stage==='verify'){
-    if(gapKind(d)) d._t=wait(()=>advance(id,'clarify'), 700);   // verification FAILED → pause at clarify
-    else d._t=wait(()=>advance(id,'confirm'), 600);             // both checks pass → confirm
+    if(gaps(d).length) d._t=wait(()=>advance(id,'clarify'), 750);  // verification found gaps → pause at clarify
+    else d._t=wait(()=>advance(id,'confirm'), 600);                // all checks pass → confirm
   } // clarify & confirm wait for the user; pushed is handled by confirmDraft
 }
+// resolving one gap re-runs verification; loops clarify until clean, then advances to Confirm
+function reverify(id){ const d=drafts[id]; if(!d) return; if(gaps(d).length){ renderDraft(id); scrollEnd(); } else advance(id,'verify'); }
 
 // the 5-dot stage rail (Input · Recognize · Verify · [Clarify] · Confirm · Push)
 function railHTML(d){
   const curRank={recognize:1,verify:2,clarify:2.5,confirm:3,pushed:4}[d.stage]||1;
-  const sand = gapKind(d)==='date' ? ' sand' : '';
+  const tg=topGap(d); const gapClr = tg==='date'?' sand':tg==='category'?' blue':'';
   const ranks=[0,1,2]; if(d._hadGap) ranks.push(2.5); ranks.push(3,4);
   return `<div class="rail">`+ranks.map((r,i)=>{
     const st = r<curRank?'done':(r===curRank?'active':'todo');
-    const clr = (r===2.5 && st==='active') ? sand : '';
+    const clr = (r===2.5 && st==='active') ? gapClr : '';
     const conn = i<ranks.length-1 ? `<span class="conn ${r<curRank?'on':''}"></span>` : '';
     return `<span class="dot ${st}${clr}"></span>${conn}`;
   }).join('')+`</div>`;
@@ -403,7 +481,7 @@ function railHTML(d){
 
 function renderDraft(id){
   const d=drafts[id], el=$(id); if(!el) return;
-  const c=CAT[d.cat].c, g=gapKind(d);
+  const c=CAT[d.cat].c, g=topGap(d);
   const stageName={recognize:'Recognize',verify:'Verify',clarify:'Clarify',confirm:'Confirm',pushed:'Push'}[d.stage];
   const amtCell = d.amount!=null ? `<div class="da">${fmt(d.amount)}</div>` : `<div class="da dash">¥ —</div>`;
   const idRow = `<div class="row">
@@ -412,21 +490,27 @@ function renderDraft(id){
       ${amtCell}</div>`;
   let body='';
   if(d.stage==='recognize'){
-    body = idRow + `<div class="cap">${d.amount!=null ? 'read from “'+esc(d.src)+'”' : 'no amount in your words — I won’t guess one'}</div>`;
+    const cap = d.amount!=null ? 'read from “'+esc(d.src)+'”'
+      : (d.src==='receipt photo' ? 'couldn’t read the amount — I won’t guess' : 'no amount in your words — I won’t guess one');
+    body = idRow + `<div class="cap">${cap}</div>`;
   } else if(d.stage==='verify' || d.stage==='clarify'){
-    const amtOk=d.amount!=null, dateOk=!d.dateGap;
+    const isClar=d.stage==='clarify';
+    const amtOk=d.amount!=null, catOk=!d.catGap, dateOk=!d.dateGap;
     const amtRow = amtOk
       ? `<div class="crow ok">✓ amount present</div>`
-      : `<div class="crow gap">⚠ amount needed — I won’t guess it</div><div class="pad show"><div class="field">¥ <input inputmode="numeric" id="${id}pi" placeholder="0" onkeydown="if(event.key==='Enter')setAmount('${id}')"></div><button class="btn save tiny" onclick="setAmount('${id}')">Set</button></div>`;
+      : `<div class="crow gap">⚠ amount needed — I won’t guess it</div>`+(isClar?`<div class="pad show"><div class="field">¥ <input inputmode="numeric" id="${id}pi" placeholder="0" onkeydown="if(event.key==='Enter')setAmount('${id}')"></div><button class="btn save tiny" onclick="setAmount('${id}')">Set</button></div>`:'');
+    const catRow = catOk
+      ? `<div class="crow ok">✓ category · ${CAT[d.cat].n}</div>`
+      : `<div class="crow gap cat">⚠ what kind of expense?</div>`+(isClar?`<div class="chips">`+['food','transport','accommodation','shopping','misc'].map(k=>`<span class="chip" onclick="setCat('${id}','${k}')">${CAT[k].n}</span>`).join('')+`</div>`:'');
     const dateRow = dateOk
       ? `<div class="crow ok">✓ date · ${d.day}</div>`
-      : `<div class="crow gap soft">⚠ which day did this happen?</div><div class="chips"><span class="chip" onclick="setDay('${id}','Today')">Today</span><span class="chip" onclick="setDay('${id}','Yesterday')">Yesterday</span></div>`;
+      : `<div class="crow gap soft">⚠ which day did this happen?</div>`+(isClar?`<div class="chips"><span class="chip" onclick="setDay('${id}','Today')">Today</span><span class="chip" onclick="setDay('${id}','Yesterday')">Yesterday</span></div>`:'');
     const foot = g
-      ? `<div class="vfoot ${g==='date'?'soft':''}">BillValidator · ${g==='amount'?'amount required to save':'pick a day to continue'}</div>`
-      : `<div class="vfoot">BillValidator · 2 checks passed</div>`;
-    body = idRow + `<div class="checks">${amtRow}${dateRow}</div>` + foot;
-    if(d.stage==='clarify'){
-      const disabled = d.amount==null; // only a missing amount hard-blocks the write
+      ? `<div class="vfoot ${g==='date'?'soft':g==='category'?'cat':''}">BillValidator · ${gaps(d).length} to resolve${d.amount==null?' · amount required to save':''}</div>`
+      : `<div class="vfoot">BillValidator · 3 checks passed</div>`;
+    body = idRow + `<div class="checks">${amtRow}${catRow}${dateRow}</div>` + foot;
+    if(isClar){
+      const disabled = d.amount==null; // only a missing amount hard-blocks the write; category/date are soft
       body += `<div class="acts"><button class="btn save" ${disabled?'disabled':''} onclick="confirmDraft('${id}')">Save to trip</button><button class="btn ghost" onclick="discardDraft('${id}')">Discard</button></div>`;
     }
   } else if(d.stage==='confirm'){
@@ -445,9 +529,10 @@ function renderDraft(id){
 function setAmount(id){
   const pi=$(id+'pi'); const v=parseFloat((pi?.value||'').replace(/[^\d.]/g,''));
   if(!v||v<=0){ toast('Enter an amount — money is never guessed.'); return; }
-  drafts[id].amount=v; advance(id,'verify');   // re-verify: watch the gap close & the rail move on
+  drafts[id].amount=v; reverify(id);   // re-verify: watch this gap close, on to the next or to Confirm
 }
-function setDay(id,day){ const d=drafts[id]; if(!d) return; d.day=day; d.dateGap=false; advance(id,'verify'); }
+function setCat(id,cat){ const d=drafts[id]; if(!d) return; d.cat=cat; d.catGap=false; reverify(id); }
+function setDay(id,day){ const d=drafts[id]; if(!d) return; d.day=day; d.dateGap=false; reverify(id); }
 
 // stage 5: confirm (the only write) → push into the ledger
 function confirmDraft(id){
@@ -506,6 +591,53 @@ function disamb(t){
     <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();startCapture(recoP('${t.replace(/'/g,'')}'))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
   scrollEnd();
 }
+
+// ===== Phone 4: Ask anything — the agent's read/answer surface (computes from the live ledger) =====
+function catTotals(list){ const m={}; list.forEach(b=>m[b.cat]=(m[b.cat]||0)+b.amount); return Object.entries(m).map(([cat,sum])=>({cat,sum})).sort((a,b)=>b.sum-a.sum); }
+function barsHTML(list){ const t=catTotals(list); const max=t[0]?.sum||1;
+  return `<div class="bars">`+t.map(x=>`<div class="bar"><span class="bl">${CAT[x.cat].n}</span><span class="track"><span class="fill" style="width:${Math.max(6,Math.round(x.sum/max*100))}%;background:${CAT[x.cat].c}"></span></span><span class="bv">${fmt(x.sum)}</span></div>`).join('')+`</div>`; }
+function qEnd(){ const s=$('qscroll'); if(s) s.scrollTop=s.scrollHeight; }
+function qYou(t){ $('qthread').insertAdjacentHTML('beforeend',`<div class="msg you"><span>${esc(t)}</span></div>`); qEnd(); }
+function qMochi(html){ $('qthread').insertAdjacentHTML('beforeend',`<div class="msg"><div class="agent"><span class="who">Mochi</span>${html}</div></div>`); qEnd(); }
+function qThink(label,then){ const d=document.createElement('div'); d.className='msg'; d.innerHTML=`<div class="agent"><span class="who">Mochi</span><div class="think">${SPARK} ${label}</div></div>`; $('qthread').appendChild(d); qEnd(); wait(()=>{ d.remove(); then(); }, 950); }
+function chipHTML(sum,basis,prov){ return `<div class="ans" onclick="this.classList.toggle('open')"><div class="fig">${fmt(sum)}</div><div class="basis">${basis} <span class="mark">computed ✓</span></div>${prov?`<span class="more">tap to see the bills ▾</span><div class="prov">${prov}</div>`:''}</div>`; }
+function ask(kind){
+  $('qsuggest')?.remove();
+  const titles={food:'how much on food?',breakdown:'break down my spending',recap:'recap this trip',biggest:'biggest expense?'};
+  if(titles[kind]) qYou(titles[kind]);
+  if(kind==='food'){ qThink('Adding up food bills…',()=>{ const f=bills.filter(b=>b.cat==='food'); const s=f.reduce((a,b)=>a+b.amount,0); const prov=f.map(b=>`<div class="pr"><span>${b.merchant} · ${b.day}</span><span>${fmt(b.amount)}</span></div>`).join(''); qMochi(`You've spent <b>${fmt(s)}</b> on food this trip.`+chipHTML(s,`Food · ${f.length} bills`,prov)); }); }
+  else if(kind==='breakdown'){ qThink('Grouping by category…',()=>{ qMochi(`Here's where your money went this trip:`+barsHTML(bills)+`<div class="basis" style="margin-top:8px">all categories · ${bills.length} bills <span class="mark">computed ✓</span></div>`); }); }
+  else if(kind==='recap'){ qThink('Summarizing the trip…',()=>{ const t=catTotals(bills); const top=t.slice(0,3).map(x=>`${CAT[x.cat].n} ${fmt(x.sum)}`).join(' · '); const big=[...bills].sort((a,b)=>b.amount-a.amount)[0]; const ndays=days.filter(d=>bills.some(b=>b.day===d)).length; qMochi(`<div class="recap"><div class="rt">Osaka Trip · recap</div><div class="big">${fmt(tripTotal())}</div><div style="font-size:12px;color:var(--soft);margin:6px 0 3px">${bills.length} bills · ${ndays} days</div><div style="font-size:12px">Top: ${top}</div><div style="font-size:12px;margin-top:2px">Biggest: <b>${big.merchant}</b> ${fmt(big.amount)}</div><div class="basis" style="margin-top:8px">computed from your ledger <span class="mark">computed ✓</span></div></div>`); }); }
+  else { qThink('Scanning your bills…',()=>{ const big=[...bills].sort((a,b)=>b.amount-a.amount)[0]; qMochi(`Your biggest expense is <b>${big.merchant}</b>.`+chipHTML(big.amount,`${big.merchant} · ${CAT[big.cat].n} · ${big.day}`,'')); }); }
+}
+function qAsk(t){ const l=t.toLowerCase(); qYou(t); if(/food|eat|ate/.test(l))ask2('food'); else if(/break|categor|where|split/.test(l))ask2('breakdown'); else if(/recap|summar|overall|trip/.test(l))ask2('recap'); else if(/big|most|expensive|largest/.test(l))ask2('biggest'); else ask2('breakdown'); }
+function ask2(kind){ $('qsuggest')?.remove(); const k=kind; // run ask body without re-echoing the question
+  const run={food(){const f=bills.filter(b=>b.cat==='food');const s=f.reduce((a,b)=>a+b.amount,0);const prov=f.map(b=>`<div class="pr"><span>${b.merchant} · ${b.day}</span><span>${fmt(b.amount)}</span></div>`).join('');qMochi(`You've spent <b>${fmt(s)}</b> on food this trip.`+chipHTML(s,`Food · ${f.length} bills`,prov));},
+    breakdown(){qMochi(`Here's where your money went this trip:`+barsHTML(bills)+`<div class="basis" style="margin-top:8px">all categories · ${bills.length} bills <span class="mark">computed ✓</span></div>`);},
+    recap(){const t=catTotals(bills);const top=t.slice(0,3).map(x=>`${CAT[x.cat].n} ${fmt(x.sum)}`).join(' · ');const big=[...bills].sort((a,b)=>b.amount-a.amount)[0];const ndays=days.filter(d=>bills.some(b=>b.day===d)).length;qMochi(`<div class="recap"><div class="rt">Osaka Trip · recap</div><div class="big">${fmt(tripTotal())}</div><div style="font-size:12px;color:var(--soft);margin:6px 0 3px">${bills.length} bills · ${ndays} days</div><div style="font-size:12px">Top: ${top}</div><div style="font-size:12px;margin-top:2px">Biggest: <b>${big.merchant}</b> ${fmt(big.amount)}</div><div class="basis" style="margin-top:8px">computed from your ledger <span class="mark">computed ✓</span></div></div>`);},
+    biggest(){const big=[...bills].sort((a,b)=>b.amount-a.amount)[0];qMochi(`Your biggest expense is <b>${big.merchant}</b>.`+chipHTML(big.amount,`${big.merchant} · ${CAT[big.cat].n} · ${big.day}`,''));}};
+  qThink('Computing from your bills…',run[k]||run.breakdown);
+}
+function qsend(){ const v=$('qinp').value.trim(); if(v){ $('qinp').value=''; qAsk(v); } }
+
+// ===== Phone 5: Stats — the chart system the agent embeds =====
+const OTHER_TRIPS=[{name:'Tokyo',total:184200},{name:'Bangkok',total:96400}];
+function tripBar(name,val,total,color){ return `<div class="bar"><span class="bl">${name}</span><span class="track"><span class="fill" style="width:${Math.max(6,Math.round(val/total*100))}%;background:${color}"></span></span><span class="bv">${fmt(val)}</span></div>`; }
+function renderStats(scope){
+  document.querySelectorAll('#statseg button').forEach(b=>b.classList.toggle('on', b.dataset.s===scope));
+  const trip=tripTotal();
+  if(scope==='trip'){
+    $('statbody').innerHTML=`<div class="statbig"><div class="lab">Osaka Trip</div><div class="v">${fmt(trip)}</div></div>
+      <div class="statsec">By category</div><div style="padding:0 16px 6px">${barsHTML(bills)}</div>
+      <div class="statsec">The agent embeds this exact chart in answers</div>`;
+  } else {
+    const all=trip+OTHER_TRIPS.reduce((s,t)=>s+t.total,0);
+    $('statbody').innerHTML=`<div class="statbig"><div class="lab">All trips · lifetime</div><div class="v">${fmt(all)}</div></div>
+      <div class="statsec">By trip</div><div style="padding:0 16px 6px"><div class="bars">${tripBar('Osaka',trip,all,'#1F6F5C')}${OTHER_TRIPS.map(t=>tripBar(t.name,t.total,all,'#C8643C')).join('')}</div></div>
+      <div class="statsec">Cross-trip — what the home agent reaches via this tool</div>`;
+  }
+}
+renderStats('trip');
 </script>
 </body>
 </html>
