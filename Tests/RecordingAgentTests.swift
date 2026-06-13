@@ -43,12 +43,18 @@ final class BillValidatorTests: XCTestCase {
         XCTAssertEqual(gaps.first?.question.options.count, 2)
     }
 
-    func testMissingDateRaisesAnswerableGap() {
-        let v = makeValidator()
+    func testMissingDateOffersTodayAndYesterday() {
+        let today = Date(timeIntervalSince1970: 1_775_000_000)
+        let v = makeValidator()   // uses the same fixed `today`
         let draft = BillDraft(amount: dec("10"), currencyCode: "JPY", date: nil, categoryRaw: "food", source: .text)
-        let gaps = v.validate(draft)
-        XCTAssertEqual(gaps.map(\.field), [.date])
-        XCTAssertFalse(gaps[0].question.options.isEmpty)
+        let gaps = v.validate(draft).filter { $0.field == .date }
+        XCTAssertEqual(gaps.count, 1)
+        XCTAssertEqual(gaps[0].question.options.map(\.label), ["Today", "Yesterday"])
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        guard case .date(let value)? = gaps[0].question.options.last?.value else {
+            return XCTFail("Yesterday option should carry a date")
+        }
+        XCTAssertEqual(value, yesterday)
     }
 
     func testCurrencyMismatchWithJournalIsFlagged() {
@@ -186,6 +192,98 @@ final class RecordingSessionTests: XCTestCase {
         s.discard(cardID: id)
         XCTAssertEqual(s.card(id)?.state, .discarded)
         XCTAssertTrue(s.recordedCards.isEmpty)
+    }
+
+    func testEditAmountPinsAndClearsGap() {
+        var s = RecordingSession(validator: makeValidator())
+        let id = s.enqueue(source: .photo)
+        _ = s.beginExtraction(cardID: id)
+        let draft = BillDraft(id: id, amount: dec("320"), currencyCode: "JPY", date: Date(), categoryRaw: "transport",
+                              lineItems: [DraftLineItem(label: "x", amount: dec("3200"))], source: .photo)
+        _ = s.completeExtraction(cardID: id, draft: draft)   // amount mismatch -> clarifying
+        XCTAssertEqual(s.edit(cardID: id, field: .amount, value: .amount(dec("3200"))), [.readyForReview(cardID: id)])
+        XCTAssertEqual(s.card(id)?.draft.amount, dec("3200"))
+        XCTAssertTrue(s.card(id)?.draft.pinnedFields.contains(.amount) == true)
+    }
+
+    func testEditCategoryToValidClearsGap() {
+        var s = RecordingSession(validator: makeValidator())
+        let id = s.enqueue(source: .text)
+        _ = s.beginExtraction(cardID: id)
+        let draft = BillDraft(id: id, amount: dec("10"), currencyCode: "JPY", date: Date(), categoryRaw: "spaceship", source: .text)
+        _ = s.completeExtraction(cardID: id, draft: draft)
+        XCTAssertEqual(s.edit(cardID: id, field: .category, value: .category("food")), [.readyForReview(cardID: id)])
+        XCTAssertEqual(s.card(id)?.draft.categoryRaw, "food")
+    }
+
+    func testSetMerchantUpdatesDraft() {
+        var s = RecordingSession(validator: makeValidator())
+        let id = s.enqueue(source: .text)
+        let draft = BillDraft(id: id, amount: dec("10"), currencyCode: "JPY", date: Date(), categoryRaw: "food", source: .text)
+        _ = s.completeExtraction(cardID: id, draft: draft)
+        s.setMerchant(cardID: id, "  Ichiran Ramen  ")
+        XCTAssertEqual(s.card(id)?.draft.merchant, "Ichiran Ramen")
+        s.setMerchant(cardID: id, "   ")
+        XCTAssertNil(s.card(id)?.draft.merchant)
+    }
+}
+
+// MARK: - DraftExtractor
+
+final class DraftExtractorTests: XCTestCase {
+    func testParsesAmountCategoryMerchant() {
+        let d = DraftExtractor.parse("ramen 2840 cash", currencyCode: "JPY")
+        XCTAssertEqual(d.amount, Decimal(string: "2840"))
+        XCTAssertEqual(d.categoryRaw, "food")          // raw value, not "Food"
+        XCTAssertEqual(d.merchant, "Ramen")
+        XCTAssertNil(d.date)                            // never guessed
+        XCTAssertEqual(d.currencyCode, "JPY")
+    }
+
+    func testParsesThousandsSeparator() {
+        XCTAssertEqual(DraftExtractor.parse("taxi 3,200", currencyCode: "JPY").amount, Decimal(string: "3200"))
+        XCTAssertEqual(DraftExtractor.parse("taxi 3,200", currencyCode: "JPY").categoryRaw, "transport")
+    }
+
+    func testNoNumberYieldsNilAmount() {
+        XCTAssertNil(DraftExtractor.parse("lunch with kenji", currencyCode: "JPY").amount)
+        XCTAssertEqual(DraftExtractor.parse("lunch with kenji", currencyCode: "JPY").categoryRaw, "food")
+    }
+
+    func testUnmatchedCategoryDefaultsToMisc() {
+        XCTAssertEqual(DraftExtractor.parse("widget 500", currencyCode: "JPY").categoryRaw, "misc")
+    }
+}
+
+// MARK: - AIRecognitionMapper
+
+final class AIRecognitionMapperTests: XCTestCase {
+    func testMapsFieldsAndCurrency() {
+        let result = AIRecognitionResult(merchant: "Hotel Granvia", date: "2026-04-06", totalAmount: 9800,
+                                         currency: "JPY", category: "accommodation",
+                                         lineItems: [.init(description: "Room", quantity: 1, unitPrice: 9800, amount: 9800)], notes: nil)
+        let d = AIRecognitionMapper.draft(from: result, currencyCode: "USD")
+        XCTAssertEqual(d.merchant, "Hotel Granvia")
+        XCTAssertEqual(d.amount, Decimal(9800))
+        XCTAssertEqual(d.currencyCode, "JPY")          // result currency wins over fallback
+        XCTAssertEqual(d.categoryRaw, "accommodation")
+        XCTAssertEqual(d.lineItems.count, 1)
+        XCTAssertNotNil(d.date)
+    }
+
+    func testUnparseableDateGoesToRawDateText() {
+        let result = AIRecognitionResult(merchant: "X", date: "last tuesday", totalAmount: 10,
+                                         currency: nil, category: "food", lineItems: nil, notes: nil)
+        let d = AIRecognitionMapper.draft(from: result, currencyCode: "JPY")
+        XCTAssertNil(d.date)
+        XCTAssertEqual(d.rawDateText, "last tuesday")
+        XCTAssertEqual(d.currencyCode, "JPY")          // fallback when result currency nil
+    }
+
+    func testNilAmountPreserved() {
+        let result = AIRecognitionResult(merchant: "X", date: nil, totalAmount: nil,
+                                         currency: "JPY", category: "food", lineItems: nil, notes: nil)
+        XCTAssertNil(AIRecognitionMapper.draft(from: result, currencyCode: "JPY").amount)
     }
 }
 

@@ -152,6 +152,29 @@ struct RecordingSession: Sendable {
         return resolve(cardID: cardID)
     }
 
+    /// Directly edit a gap-relevant field (amount/date/category/currency) from the
+    /// card UI — same machinery as `answer` (apply + pin + re-resolve) but not tied
+    /// to an open clarify question. Clears the field from any carried/acknowledged
+    /// gap so re-validation can settle the card. This is what makes a blocked card
+    /// recoverable by editing rather than only by chip.
+    mutating func edit(cardID: UUID, field: BillField, value: ClarificationValue) -> [SessionEffect] {
+        guard let i = index(cardID) else { return [] }
+        apply(value: value, to: &cards[i].draft)
+        cards[i].draft.pinnedFields.insert(field)
+        cards[i].draft.acknowledgedGaps.remove(field)
+        cards[i].carriedGaps.removeAll { $0 == field }
+        return resolve(cardID: cardID)
+    }
+
+    /// Set the draft's merchant directly. Merchant is never a validator gap, so it
+    /// needs no `ClarificationValue` case, no pin, and no re-validate — this is the
+    /// dedicated path that backs the merchant edit drawer.
+    mutating func setMerchant(cardID: UUID, _ merchant: String?) {
+        guard let i = index(cardID) else { return }
+        let trimmed = merchant?.trimmingCharacters(in: .whitespacesAndNewlines)
+        cards[i].draft.merchant = (trimmed?.isEmpty == false) ? trimmed : nil
+    }
+
     /// Skip the open round: carry remaining gaps to `review` (acknowledgment
     /// required at confirm). Nothing is backfilled — unresolved fields stay
     /// genuinely unresolved, honoring "never guess".

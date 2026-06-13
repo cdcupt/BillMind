@@ -17,6 +17,8 @@ struct BillMindApp: App {
             for suffix in ["", "-wal", "-shm"] {
                 try? FileManager.default.removeItem(at: support.appending(path: "default.store\(suffix)"))
             }
+            // Skip the first-launch welcome notice so it doesn't derail other E2Es.
+            UserDefaults.standard.set(true, forKey: ContentView.welcomeSeenKey)
         }
         #endif
 

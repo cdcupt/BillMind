@@ -7,15 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0166EF69038B5C8EF9B2FACD /* AIRecognitionMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC74283E52A503FB0A17A5A /* AIRecognitionMapper.swift */; };
 		07534F3F2DC79517933810D6 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3AF02DD8EDF41BEF30E32B /* Enums.swift */; };
 		0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D7FA0F51018664CEDB7993 /* SketchTheme.swift */; };
 		115BFAB66CD8654C1403AD99 /* BillFileCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21E95F1508B8F85247F0DFD5 /* BillFileCleanup.swift */; };
+		11D525E0799066A8A7E72C99 /* RecordCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266C448AE735C842A3A4D576 /* RecordCoordinator.swift */; };
 		19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26146454BEE1E65D41784BE /* BillImportFlowView.swift */; };
 		1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */; };
 		287A6C49F56CBF95BC0EA2EF /* BillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D43D8B9368A0828C39DE04 /* BillDraft.swift */; };
 		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
 		3B7BC72D4A529B4C46E02507 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F053CD704FCBA523E27F24D9 /* Validation.swift */; };
 		469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B2A264893EE938283B7450 /* SettingsView.swift */; };
+		46C28F0A9E5425B65670230A /* DraftExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B65ACC86E9347A36E6E2D1 /* DraftExtractor.swift */; };
 		4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB72CB16912304251F5D8C73 /* BillRecord.swift */; };
 		4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756A864413BC8D9BB24656BB /* BillMindApp.swift */; };
 		4EA06032421200FC49E1A810 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */; };
@@ -30,19 +33,24 @@
 		884D0B8DC49B9167D8E83497 /* BillMindUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F482D576B472CFCD39CD946 /* BillMindUITests.swift */; };
 		8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */; };
 		8A6BF48F99C48B2D16A116C1 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB6B0F59D31CC474E91E9ED /* RecordingSession.swift */; };
+		8C95A4A8239718E24892A512 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 938671C3DEEAF7BB778B4401 /* RecordView.swift */; };
 		8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */; };
 		AE000D2A254838379C517EA5 /* StatsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */; };
 		AF44AE3B8EAF0C6D5D76A883 /* StatsPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D022264B53C134EA879EFEE /* StatsPageView.swift */; };
+		B34DED4DF0A6F40E3CFF93C9 /* AgentCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D375A2E6F928AAF5B16B8E8 /* AgentCardView.swift */; };
 		C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F9C2003861107979A0DE67 /* AppSettings.swift */; };
 		C85C987EFC96A61259A39B42 /* RecordingAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443C8F7845EF11A4A72C8D5C /* RecordingAgentTests.swift */; };
 		CD03F38D65CCC8E284836E4D /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E4C7E03EBEE581920DCD5B /* KeychainStore.swift */; };
 		CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */; };
 		D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */; };
+		D63FD1125079BBC38832AAE2 /* RecordTabUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41242E1F9D15E98AA77C37F /* RecordTabUITests.swift */; };
 		DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */; };
+		DE302D71769636EE90AACC46 /* WelcomeNoticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AAC212C7733F0A28486977 /* WelcomeNoticeView.swift */; };
 		E0263C4219656B96A789FAAD /* Prompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166CBE10EC2FF76A53B34FF0 /* Prompts.swift */; };
 		FA5D25C7D9742FFE968A83AC /* JournalsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */; };
 		FD010F41C3D4CCC3F8724CC3 /* CardState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6E8E943655D70DA1B86213 /* CardState.swift */; };
 		FD1BEC650A90B214EFD47A8D /* MindsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E76A2BD5243EED8B530996 /* MindsView.swift */; };
+		FD7101375F157F2680C0EA95 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C1E7934EB4B4D703309CAB /* ScreenshotTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,11 +75,16 @@
 		02E9C5222C3F8C85C52A24A4 /* JournalsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalsListView.swift; sourceTree = "<group>"; };
 		0A6954A2FB074FB206F7D884 /* StatsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsDashboardView.swift; sourceTree = "<group>"; };
 		0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0FC74283E52A503FB0A17A5A /* AIRecognitionMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionMapper.swift; sourceTree = "<group>"; };
 		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
 		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		166CBE10EC2FF76A53B34FF0 /* Prompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prompts.swift; sourceTree = "<group>"; };
 		17E76A2BD5243EED8B530996 /* MindsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindsView.swift; sourceTree = "<group>"; };
+		1D375A2E6F928AAF5B16B8E8 /* AgentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCardView.swift; sourceTree = "<group>"; };
 		21E95F1508B8F85247F0DFD5 /* BillFileCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillFileCleanup.swift; sourceTree = "<group>"; };
+		22B65ACC86E9347A36E6E2D1 /* DraftExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftExtractor.swift; sourceTree = "<group>"; };
+		24AAC212C7733F0A28486977 /* WelcomeNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeNoticeView.swift; sourceTree = "<group>"; };
+		266C448AE735C842A3A4D576 /* RecordCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordCoordinator.swift; sourceTree = "<group>"; };
 		3F627B2C431A4DEF5C0281FD /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
 		412B83CE985985B1EA8A1BDC /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		443C8F7845EF11A4A72C8D5C /* RecordingAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingAgentTests.swift; sourceTree = "<group>"; };
@@ -79,6 +92,7 @@
 		4D6E8E943655D70DA1B86213 /* CardState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardState.swift; sourceTree = "<group>"; };
 		4EB6B0F59D31CC474E91E9ED /* RecordingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
 		4F482D576B472CFCD39CD946 /* BillMindUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindUITests.swift; sourceTree = "<group>"; };
+		53C1E7934EB4B4D703309CAB /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalMascotView.swift; sourceTree = "<group>"; };
 		58E4C7E03EBEE581920DCD5B /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		66D43D8B9368A0828C39DE04 /* BillDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDraft.swift; sourceTree = "<group>"; };
@@ -88,6 +102,7 @@
 		77F9C2003861107979A0DE67 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		858481EA92EFAE9A7327A254 /* BillMindUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BillMindUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B3AF02DD8EDF41BEF30E32B /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		938671C3DEEAF7BB778B4401 /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
 		94B2A264893EE938283B7450 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchShapes.swift; sourceTree = "<group>"; };
 		AA204CD0D1DB86DB5AB862EB /* BillMindSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindSchema.swift; sourceTree = "<group>"; };
@@ -96,6 +111,7 @@
 		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
 		CB72CB16912304251F5D8C73 /* BillRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillRecord.swift; sourceTree = "<group>"; };
 		CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigService.swift; sourceTree = "<group>"; };
+		E41242E1F9D15E98AA77C37F /* RecordTabUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTabUITests.swift; sourceTree = "<group>"; };
 		E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F053CD704FCBA523E27F24D9 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
 		F26146454BEE1E65D41784BE /* BillImportFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillImportFlowView.swift; sourceTree = "<group>"; };
@@ -129,10 +145,22 @@
 			path = BillMind;
 			sourceTree = "<group>";
 		};
+		16848C0E96919DE42B42219C /* Record */ = {
+			isa = PBXGroup;
+			children = (
+				1D375A2E6F928AAF5B16B8E8 /* AgentCardView.swift */,
+				266C448AE735C842A3A4D576 /* RecordCoordinator.swift */,
+				938671C3DEEAF7BB778B4401 /* RecordView.swift */,
+			);
+			path = Record;
+			sourceTree = "<group>";
+		};
 		1761658469495E31B736E16A /* UITests */ = {
 			isa = PBXGroup;
 			children = (
 				4F482D576B472CFCD39CD946 /* BillMindUITests.swift */,
+				E41242E1F9D15E98AA77C37F /* RecordTabUITests.swift */,
+				53C1E7934EB4B4D703309CAB /* ScreenshotTests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
@@ -168,8 +196,10 @@
 		2C9BD4948C95BDE3953838CC /* Agent */ = {
 			isa = PBXGroup;
 			children = (
+				0FC74283E52A503FB0A17A5A /* AIRecognitionMapper.swift */,
 				66D43D8B9368A0828C39DE04 /* BillDraft.swift */,
 				4D6E8E943655D70DA1B86213 /* CardState.swift */,
+				22B65ACC86E9347A36E6E2D1 /* DraftExtractor.swift */,
 				F5A9FC21069D618E9F6A7E4C /* README.md */,
 				4EB6B0F59D31CC474E91E9ED /* RecordingSession.swift */,
 				F053CD704FCBA523E27F24D9 /* Validation.swift */,
@@ -203,6 +233,14 @@
 				858481EA92EFAE9A7327A254 /* BillMindUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		716448DF292F47147C2541CE /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				24AAC212C7733F0A28486977 /* WelcomeNoticeView.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		7287B00A417B0672F5C3B8E6 /* Main */ = {
@@ -241,6 +279,8 @@
 				242FA8679ADC98E0F54802D4 /* Components */,
 				02FD356573AD6E57B2BD7F9C /* Journal */,
 				7287B00A417B0672F5C3B8E6 /* Main */,
+				716448DF292F47147C2541CE /* Onboarding */,
+				16848C0E96919DE42B42219C /* Record */,
 				9D05B8C0BC9E5F029BF262A8 /* Settings */,
 			);
 			path = Views;
@@ -397,6 +437,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				884D0B8DC49B9167D8E83497 /* BillMindUITests.swift in Sources */,
+				D63FD1125079BBC38832AAE2 /* RecordTabUITests.swift in Sources */,
+				FD7101375F157F2680C0EA95 /* ScreenshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,9 +446,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0166EF69038B5C8EF9B2FACD /* AIRecognitionMapper.swift in Sources */,
 				D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */,
 				8625C1845463B1DAC256E0C2 /* AIService.swift in Sources */,
 				31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */,
+				B34DED4DF0A6F40E3CFF93C9 /* AgentCardView.swift in Sources */,
 				DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */,
 				C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */,
 				8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */,
@@ -419,6 +463,7 @@
 				FD010F41C3D4CCC3F8724CC3 /* CardState.swift in Sources */,
 				1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */,
 				4EA06032421200FC49E1A810 /* ContentView.swift in Sources */,
+				46C28F0A9E5425B65670230A /* DraftExtractor.swift in Sources */,
 				07534F3F2DC79517933810D6 /* Enums.swift in Sources */,
 				86486167D856C9062524E0F2 /* Extensions.swift in Sources */,
 				6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */,
@@ -428,6 +473,8 @@
 				FD1BEC650A90B214EFD47A8D /* MindsView.swift in Sources */,
 				6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */,
 				E0263C4219656B96A789FAAD /* Prompts.swift in Sources */,
+				11D525E0799066A8A7E72C99 /* RecordCoordinator.swift in Sources */,
+				8C95A4A8239718E24892A512 /* RecordView.swift in Sources */,
 				8A6BF48F99C48B2D16A116C1 /* RecordingSession.swift in Sources */,
 				469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */,
 				CFE647603CE5411D082D4231 /* SketchShapes.swift in Sources */,
@@ -435,6 +482,7 @@
 				AE000D2A254838379C517EA5 /* StatsDashboardView.swift in Sources */,
 				AF44AE3B8EAF0C6D5D76A883 /* StatsPageView.swift in Sources */,
 				3B7BC72D4A529B4C46E02507 /* Validation.swift in Sources */,
+				DE302D71769636EE90AACC46 /* WelcomeNoticeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

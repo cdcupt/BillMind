@@ -134,10 +134,14 @@ struct BillValidator: Sendable {
             )
             return ValidationGap(field: .date, reason: "date unparseable", question: q)
         }
+        var options = [ClarificationOption(label: "Today", value: .date(today))]
+        if let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today) {
+            options.append(ClarificationOption(label: "Yesterday", value: .date(yesterday)))
+        }
         let q = ClarificationQuestion(
             field: .date,
             prompt: "No date on this one — when was it?",
-            options: [ClarificationOption(label: "Today", value: .date(today))]
+            options: options
         )
         return ValidationGap(field: .date, reason: "date missing", question: q)
     }
