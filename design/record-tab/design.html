@@ -191,7 +191,9 @@ function submitText(raw){
 }
 function cardHTML(id, d){
   const needsAmount = d.amount===null;
-  const needsDate = !needsAmount && d.date===null;
+  // Date is asked whenever it's missing — the core's validator raises an askable
+  // date gap first, even when the (un-askable) amount gap is also open.
+  const needsDate = d.date===null;
   const badge = needsAmount ? '<span class="badge needs">needs info</span>'
               : needsDate ? '<span class="badge needs">needs info</span>'
               : '<span class="badge ready">ready</span>';
@@ -201,7 +203,7 @@ function cardHTML(id, d){
       <div class="ico">${d.icon}</div>
       <div class="cmain">
         <div class="merchant edit" onclick="editMerchant(${id})">${d.merchant||'(tap to name)'}</div>
-        <div class="meta2"><span class="chip" style="padding:1px 8px">${d.category}</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| (needsAmount?'date —':'<span class=needfield>add a date</span>')}</span></div>
+        <div class="meta2"><span class="chip" style="padding:1px 8px">${d.category}</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| '<span class=needfield>—</span>'}</span></div>
       </div>
       <div class="amount ${needsAmount?'req':''}" id="amt${id}" onclick="editAmount(${id})">${needsAmount?'amount required':'¥'+fmt(d.amount)}</div>
     </div>

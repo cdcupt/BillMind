@@ -142,6 +142,12 @@ final class RecordingCoordinator {
   <li>Holds the <code>RecordingSession</code> by value and republishes <code>cards</code> via <code>@Observable</code>.</li>
   <li>Photo extraction runs in a <code>Task</code> (async <code>AIService</code>); the result is applied back on the main actor. Text extraction is synchronous and local.</li>
 </ul>
+<div class="callout"><strong>Photo-path settings plumbing:</strong> the coordinator owns a <code>ModelContext</code>, so it reads the settings singleton via <code>AppSettings.getOrCreate(context:)</code> and calls <code>aiService.recognizeBill(images:provider:model:apiKey:demoMode:)</code> with: <code>provider = settings.selectedProvider</code>; <code>model = settings.customModel.isEmpty ? provider.defaultModel : settings.customModel</code> (mirrors <code>BillImportFlowView</code>); <code>apiKey = settings.apiKey</code>; <code>demoMode = settings.demoMode</code>. Real (non-demo) extraction is gated on <code>settings.hasConsentedToAIDataSharing</code>, reusing the existing consent sheet. The text path touches none of this.</div>
+<h3>Field-mapping contracts (avoid two easy traps)</h3>
+<ul>
+  <li><strong><code>DraftExtractor</code> emits <code>BillCategory</code> raw values</strong> (<code>food</code>, <code>transport</code>, <code>accommodation</code>, …), not display names — otherwise <code>BillValidator</code> flags every category as unknown. Its unit test asserts raw values.</li>
+  <li><strong><code>AIRecognitionMapper</code> maps an unparseable date to <code>rawDateText</code></strong>: <code>AIRecognitionResult</code> gives <code>parsedDate: Date?</code> (nil on failure) plus the raw <code>date</code> string — set <code>draft.date = result.parsedDate</code> and, when that is nil but <code>result.date != nil</code>, <code>draft.rawDateText = result.date</code>, so the "date hard to read" gap path is exercised. An unknown <code>result.category</code> is carried to <code>categoryRaw</code> verbatim so the validator can flag it.</li>
+</ul>
 
 <h2><span class="n">4</span>Data flow</h2>
 <h3>Text path (E2E primary, no network)</h3>
@@ -155,12 +161,14 @@ final class RecordingCoordinator {
 </ol>
 <h3>Photo path</h3>
 <p>PhotosPicker → <code>submitPhoto</code> → <code>enqueue(.photo)</code> + <code>beginExtraction</code> (LLM budget) → <code>aiService.recognizeBill(demoMode:)</code> → <code>AIRecognitionMapper</code> → <code>completeExtraction</code>. Demo mode returns hardcoded results → deterministic. Real mode reuses the existing consent gate.</p>
-<div class="callout"><strong>Missing amount (adversarial case):</strong> <code>submitText("ramen")</code> → draft with <code>amount == nil</code> → validate raises an amount gap (no chip options) → carried to review → <strong>Save is blocked</strong> (<code>ConfirmError.amountRequired</code>) until the user taps the amount field and enters a value (<code>edit(.amount)</code>).</div>
+<div class="callout"><strong>Missing amount (adversarial case) — the real 3-step sequence.</strong> <code>submitText("ramen")</code> → draft with <code>amount == nil</code> <em>and</em> <code>date == nil</code>. <code>validate</code> returns <strong>both</strong> a date gap (chip "Today") and an amount gap (no chip options). Per <code>resolve()</code>, only the <em>askable</em> date gap opens a round, so the card first enters <code>clarifying</code> and asks the date chip. After the user answers it, re-validation surfaces the still-missing amount → the card moves to <code>review</code> with <strong>Save blocked</strong> (<code>ConfirmError.amountRequired</code>) until the user taps the amount field and enters a value (<code>edit(.amount)</code>). So a no-amount text input is a three-step recovery: <strong>answer date → enter amount → Save</strong>. (The design prototype and E2E §8 #2 follow this exact order.)</div>
 
 <h2><span class="n">5</span>Persistence &amp; schema</h2>
 <ul>
   <li><strong>No SwiftData schema change in v1.</strong> Confirmed bills are created exactly like the manual flow (<code>status: .confirmed</code>), so the store stays at <code>BillMindSchemaV1</code> — no migration risk. <code>sourceSessionID</code>/audit is a SchemaV2 follow-up.</li>
   <li>Drafts live only in the coordinator's in-memory <code>RecordingSession</code>. Leaving the tab / app discards unconfirmed drafts; nothing partial is persisted.</li>
+  <li><strong>Switching journals rebuilds the session.</strong> The validator's <code>journalCurrencyCode</code> is baked in at construction, so the journal selector reconstructs the coordinator (new validator + currency) and discards unconfirmed drafts. A one-line confirm guards against losing in-flight cards.</li>
+  <li><strong>Dateless confirm → today.</strong> <code>BillRecord.date</code> is non-optional. The date chip's "Today" is an explicit choice, so a confirmed draft normally has a date. If a draft is somehow confirmed with <code>date == nil</code> (e.g. the user skipped the date round), the coordinator records it with <code>Date()</code> — matching the manual flow's default DatePicker value — and the card shows "dated today". This is a documented fallback, not a silent guess of an arbitrary date.</li>
 </ul>
 
 <h2><span class="n">6</span>Concurrency (Swift 6)</h2>
@@ -186,10 +194,10 @@ final class RecordingCoordinator {
 <h3>E2E (XCUITest) — adversarial, three cases</h3>
 <ol class="flow">
   <li><strong>Happy/clarify:</strong> create a journal → Record → select journal → type <code>ramen 2840</code> → answer the date chip → Save → assert the bill appears (merchant + amount) and the count increments.</li>
-  <li><strong>Missing-amount blocked:</strong> type <code>ramen</code> → card in review, amount required → Save does <strong>not</strong> persist → edit the amount → Save persists.</li>
+  <li><strong>Missing-amount blocked (3-step):</strong> type <code>ramen</code> → answer the date chip ("Today") → card is now in review with amount required → assert <strong>no bill is persisted</strong> (the journal count stays 0) → edit the amount → Save → the bill now persists.</li>
   <li><strong>Discard:</strong> a card can be discarded and never reaches the journal.</li>
 </ol>
-<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store.</p>
+<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store. Assertions check the bill in the <strong>journal</strong> (navigate to JournalDetailView, reusing the existing <code>'2,840' OR '2840'</code> matcher), not the in-memory Record thread.</p>
 
 <h2><span class="n">9</span>Risks &amp; mitigations</h2>
 <div class="tablewrap"><table>
