@@ -86,8 +86,13 @@ struct JournalsListView: View {
                 Button("Cancel", role: .cancel) { journalToDelete = nil }
                 Button("Delete", role: .destructive) {
                     if let journal = journalToDelete {
+                        // Gather on-disk image references before the cascade delete
+                        // removes the bills, then clean up files after the DB delete.
+                        let billImagePaths = journal.bills.flatMap { $0.imagePaths }
+                        let journalID = journal.id
                         modelContext.delete(journal)
                         try? modelContext.save()
+                        BillFileCleanup.cleanUp(billImagePaths: billImagePaths, journalID: journalID)
                         journalToDelete = nil
                     }
                 }
