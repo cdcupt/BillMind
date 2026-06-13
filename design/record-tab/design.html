@@ -182,10 +182,6 @@ function submitText(raw){
   $('suggest')?.remove();
   thread.insertAdjacentHTML('beforeend', `<div class="you"><span class="who">you</span>${raw}</div>`);
   const d = parse(raw); const id = nextId++;
-  // build card
-  const cardId = 'card'+id;
-  const needsDate = d.date===null && d.amount!==null;   // amount ok but no date -> clarify
-  const needsAmount = d.amount===null;
   thread.insertAdjacentHTML('beforeend', cardHTML(id, d));
   scrollDown();
 }
