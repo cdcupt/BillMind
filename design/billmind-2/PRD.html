@@ -49,8 +49,8 @@
 
 <header>
   <div class="kicker">BillMind 2.0 · Product Requirements · authored by Coordinator · pipeline step 1</div>
-  <h1>From a local app to a <em>shared, synced service</em></h1>
-  <p class="lede">BillMind becomes a cloud-backed travel-expense companion: accounts, multi-device sync, server-side AI recognition, collaborative trips, and backup — across an iOS app and a web client, on your own VPS. The verified agent core is ported; the home merges Record + Journals in a fresh design.</p>
+  <h1>From a local app to a <em>travel-money AI agent</em></h1>
+  <p class="lede">BillMind becomes an AI agent for travel and money — conversational capture, answers, and actions over your spending — backed by accounts, multi-device sync, server-side AI, collaborative trips, and backup, across an iOS app and a web client on your own VPS. The verified agent core is ported and elevated to the product's core; the home merges Record + Journals in a fresh design.</p>
   <div class="meta">
     <span class="pill"><b>clients</b> iOS + web</span>
     <span class="pill"><b>auth</b> Apple + Google</span>
@@ -61,7 +61,7 @@
 
 <h2><span class="n">1</span>Problem &amp; vision</h2>
 <p>BillMind v1 is local-only. That means: <strong>no sync</strong> across a traveler's phone/tablet/laptop; <strong>no way to share a trip</strong> with the people you're travelling with; the AI provider key sits <strong>in plaintext on every device</strong> (a real security hole the audit flagged); and <strong>no backup</strong> — lose the phone, lose the trip.</p>
-<p><strong>Vision:</strong> a travel-money companion where you sign in once, capture bills by talking to the agent (recognition runs <em>server-side</em>, no key on the device), and your trips sync everywhere and can be shared with companions who split costs with you — reviewable on a web client too.</p>
+<p><strong>Vision — an AI agent for travel &amp; money (the product's core and its future).</strong> BillMind 2.0 is, first, an <strong>AI agent</strong>: you talk to it and it captures your bills, answers questions about your trip's spending, computes the numbers, splits costs with your companions, and helps you stay on budget — and over time more of the app becomes things you simply ask the agent to do. Accounts, sync, the server, and the clients are the substrate the agent runs on. You sign in once; recognition and reasoning run <em>server-side</em> (no key on the device); your trips sync everywhere and can be shared with companions — reviewable on a web client too.</p>
 
 <h2><span class="n">2</span>Users</h2>
 <ul>
@@ -73,6 +73,7 @@
 <h2><span class="n">3</span>Goals &amp; non-goals</h2>
 <div class="grid">
   <div class="panel in"><h4>Goals (the product)</h4><ul>
+    <li><strong>An AI travel + bill agent (THE core)</strong> — a conversational, trip-aware agent that captures, answers, computes, and acts over your spending. The product's identity and future; everything else serves it.</li>
     <li><strong>Accounts</strong> — Sign in with Apple <em>and</em> Google.</li>
     <li><strong>Multi-device sync</strong> of trips, bills, settings.</li>
     <li><strong>Server-side AI recognition</strong> — key on the server, clients send images, get structured bills.</li>
@@ -93,6 +94,7 @@
 <h2><span class="n">4</span>Capabilities</h2>
 <div class="tablewrap"><table>
   <tr><th>Area</th><th>What it does</th></tr>
+  <tr><td><strong>AI agent (core)</strong></td><td>A conversational, server-side, account/trip-aware assistant. <strong>Captures</strong> bills (photo/text/voice → structured), <strong>answers</strong> spending questions ("how much on food in Osaka?"), <strong>computes</strong> totals/breakdowns/balances, <strong>acts</strong> via tools (split a bill, create one, generate the trip infographic), and <strong>remembers</strong> the trip + companions. <strong>Never guesses money</strong> — figures come from tool computation over the user's data, not the LLM.</td></tr>
   <tr><td>Auth &amp; accounts</td><td>Sign in with Apple + Google (OAuth/OIDC). One identity, many devices. Account screen, sign-out, delete-account.</td></tr>
   <tr><td>Sync</td><td>Trips, bills, line items, settings live server-side and sync to every signed-in client. Optimistic local updates; server is source of truth.</td></tr>
   <tr><td>Server-side AI</td><td>Client uploads a receipt image; the server runs the ported agent recognition (provider key held server-side), returns structured draft bills. Central quota/rate-limit per account.</td></tr>
@@ -100,13 +102,14 @@
   <tr><td>Backup</td><td>Implicit — server holds the canonical copy; a device loss loses nothing; export still available.</td></tr>
   <tr><td>Clients</td><td><strong>iOS</strong>: the rebuilt SwiftUI app (merged Record-home) re-pointed at the API. <strong>Web</strong>: a browser client sharing the same API for review + capture.</td></tr>
 </table></div>
+<div class="callout"><strong>The agent's anatomy.</strong> It is an LLM <em>with tools</em> over the user's own data, not a chatbot that guesses. Tools (v1, read + capture): recognize a receipt, query trips/bills, compute totals / category breakdowns / per-person balances, summarize a day or trip. Tools (v2, act): create/split a bill, invite a companion, generate the Minds infographic, proactive budget alerts. It is account- and trip-aware (memory of the trip, companions, preferences), and every numeric answer is <strong>computed by a tool, never produced by the model</strong> — extending the existing core's "never guess money" guarantee. The Record-home is the agent's conversation surface; Stats and Minds are tools the agent can drive.</div>
 
 <h2><span class="n">5</span>Recommended delivery phasing</h2>
 <p>You chose the full vision; delivering it safely means sequencing it. Recommended split (for your confirmation):</p>
 <div class="tablewrap"><table>
   <tr><th>Phase</th><th>Scope</th></tr>
-  <tr><td class="v1">v1 — Foundation</td><td>Backend on the VPS · Apple+Google auth · accounts · server-side AI recognition · trip/bill sync (single-user, multi-device) · cloud backup · the rebuilt iOS Record-home · a <strong>minimal web client</strong> (sign in, view trips/bills, basic capture).</td></tr>
-  <tr><td class="v2">v2 — Collaboration &amp; web</td><td>Shared trips, invites, roles, bill splitting, per-person balances · a fuller web client (capture + edit + stats) · realtime-ish updates.</td></tr>
+  <tr><td class="v1">v1 — Foundation + agent</td><td>Backend on the VPS · Apple+Google auth · accounts · <strong>agent v1</strong> (capture + read-only Q&amp;A: totals, category breakdowns, balances, day/trip recaps, all tool-computed) · server-side AI recognition · trip/bill sync (single-user, multi-device) · cloud backup · the rebuilt iOS Record-home (the agent's surface) · a <strong>minimal web client</strong> (sign in, view trips/bills, basic capture).</td></tr>
+  <tr><td class="v2">v2 — Collaboration &amp; agent actions</td><td><strong>Agent v2</strong> (action tools: split/create bills, invite companions, generate the Minds infographic, proactive budget alerts, deeper travel awareness) · shared trips, invites, roles, bill splitting, per-person balances · a fuller web client (capture + edit + stats) · realtime-ish updates.</td></tr>
 </table></div>
 <div class="callout"><strong>Why phase it:</strong> the synced single-user foundation (auth + sync + server AI) is the backbone everything else needs; collaboration is the most complex slice (multi-user permissions, splitting, conflict). Landing the foundation first de-risks the whole thing and gives you a usable product sooner. The pipeline's gates apply per phase.</div>
 
@@ -135,6 +138,7 @@
 
 <h2><span class="n">9</span>Success criteria</h2>
 <ul>
+  <li><strong>The agent:</strong> ask "how much did I spend on food in Osaka?" and get a correct answer <strong>computed from your bills</strong> (tool-derived, not guessed); ask it to capture "taxi 3200" and a correct draft bill appears for confirmation.</li>
   <li>A user signs in with Apple (or Google) on two devices and sees the same trips and bills.</li>
   <li>Capturing a bill from a photo works with <strong>no provider key on the device</strong> (recognition runs server-side).</li>
   <li>A trip and its bills survive deleting + reinstalling the app (restored from the server on sign-in).</li>
@@ -146,6 +150,7 @@
 
 <h2><span class="n">10</span>Risks &amp; open questions (for the kickoff)</h2>
 <ul>
+  <li><strong>Agent quality &amp; financial accuracy</strong> — the agent must compute every number via tools, never hallucinate them, and must not act wrongly on money. Needs an <strong>eval harness</strong> (LLM-judge + golden cases), guardrails/confirmation on actions, and per-account <strong>cost quotas</strong> (every conversation is server-side LLM calls). Open: agent runtime/framework, tool protocol, which model(s).</li>
   <li><strong>Privacy/security burden</strong> — the server now holds financial data + images; encryption at rest, transport security, account deletion, and a real privacy policy are mandatory.</li>
   <li><strong>Backend stack</strong> — Swift (Vapor/Hummingbird, reuses the agent core) vs Node/TS / Python / Go (re-implement core). Backend Worker decides in the Infra Design.</li>
   <li><strong>Sync model</strong> — simple poll/last-write-wins for v1 vs realtime; conflict handling.</li>
