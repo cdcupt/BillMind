@@ -77,6 +77,15 @@
   .draft .dm{flex:1}.draft .dm .mn{font-size:14.5px;font-weight:600}.draft .dm .ct{font-size:11px;color:var(--soft)}
   .draft .da{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
   .draft .acts{display:flex;gap:8px;margin-top:9px}
+  .draft .da.need{color:var(--terra);font-family:var(--sans);font-size:12px;font-weight:600;border:1.5px dashed var(--terra);border-radius:9px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+  .draft .verify{font-size:10.5px;margin-top:8px;display:flex;align-items:center;gap:5px;font-family:var(--mono);letter-spacing:.02em}
+  .draft .verify.ok{color:var(--pine)} .draft .verify.gap{color:var(--terra)}
+  .draft .pad{margin-top:9px;display:none;align-items:center;gap:7px}
+  .draft .pad.show{display:flex}
+  .draft .pad .field{display:flex;align-items:center;gap:4px;border:1.5px solid var(--terra);border-radius:10px;padding:4px 10px;font-family:var(--mono);font-size:15px}
+  .draft .pad input{border:none;outline:none;width:72px;font-family:var(--mono);font-size:15px;background:none}
+  .btn.tiny{padding:5px 13px;font-size:13px}
+  .btn.save:disabled{background:#d2ccbe;border-color:#d2ccbe;color:#fff;cursor:not-allowed}
   .savedline{font-size:12px;color:var(--pine);padding:3px 0;display:flex;align-items:center;gap:6px}
   /* disambig */
   .disamb{background:#fbf6ec;border:1.5px dashed var(--sand);border-radius:13px;padding:10px 12px;margin-top:4px}
@@ -136,7 +145,7 @@
 <div class="head">
   <h1>BillMind 2.0 — <em>a ledger that talks</em></h1>
   <p>The Record home: one scroll holding your trip's bills <em>and</em> the agent that captures and answers. Every number is computed from the ledger, never guessed.</p>
-  <p class="try">try in the first phone: tap a suggestion, or type "ramen 2840" (capture), "how much on food?" (computed answer), or "dinner in kyoto" (ambiguous).</p>
+  <p class="try">try in the first phone: "ramen 2840" (recognize → verify → confirm), "how much on food?" (computed answer), or "dinner in kyoto" → "Add as a bill" — watch it <b>ask for the amount instead of guessing it</b>.</p>
 </div>
 
 <div class="stage">
@@ -290,9 +299,15 @@ const SPARK='<svg class="spark" viewBox="-1 -1 2 2"><path d="M0,-1 C0.13,-0.34 0
 
 function parse(t){
   const m=t.match(/([\d][\d,\.]*)/);const amt=m?parseFloat(m[1].replace(/,/g,'')):null;
-  const l=t.toLowerCase();
-  const cat=/taxi|train|bus|metro|uber/.test(l)?'transport':/hotel|inn|stay/.test(l)?'accommodation':/ramen|sushi|dinner|lunch|coffee|food|cafe|breakfast|drink|konbini|lawson/.test(l)?'food':/shop|store|uniqlo|muji/.test(l)?'shopping':'misc';
-  const merchant=t.replace(m?m[0]:'','').replace(/cash|card|yen|in|the|at/gi,'').trim().split(/\s+/).filter(Boolean).slice(0,3).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')||'Unknown';
+  const l=' '+t.toLowerCase()+' '; const has=re=>re.test(l);
+  const cat = has(/\b(taxi|train|bus|metro|subway|uber|flight|fare)\b/)?'transport'
+    : has(/\b(hotel|inn|ryokan|hostel|airbnb|stay)\b/)?'accommodation'
+    : has(/\b(ramen|sushi|dinner|lunch|breakfast|coffee|cafe|food|drink|konbini|lawson|izakaya)\b/)?'food'
+    : has(/\b(shop|store|uniqlo|muji|mall|souvenir)\b/)?'shopping' : 'misc';
+  const merchant=t.replace(m?m[0]:'','')
+    .replace(/\b(cash|card|yen|jpy|in|on|at|the|for|a|of)\b/gi,' ')
+    .trim().split(/\s+/).filter(Boolean).slice(0,3)
+    .map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') || 'New bill';
   return {amt,cat,merchant};
 }
 const isQuestion=t=>/how much|what|which|total|average|spend|spent|did i|do i|am i|over budget|balance|owe|breakdown|summary/i.test(t);
@@ -306,31 +321,58 @@ function sendText(t){
   if(p.amt===null){ // no number, not a question -> ambiguous
     disamb(t); return;
   }
-  capture(p);
+  startCapture(p);
 }
 
-// --- capture flow ---
-function capture(p){
-  const id='d'+Date.now();
-  $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}">
-    <div class="dh"><span class="badge">draft · confirm to save</span></div>
-    <div class="row"><div class="ico" style="background:${CAT[p.cat].c}1f;width:36px;height:36px"><div style="width:12px;height:12px;border-radius:4px;background:${CAT[p.cat].c}"></div></div>
-      <div class="dm"><div class="mn">${p.merchant}</div><div class="ct">${CAT[p.cat].n} · Today</div></div>
-      <div class="da">${fmt(p.amt)}</div></div>
-    <div class="acts"><button class="btn save" onclick="confirmDraft('${id}','${p.merchant}',${p.amt},'${p.cat}')">Save to trip</button><button class="btn ghost" onclick="document.getElementById('${id}').remove()">Discard</button></div>
-  </div>`);
-  scrollEnd();
+// --- capture pipeline: input → recognition → verification → confirm → push ---
+// Recognition extracts candidate fields; it NEVER invents an amount.
+function recognize(t){ return parse(t); }   // {amt: number|null, cat, merchant}
+const drafts={}; let draftSeq=0;
+
+// stage 1→2: recognition (shown as a brief stage, server-side for photos)
+function startCapture(p){
+  const id='d'+(++draftSeq);
+  drafts[id]={amount:p.amt, cat:p.cat, merchant:p.merchant||'New bill', day:'Today', padOpen:false};
+  const rec=document.createElement('div'); rec.className='msg'; rec.id=id+'rec';
+  rec.innerHTML=`<div class="agent"><span class="who">Mochi</span><div class="think">${SPARK} Recognizing…</div></div>`;
+  $('thread').appendChild(rec); scrollEnd();
+  setTimeout(()=>{ rec.remove(); $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}"></div>`); renderDraft(id); scrollEnd(); }, 650);
 }
-function confirmDraft(id,merchant,amt,cat){
-  bills.unshift({id:nextId++,day:'Today',merchant,amount:amt,cat});
+// stage 3: verification — a missing amount is a hard gap that blocks save (money is never guessed)
+function gapsFor(d){ const g=[]; if(d.amount==null) g.push('amount'); return g; }
+function renderDraft(id){
+  const d=drafts[id], el=$(id); if(!el) return;
+  const need=(d.amount==null), c=CAT[d.cat].c;
+  el.innerHTML=`
+    <div class="dh"><span class="badge">draft · verify &amp; confirm</span></div>
+    <div class="row">
+      <div class="ico" style="background:${c}1f;width:36px;height:36px"><div style="width:12px;height:12px;border-radius:4px;background:${c}"></div></div>
+      <div class="dm"><div class="mn">${d.merchant}</div><div class="ct">${CAT[d.cat].n} · ${d.day}</div></div>
+      ${need ? `<div class="da need" onclick="togglePad('${id}')">Add amount ＋</div>` : `<div class="da">${fmt(d.amount)}</div>`}
+    </div>
+    ${need ? `<div class="verify gap">⚠ amount needed — I won't guess it</div>` : `<div class="verify ok">✓ verified · amount &amp; date present</div>`}
+    <div class="pad ${d.padOpen?'show':''}"><div class="field">¥ <input inputmode="numeric" id="${id}pi" placeholder="0" onkeydown="if(event.key==='Enter')setAmount('${id}')"></div><button class="btn save tiny" onclick="setAmount('${id}')">Set</button></div>
+    <div class="acts"><button class="btn save" ${need?'disabled':''} onclick="confirmDraft('${id}')">Save to trip</button><button class="btn ghost" onclick="discardDraft('${id}')">Discard</button></div>`;
+  if(d.padOpen){ const pi=$(id+'pi'); if(pi) pi.focus(); }
+}
+function togglePad(id){ drafts[id].padOpen=!drafts[id].padOpen; renderDraft(id); scrollEnd(); }
+function setAmount(id){
+  const pi=$(id+'pi'); const v=parseFloat((pi?.value||'').replace(/[^\d.]/g,''));
+  if(!v||v<=0){ toast('Enter an amount — money is never guessed.'); return; }
+  drafts[id].amount=v; drafts[id].padOpen=false; renderDraft(id);
+}
+// stage 4→5: confirm (the only write) → push into the ledger
+function confirmDraft(id){
+  const d=drafts[id]; if(!d || d.amount==null){ toast('Add the amount first — it can’t save without it.'); return; }
+  bills.unshift({id:nextId++,day:'Today',merchant:d.merchant,amount:d.amount,cat:d.cat});
   renderLedger();
-  const el=$(id); if(el) el.outerHTML=`<div class="savedline">✓ saved ${merchant} ${fmt(amt)} → Today</div>`;
-  // animate the new bill + count up total
+  const el=$(id); if(el) el.outerHTML=`<div class="savedline">✓ saved ${d.merchant} ${fmt(d.amount)} → Today</div>`;
   const nb=document.querySelector('#ledger .bill'); if(nb) nb.classList.add('drop');
   countUp('ttotal', tripTotal());
   toast('Saved — the only write. It docked into Today.');
-  scrollEnd();
+  delete drafts[id]; scrollEnd();
 }
+function discardDraft(id){ const el=$(id); if(el) el.remove(); delete drafts[id]; }
 function countUp(elId,to){
   const el=$(elId); const from=parseInt(el.textContent.replace(/[^\d]/g,''))||0;
   const t0=performance.now ? null : 0; const dur=600; let start;
@@ -369,10 +411,9 @@ function disamb(t){
   const id='x'+Date.now();
   $('thread').insertAdjacentHTML('beforeend',`<div class="msg" id="${id}"><div class="agent"><span class="who">Mochi</span>
     <div class="disamb"><p>Did you mean to log a bill, or ask a question about "${t}"?</p>
-    <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();capture(parseFor('${t.replace(/'/g,'')}',true))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
+    <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();startCapture(recognize('${t.replace(/'/g,'')}'))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
   scrollEnd();
 }
-function parseFor(t,forceAmt){const p=parse(t);if(forceAmt&&p.amt===null)p.amt=0;return p}
 </script>
 </body>
 </html>

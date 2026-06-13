@@ -189,13 +189,16 @@
 
 <section id="flows">
   <h2><span class="n">06</span> Key flows</h2>
-  <h3>Capture (text or photo) → confirm → land</h3>
+  <h3>Capture — the agent pipeline: input → recognition → verification → confirm → push</h3>
+  <p>This flow <b>follows the verified agent core</b> (the ported <code>DraftExtractor</code> / <code>AIRecognitionMapper</code> + the deterministic <code>BillValidator</code> + the single-writer confirm). The five stages are explicit, not collapsed:</p>
   <div class="flow">
-    <div class="st"><span class="num"></span><div>User types "ramen 2840" or snaps a receipt. Text parses locally for an instant card; a photo round-trips to server-side recognition (status line while it reads).</div></div>
-    <div class="st"><span class="num"></span><div>A <b>draft card</b> appears (terracotta) with merchant, amount, category, date. Missing essentials surface as inline chips; <b>money is never invented</b> — a missing amount blocks save.</div></div>
-    <div class="st"><span class="num"></span><div>User edits via the <b>edit drawer</b> (date picker / category grid / number pad / merchant) — selection surfaces, not free-text boxes, wherever possible.</div></div>
-    <div class="st"><span class="num"></span><div><b>Confirm</b> → card docks up into the ledger, totals count up, a slim receipt line remains in the conversation.</div></div>
+    <div class="st"><span class="num"></span><div><b>Input.</b> User types "ramen 2840", speaks, or snaps a receipt.</div></div>
+    <div class="st"><span class="num"></span><div><b>Recognition.</b> Text parses locally for an instant draft; a photo/voice round-trips to <b>server-side</b> recognition (a "Recognizing…" status while it reads). Recognition proposes fields — merchant, amount, category, date — and <b>never fabricates a number it didn't read</b>.</div></div>
+    <div class="st"><span class="num"></span><div><b>Verification (<code>BillValidator</code>, deterministic).</b> Gaps are computed by rules, not model confidence. A <b>missing amount is a hard gap</b>: the card shows "amount needed — I won't guess it", and <b>Save is disabled</b> until it's provided. A missing date offers Today/Yesterday; merchant is never a gap.</div></div>
+    <div class="st"><span class="num"></span><div><b>Confirm (the only write).</b> Available only once verification passes. The user resolves gaps via the <b>edit drawer</b> (date picker / category grid / number pad / merchant) — selection surfaces, not free-text boxes, wherever possible.</div></div>
+    <div class="st"><span class="num"></span><div><b>Push.</b> The confirmed bill persists (sync), the card docks up into the ledger, totals count up, and a slim receipt line remains in the conversation.</div></div>
   </div>
+  <div class="callout t"><h4>Never guess money — enforced at verification, visible in the UI</h4><p>An empty or unreadable amount can <b>never</b> become a saved bill. There is no <code>¥0</code> default; the draft sits in a "needs amount" state, Save greyed, until a real figure is entered. The interactive mockup demonstrates this — try "dinner in kyoto" → "Add as a bill".</p></div>
   <h3>Ask anything → computed answer</h3>
   <div class="flow">
     <div class="st"><span class="num"></span><div>User asks "how much on food?" The agent picks the right tool (<code>compute_totals</code> filtered to food).</div></div>
