@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind — Record Tab (v1 Interactive Design)</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --cream:#FDF6EC; --ww:#FEFCF7; --brown:#8B7355; --lbrown:#B8A080; --rose:#D4A0A0;
+    --sage:#A8BFA0; --blue:#9CB8C8; --orange:#E8B87A; --red:#C27070; --purple:#A88BBE; --ink:#5d4e3c;
+    --shadow:rgba(212,197,169,.35); --wa:18px 22px 15px 24px / 22px 15px 24px 18px; --wb:22px 14px 24px 16px / 16px 24px 14px 22px; }
+  body { background:#f0ebe3 repeating-linear-gradient(0deg,transparent,transparent 26px,rgba(184,160,128,.05) 26px,rgba(184,160,128,.05) 27px);
+    font-family:'Noto Serif',Georgia,serif; color:var(--ink); padding:30px 14px 70px; }
+  .head { text-align:center; max-width:760px; margin:0 auto 6px; }
+  .head h1 { font-family:'Caveat',cursive; font-size:clamp(34px,6vw,50px); color:var(--brown); line-height:1; }
+  .head h1 em { font-style:normal; color:var(--red); }
+  .head p { font-size:13.5px; color:var(--brown); margin-top:6px; }
+  .specrow { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:14px 0 6px; }
+  .spec { background:var(--ww); border:1.5px solid var(--lbrown); border-radius:var(--wb); padding:5px 12px; font-size:11.5px; }
+  .spec b { font-family:'Caveat',cursive; font-size:15px; color:var(--red); }
+  .tryline { text-align:center; font-family:'Caveat',cursive; font-size:19px; color:var(--red); margin:8px 0 22px; transform:rotate(-.5deg); }
+  .app { display:flex; justify-content:center; align-items:flex-start; gap:30px; flex-wrap:wrap; max-width:1100px; margin:0 auto; }
+  .phone { width:min(390px,calc(100vw - 30px)); background:var(--cream); border-radius:44px; border:3px solid var(--lbrown);
+    overflow:hidden; position:relative; box-shadow:10px 12px 28px rgba(139,115,85,.18);
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 22px,rgba(184,160,128,.045) 22px,rgba(184,160,128,.045) 23px); }
+  .statusb { height:40px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 24px 6px; font-size:12.5px; font-weight:700; color:var(--brown); }
+  .nav { text-align:center; font-family:'Caveat',cursive; font-size:24px; color:var(--brown); padding:2px 0 8px; }
+  .thread { padding:6px 13px 10px; display:flex; flex-direction:column; gap:10px; height:540px; overflow-y:auto; scroll-behavior:smooth; }
+  .jchip { display:flex; align-items:center; gap:9px; background:var(--ww); border:1.5px solid var(--lbrown);
+    border-radius:var(--wa); padding:7px 11px; cursor:pointer; position:sticky; top:0; z-index:5; }
+  .jchip .meta { flex:1; min-width:0; } .jchip .meta b { display:block; font-size:14px; }
+  .jchip .meta span { font-size:11px; color:var(--lbrown); }
+  .jchip .switch { font-family:'Caveat',cursive; font-size:16px; color:var(--blue); white-space:nowrap; }
+  .mascot { width:32px; height:32px; flex:none; }
+  .hint { align-self:flex-start; max-width:90%; background:var(--ww); border:1.5px solid rgba(184,160,128,.5); border-radius:var(--wa); padding:9px 12px; font-size:12.5px; line-height:1.5; }
+  .hint .who { font-family:'Caveat',cursive; font-size:14px; color:var(--lbrown); display:block; }
+  .you { align-self:flex-end; background:#F3E3D3; border:1.5px solid var(--orange); border-radius:var(--wb); padding:8px 13px; font-size:13px; }
+  .you .who { font-family:'Caveat',cursive; font-size:14px; color:var(--lbrown); display:block; }
+  /* card */
+  .card { align-self:stretch; background:var(--ww); border:2px solid var(--lbrown); border-radius:var(--wa);
+    padding:10px 12px; position:relative; box-shadow:3px 4px 0 var(--shadow); animation:in .35s ease; }
+  @keyframes in { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+  .card.needs { border-color:var(--red); }
+  .ihead { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+  .badge { font-size:10px; font-weight:700; padding:1.5px 9px; border-radius:9px 11px 8px 12px; border:1.5px solid; text-transform:uppercase; letter-spacing:.04em; }
+  .badge.needs { color:var(--red); border-color:var(--red); background:rgba(194,112,112,.1); }
+  .badge.ready { color:#7d9573; border-color:var(--sage); background:rgba(168,191,160,.18); }
+  .badge.saved { color:#fff; border-color:#93ab8b; background:var(--sage); }
+  .crow { display:flex; align-items:center; gap:10px; }
+  .ico { width:40px; height:40px; border-radius:10px; background:rgba(232,184,122,.25); display:grid; place-items:center; font-size:20px; flex:none; }
+  .cmain { flex:1; min-width:0; }
+  .merchant { font-size:14.5px; font-weight:700; }
+  .merchant.edit, .amount.edit, .date.edit { border-bottom:2px dashed var(--blue); cursor:text; }
+  .meta2 { font-size:11.5px; color:var(--lbrown); }
+  .meta2 .needfield { color:var(--red); font-style:italic; }
+  .amount { font-size:19px; font-weight:700; white-space:nowrap; }
+  .amount.req { color:var(--red); font-size:14px; font-style:italic; }
+  .qrow { margin-top:8px; }
+  .q { font-size:12.5px; margin-bottom:5px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { font-family:'Noto Serif',serif; font-size:12.5px; border:1.5px solid var(--blue); border-radius:11px 14px 10px 15px;
+    padding:3px 12px; background:rgba(156,184,200,.12); color:#56707e; cursor:pointer; }
+  .chip:hover { background:rgba(156,184,200,.25); }
+  .editfield { margin-top:8px; display:none; gap:6px; }
+  .editfield.show { display:flex; }
+  .editfield input { flex:1; border:1.5px solid var(--blue); border-radius:9px; padding:5px 9px; font-size:13px; font-family:'Noto Serif',serif; }
+  .editfield button { font-family:'Caveat',cursive; font-size:15px; border:1.5px solid var(--sage); background:var(--sage); color:#fff; border-radius:9px; padding:0 12px; cursor:pointer; }
+  .actions { display:flex; gap:8px; margin-top:9px; }
+  .btn { font-family:'Caveat',cursive; font-size:16px; padding:3px 15px 4px; border-radius:12px 15px 11px 16px; border:1.8px solid; background:none; cursor:pointer; color:var(--brown); border-color:var(--lbrown); }
+  .btn.save { color:#fff; background:var(--sage); border-color:#93ab8b; box-shadow:2px 3px 0 var(--shadow); }
+  .btn.save:disabled { background:#cdd8c9; border-color:#bcc9b8; cursor:not-allowed; box-shadow:none; }
+  .stamp { position:absolute; top:6px; right:10px; font-family:'Caveat',cursive; font-size:17px; font-weight:700; color:var(--sage);
+    border:2.5px solid var(--sage); border-radius:var(--wb); padding:0 9px; transform:rotate(6deg); }
+  .suggest { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .suggest button { font-size:11.5px; border:1.5px dashed var(--lbrown); border-radius:11px 14px 10px 15px; padding:4px 11px; background:var(--ww); color:var(--brown); cursor:pointer; font-family:'Noto Serif',serif; }
+  .inbar { margin:6px 12px 0; display:flex; align-items:center; gap:7px; background:var(--ww); border:1.8px solid var(--lbrown); border-radius:var(--wa); padding:7px 10px; }
+  .inbar .ic { font-size:15px; border:1.5px solid var(--lbrown); border-radius:50%; width:30px; height:30px; display:grid; place-items:center; flex:none; cursor:pointer; background:none; }
+  .inbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-family:'Noto Serif',serif; font-size:13px; color:var(--ink); }
+  .inbar input::placeholder { color:var(--lbrown); font-style:italic; }
+  .tabbar { height:66px; background:var(--ww); border-top:1.5px solid rgba(184,160,128,.4); display:flex; align-items:center; justify-content:space-around; padding:0 4px 8px; margin-top:8px; }
+  .tab { text-align:center; font-size:9.5px; color:var(--lbrown); flex:1; }
+  .tab .g { font-size:18px; line-height:1.2; }
+  .tab.active { color:var(--red); font-weight:700; }
+  .toast { position:absolute; bottom:92px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--cream); font-size:12px; padding:7px 14px; border-radius:14px 17px 13px 18px; opacity:0; transition:opacity .3s; pointer-events:none; max-width:86%; text-align:center; z-index:20; }
+  .toast.show { opacity:.95; }
+  .notes { display:flex; justify-content:center; gap:24px; flex-wrap:wrap; margin-top:44px; }
+  .note { width:300px; max-width:calc(100vw - 36px); padding:16px 18px; position:relative; box-shadow:4px 6px 14px rgba(139,115,85,.18); }
+  .note h3 { font-family:'Caveat',cursive; font-size:23px; margin-bottom:6px; }
+  .note ul { list-style:none; font-size:12.5px; line-height:1.5; }
+  .note li { padding:3px 0 3px 16px; position:relative; }
+  .note li::before { content:"✦"; position:absolute; left:0; top:4px; font-size:10px; opacity:.6; }
+  .note.n1 { background:#EAF1E7; transform:rotate(-1deg); border-radius:6px 12px 5px 11px; } .note.n1 h3 { color:#7d9573; }
+  .note.n2 { background:#FBE9E9; transform:rotate(.8deg); border-radius:11px 5px 12px 6px; } .note.n2 h3 { color:var(--red); }
+  .note.n3 { background:#FBEFDA; transform:rotate(-.5deg); border-radius:5px 11px 6px 12px; } .note.n3 h3 { color:#b07c2e; }
+  .note .pin { position:absolute; top:-9px; left:50%; transform:translateX(-50%); width:64px; height:16px; background:rgba(156,184,200,.5); border-left:1px dashed rgba(255,255,255,.8); border-right:1px dashed rgba(255,255,255,.8); }
+  footer { text-align:center; margin-top:40px; font-size:12px; color:var(--lbrown); font-style:italic; }
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>Record tab — <em>v1 interactive design</em></h1>
+  <p>Type a phrase, the agent forms an editable bill card, asks a chip question when a field is unclear, and writes a bill only on Save. Text path needs no AI or API key.</p>
+</div>
+<div class="specrow">
+  <div class="spec"><b>tab</b> Journals · Record · Stats · Minds · Settings</div>
+  <div class="spec"><b>core</b> wraps RecordingSession</div>
+  <div class="spec"><b>write</b> only on confirm</div>
+  <div class="spec"><b>schema</b> unchanged (no migration)</div>
+</div>
+<p class="tryline">try: tap a suggestion, or type "taxi 3200" / "ramen" (no amount) · answer the date chip · Save</p>
+
+<div class="app">
+  <div class="phone">
+    <div class="statusb"><span>9:41</span><span id="count">¥0 · 0 saved</span><span>⌁ 100%</span></div>
+    <div class="nav">Record</div>
+    <div class="thread" id="thread">
+      <div class="jchip" onclick="toast('In the app: pick which journal to file into.')">
+        <svg class="mascot" viewBox="0 0 40 40" aria-label="cat">
+          <path d="M8 14 L11 5 L16 11" fill="#E8D9C4" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M32 14 L29 5 L24 11" fill="#E8D9C4" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"/>
+          <ellipse cx="20" cy="22" rx="13.5" ry="12" fill="#F3E8D5" stroke="#8B7355" stroke-width="1.7"/>
+          <circle cx="15" cy="20" r="1.6" fill="#5d4e3c"/><circle cx="25" cy="20" r="1.6" fill="#5d4e3c"/>
+          <path d="M18.5 25 Q20 26.5 21.5 25" fill="none" stroke="#5d4e3c" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <div class="meta"><b>Osaka Trip · ¥ JPY</b><span>filing bills here</span></div>
+        <span class="switch">switch ↓</span>
+      </div>
+      <div class="hint"><span class="who">Mochi · recording agent</span>Tell me about a bill — like “ramen 2840” — or 📷 a receipt. I'll make a card you can edit, and ask if something's unclear. Nothing saves until you tap Save.</div>
+      <div class="suggest" id="suggest">
+        <button onclick="submitText('ramen 2840')">“ramen 2840”</button>
+        <button onclick="submitText('taxi 3200')">“taxi 3200”</button>
+        <button onclick="submitText('ramen')">“ramen” (no amount)</button>
+      </div>
+    </div>
+    <div class="inbar">
+      <button class="ic" onclick="toast('Photo path: PhotosPicker → AIService (demo mode needs no key).')">📷</button>
+      <input id="inp" placeholder="Tell Mochi about a bill…" onkeydown="if(event.key==='Enter')submitTyped()">
+      <button class="ic" onclick="submitTyped()" title="send">➤</button>
+    </div>
+    <div class="tabbar">
+      <div class="tab"><div class="g">❏</div>Journals</div>
+      <div class="tab active"><div class="g">▭</div>Record</div>
+      <div class="tab"><div class="g">∿</div>Stats</div>
+      <div class="tab"><div class="g">✦</div>Minds</div>
+      <div class="tab"><div class="g">☼</div>Settings</div>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note n1"><div class="pin"></div><h3>The flow</h3>
+    <ul><li>text → local parse → draft (no network)</li><li>validate (pure rules) finds gaps</li><li>missing date → one chip: “Today”</li><li>Save → one BillRecord in the journal</li><li>persists across relaunch</li></ul></div>
+  <div class="note n2"><div class="pin"></div><h3>The guarantee (try it)</h3>
+    <ul><li>type “ramen” with no amount</li><li>card shows “amount required”</li><li>Save is blocked — agent never guesses money</li><li>tap the amount, enter a value</li><li>now Save works</li></ul></div>
+  <div class="note n3"><div class="pin"></div><h3>v1 boundary</h3>
+    <ul><li>IN: text + demo-photo, clarify chips, edit, confirm</li><li>OUT: voice, real structured-output, downscaling</li><li>OUT: sourceSessionID (needs SchemaV2)</li><li>additive tab — existing flows untouched</li></ul></div>
+</div>
+
+<footer>BillMind · Record tab v1 · design doc for Reviewer gate · text-first, write-on-confirm, schema-stable</footer>
+
+<script>
+'use strict';
+let nextId = 1, savedCount = 0, savedTotal = 0;
+const thread = document.getElementById('thread');
+const $ = id => document.getElementById(id);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+function scrollDown(){ thread.scrollTop = thread.scrollHeight; }
+const CAT = [[/taxi|train|bus|metro|uber/,'🚕','Transport'],[/hotel|stay|inn|night/,'🏨','Hotel'],[/ramen|dinner|lunch|coffee|food|cafe|breakfast|drink/,'🍜','Food'],[/.*/,'🧾','Other']];
+function parse(raw){
+  const m = raw.match(/([\d][\d,\.]*)/);
+  const amount = m ? parseFloat(m[1].replace(/,/g,'')) : null;
+  const lower = raw.toLowerCase();
+  const cat = CAT.find(c=>c[0].test(lower));
+  const merchant = raw.replace(m?m[0]:'','').replace(/cash|card|yen|jpy/gi,'').trim()
+     .split(/\s+/).filter(Boolean).slice(0,3).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') || null;
+  return { amount, icon:cat[1], category:cat[2], merchant, date:null };
+}
+function submitTyped(){ const v=$('inp').value.trim(); if(v){ $('inp').value=''; submitText(v); } }
+function submitText(raw){
+  $('suggest')?.remove();
+  thread.insertAdjacentHTML('beforeend', `<div class="you"><span class="who">you</span>${raw}</div>`);
+  const d = parse(raw); const id = nextId++;
+  // build card
+  const cardId = 'card'+id;
+  const needsDate = d.date===null && d.amount!==null;   // amount ok but no date -> clarify
+  const needsAmount = d.amount===null;
+  thread.insertAdjacentHTML('beforeend', cardHTML(id, d));
+  scrollDown();
+}
+function cardHTML(id, d){
+  const needsAmount = d.amount===null;
+  const needsDate = !needsAmount && d.date===null;
+  const badge = needsAmount ? '<span class="badge needs">needs info</span>'
+              : needsDate ? '<span class="badge needs">needs info</span>'
+              : '<span class="badge ready">ready</span>';
+  return `<div class="card ${(needsAmount||needsDate)?'needs':''}" id="card${id}" data-amount="${d.amount??''}" data-date="${d.date??''}">
+    <div class="ihead">${badge}<span style="margin-left:auto;font-size:10px;color:var(--lbrown)">from text</span></div>
+    <div class="crow">
+      <div class="ico">${d.icon}</div>
+      <div class="cmain">
+        <div class="merchant edit" onclick="editMerchant(${id})">${d.merchant||'(tap to name)'}</div>
+        <div class="meta2"><span class="chip" style="padding:1px 8px">${d.category}</span> · <span class="date edit" id="date${id}" onclick="editDate(${id})">${d.date|| (needsAmount?'date —':'<span class=needfield>add a date</span>')}</span></div>
+      </div>
+      <div class="amount ${needsAmount?'req':''}" id="amt${id}" onclick="editAmount(${id})">${needsAmount?'amount required':'¥'+fmt(d.amount)}</div>
+    </div>
+    <div class="qrow" id="q${id}">${needsDate?dateChips(id):''}</div>
+    <div class="editfield" id="ef${id}"><input id="efin${id}" inputmode="decimal" placeholder="enter value"><button onclick="applyEdit(${id})">set</button></div>
+    <div class="actions">
+      <button class="btn save" id="save${id}" ${(needsAmount||needsDate)?'disabled':''} onclick="save(${id})">Save to journal</button>
+      <button class="btn" onclick="discard(${id})">Discard</button>
+    </div>
+  </div>`;
+}
+function dateChips(id){
+  return `<div class="q">When was it? <span style="color:var(--lbrown);font-size:11px">(no date in your text)</span></div>
+    <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button></div>`;
+}
+function fmt(n){ return Number(n).toLocaleString('en-US',{maximumFractionDigits:2}); }
+function setReadyIfComplete(id){
+  const c=$('card'+id); const amt=c.dataset.amount, date=c.dataset.date;
+  const ready = amt!=='' && date!=='';
+  c.querySelector('.badge').className = 'badge '+(ready?'ready':'needs');
+  c.querySelector('.badge').textContent = ready?'ready':'needs info';
+  c.classList.toggle('needs', !ready);
+  $('save'+id).disabled = !ready;
+}
+function answerDate(id, label){
+  const c=$('card'+id); c.dataset.date=label; $('date'+id).innerHTML=label; $('q'+id).innerHTML='';
+  setReadyIfComplete(id);
+}
+let editMode = {};
+function editAmount(id){ editMode[id]='amount'; openEdit(id,'amount (number)'); }
+function editMerchant(id){ editMode[id]='merchant'; openEdit(id,'merchant name'); }
+function editDate(id){ editMode[id]='date'; openEdit(id,'date e.g. Today'); }
+function openEdit(id, ph){ const ef=$('ef'+id); ef.classList.add('show'); const i=$('efin'+id); i.placeholder=ph; i.value=''; i.focus(); }
+function applyEdit(id){
+  const c=$('card'+id); const v=$('efin'+id).value.trim(); const mode=editMode[id]; if(!v){ return; }
+  if(mode==='amount'){ const n=parseFloat(v.replace(/,/g,'')); if(isNaN(n)){toast('Enter a number');return;} c.dataset.amount=n; const a=$('amt'+id); a.textContent='¥'+fmt(n); a.classList.remove('req'); }
+  if(mode==='merchant'){ c.querySelector('.merchant').textContent=v; }
+  if(mode==='date'){ c.dataset.date=v; $('date'+id).innerHTML=v; $('q'+id).innerHTML=''; }
+  $('ef'+id).classList.remove('show');
+  setReadyIfComplete(id);
+}
+function save(id){
+  const c=$('card'+id); if($('save'+id).disabled){ toast('Fix the highlighted field first.'); return; }
+  const amt=Number(c.dataset.amount);
+  c.querySelector('.actions').remove(); $('q'+id).innerHTML=''; $('ef'+id).remove();
+  c.classList.remove('needs');
+  c.insertAdjacentHTML('afterbegin','<div class="stamp">in journal ✓</div>');
+  savedCount++; savedTotal+=amt; $('count').textContent='¥'+fmt(savedTotal)+' · '+savedCount+' saved';
+  toast('Saved one bill to Osaka Trip (the only write).');
+}
+function discard(id){ const c=$('card'+id); c.style.opacity=.45; c.querySelector('.actions').remove(); $('q'+id).innerHTML=''; }
+</script>
+</body>
+</html>

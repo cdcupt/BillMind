@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Record Tab — Technical Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --paper:#fdfaf4; --ink:#2a2520; --ink-soft:#6b6155; --rule:#e6ddcd; --accent:#c0532a;
+    --sage:#5e7a50; --blue:#4f7385; --red:#b14a4a; --card:#fffdf8; --mono:'IBM Plex Mono',ui-monospace,monospace; }
+  body { background:var(--paper); color:var(--ink); font-family:'Noto Serif',Georgia,serif; line-height:1.62; font-size:16px;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(184,160,128,.05) 27px,rgba(184,160,128,.05) 28px); }
+  .wrap { max-width:820px; margin:0 auto; padding:0 22px 70px; overflow-x:clip; }
+  header { padding:44px 0 22px; border-bottom:3px solid var(--ink); }
+  .kicker { font-family:var(--mono); font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:'Caveat',cursive; font-size:clamp(40px,7vw,60px); line-height:1; margin:6px 0 4px; }
+  .lede { color:var(--ink-soft); font-size:15.5px; max-width:640px; }
+  .meta-strip { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .pill { font-family:var(--mono); font-size:11.5px; background:var(--card); border:1.5px solid var(--rule); border-radius:8px; padding:4px 11px; max-width:100%; white-space:normal; word-break:break-word; }
+  .pill b { color:var(--accent); }
+  h2 { font-family:'Caveat',cursive; font-size:31px; margin:38px 0 4px; color:var(--ink); }
+  h2 .n { color:var(--accent); font-style:normal; margin-right:8px; }
+  h3 { font-size:16px; margin:20px 0 6px; letter-spacing:.01em; }
+  p { margin:8px 0; } ul,ol { margin:8px 0 8px 22px; } li { margin:4px 0; }
+  code { font-family:var(--mono); font-size:.84em; background:#f1e8d8; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+  pre code { overflow-wrap:normal; }
+  pre { background:#2a2520; color:#f3ead8; border-radius:10px; padding:14px 16px; margin:12px 0; font-size:13px;
+    white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
+  pre code { background:none; color:inherit; padding:0; }
+  .tablewrap { overflow-x:auto; margin:12px 0; border:1.5px solid var(--rule); border-radius:10px; }
+  table { border-collapse:collapse; width:100%; min-width:520px; font-size:14px; }
+  th,td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:#f4ecdc; font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+  tr:last-child td { border-bottom:none; }
+  .scope { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:12px 0; }
+  .scope > div { min-width:0; }
+  @media (max-width:620px){
+    .scope { grid-template-columns:1fr; }
+    table { min-width:0; font-size:12.5px; }
+    th,td { padding:6px 7px; }
+    pre { font-size:12px; }
+  }
+  .scope div { border:1.5px solid var(--rule); border-radius:12px; padding:14px 16px; background:var(--card); }
+  .scope h4 { font-family:'Caveat',cursive; font-size:21px; margin-bottom:4px; }
+  .scope.in h4 { color:var(--sage); } .scope.out h4 { color:var(--red); }
+  .scope ul { margin-left:18px; font-size:14px; }
+  .flow { counter-reset:s; list-style:none; margin-left:0; }
+  .flow li { counter-increment:s; position:relative; padding:6px 0 6px 34px; }
+  .flow li::before { content:counter(s); position:absolute; left:0; top:6px; width:22px; height:22px; background:var(--accent); color:#fff;
+    border-radius:50%; font-family:var(--mono); font-size:12px; display:grid; place-items:center; }
+  .dod { list-style:none; margin-left:0; }
+  .dod li { padding:5px 0 5px 28px; position:relative; border-bottom:1px dashed var(--rule); font-size:14.5px; }
+  .dod li::before { content:"☐"; position:absolute; left:2px; top:5px; color:var(--accent); font-size:15px; }
+  .callout { background:#f4ecdc; border-left:4px solid var(--accent); border-radius:0 10px 10px 0; padding:10px 14px; margin:12px 0; font-size:14.5px; }
+  footer { margin-top:40px; padding-top:16px; border-top:3px solid var(--ink); font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">BillMind · Tech Design · Worker deliverable</div>
+  <h1>Record Tab</h1>
+  <p class="lede">A capture surface that turns a typed phrase (v1 primary) or a photo into a confirmed bill in a chosen journal, driven by the verified <code>RecordingSession</code> agent core.</p>
+  <div class="meta-strip">
+    <span class="pill"><b>branch</b> feat/recording-agent-foundation (stacked on PR&nbsp;#3)</span>
+    <span class="pill"><b>gates</b> Reviewer → you → Reviewer(E2E) → Manager</span>
+    <span class="pill"><b>schema</b> unchanged</span>
+  </div>
+</header>
+
+<h2><span class="n">1</span>Goal &amp; non-goals</h2>
+<p><strong>Goal:</strong> Give the agent core a real screen. The user types something like <code>ramen 2840</code>, the agent forms an editable <strong>bill card</strong>, asks at most a couple of chip-answerable questions when a field is unclear, and writes a <code>BillRecord</code> only when the user confirms. Additive — existing manual / import / Minds flows are untouched.</p>
+<div class="scope in">
+  <div>
+    <h4>v1 IN scope</h4>
+    <ul>
+      <li>New <strong>Record</strong> tab</li>
+      <li><strong>Text capture</strong>: local, deterministic parse (no network / API key) → draft</li>
+      <li><strong>Photo capture</strong>: PhotosPicker → <code>AIService.recognizeBill</code> (demo mode works with no key)</li>
+      <li>Full agent loop: validate → clarify (chips) → review → confirm</li>
+      <li><strong>Editable cards</strong>: tap-to-edit amount / merchant / date / category; skip + acknowledge</li>
+      <li><strong>Confirm → persist</strong>: one <code>BillRecord</code> into the selected journal</li>
+      <li>Journal selector; graceful "no journals yet" state</li>
+    </ul>
+  </div>
+</div>
+<div class="scope out">
+  <div>
+    <h4>v1 OUT (follow-ups)</h4>
+    <ul>
+      <li>Real multi-provider structured-output mode (validate is the backstop)</li>
+      <li>Voice capture; image downscaling at intake; streaming-animation polish</li>
+      <li><code>sourceSessionID</code> + audit blob (needs SchemaV2 — kept out to leave the schema <strong>unchanged</strong>)</li>
+      <li>Replacing the Minds tab; conversational (LLM) repair</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="n">2</span>Information architecture</h2>
+<p>Add <strong>Record</strong> as the 2nd tab in <code>ContentView</code>: <code>Journals · Record · Statistics · Minds · Settings</code> (5 tabs).</p>
+<ul>
+  <li><strong>Rationale:</strong> additive and non-destructive. The earlier "talk to record" concept made Record central and folded Minds into journals, but that removes a shipped feature and is out of scope for v1. A 5th tab is acceptable on iPhone and keeps the change reviewable.</li>
+  <li>Tab icon: <code>text.bubble</code>; tint <code>SketchTheme.dustyRose</code>.</li>
+</ul>
+
+<h2><span class="n">3</span>Architecture</h2>
+<h3>New files</h3>
+<div class="tablewrap"><table>
+  <tr><th>File</th><th>Layer</th><th>Dependencies</th><th>Tested by</th></tr>
+  <tr><td><code>Agent/DraftExtractor.swift</code></td><td>Foundation-only</td><td>none (regex)</td><td>unit</td></tr>
+  <tr><td><code>Agent/AIRecognitionMapper.swift</code></td><td>Foundation-only</td><td><code>AIRecognitionResult</code></td><td>unit</td></tr>
+  <tr><td><code>Views/Record/RecordCoordinator.swift</code></td><td><code>@MainActor @Observable</code></td><td>SwiftData, AIService, core</td><td>E2E</td></tr>
+  <tr><td><code>Views/Record/RecordView.swift</code></td><td>SwiftUI</td><td>coordinator</td><td>E2E</td></tr>
+  <tr><td><code>Views/Record/AgentCardView.swift</code></td><td>SwiftUI</td><td>coordinator</td><td>E2E</td></tr>
+</table></div>
+
+<h3>Core addition (agent core, with unit test)</h3>
+<p><code>RecordingSession.edit(cardID:field:value:)</code> — applies a direct field edit (tap-to-edit on a card), <strong>pins</strong> the field, and re-resolves the card (same machinery as <code>answer</code>, but not tied to an open clarify question). This is what makes a blocked/flagged card recoverable by editing rather than only by chip.</p>
+
+<h3>The coordinator (the "session actor")</h3>
+<pre><code>@MainActor @Observable
+final class RecordingCoordinator {
+    private(set) var session: RecordingSession   // pure value-type core
+    let journal: Journal
+    private let modelContext: ModelContext
+    private let aiService = AIService()
+
+    var cards: [AgentCard] { session.cards.filter { $0.state != .discarded } }
+
+    func submitText(_ raw: String)                 // text path
+    func submitPhoto(_ image: UIImage) async        // photo path (demo/real)
+    func answer(cardID:, field:, value:)
+    func edit(cardID:, field:, value:)
+    func skip(cardID:)
+    func confirm(cardID:, acknowledging:) -> Bool    // performs the .persist effect
+    func discard(cardID:)
+}</code></pre>
+<ul>
+  <li>Owns the single <code>ModelContext</code> writer. The <code>.persist</code> effect from <code>confirm</code> is the <strong>only</strong> place a <code>BillRecord</code> is created — single-writer rule stays structural.</li>
+  <li>Holds the <code>RecordingSession</code> by value and republishes <code>cards</code> via <code>@Observable</code>.</li>
+  <li>Photo extraction runs in a <code>Task</code> (async <code>AIService</code>); the result is applied back on the main actor. Text extraction is synchronous and local.</li>
+</ul>
+
+<h2><span class="n">4</span>Data flow</h2>
+<h3>Text path (E2E primary, no network)</h3>
+<ol class="flow">
+  <li><code>submitText("ramen 2840")</code> → <code>session.enqueue(.text)</code> → <code>DraftExtractor.parse(...)</code></li>
+  <li>Extracts amount (first number), category (keyword map), merchant (leftover words), date <code>nil</code></li>
+  <li><code>completeExtraction</code> → effects</li>
+  <li>No date → validate raises a <strong>date gap</strong> (chip "Today") → card enters <code>clarifying</code></li>
+  <li>User taps "Today" → <code>answer(.date)</code> → re-resolve → <code>review</code></li>
+  <li>User taps <strong>Save</strong> → <code>confirm</code> → <code>.persist</code> → insert <code>BillRecord</code> into the journal, <code>save()</code></li>
+</ol>
+<h3>Photo path</h3>
+<p>PhotosPicker → <code>submitPhoto</code> → <code>enqueue(.photo)</code> + <code>beginExtraction</code> (LLM budget) → <code>aiService.recognizeBill(demoMode:)</code> → <code>AIRecognitionMapper</code> → <code>completeExtraction</code>. Demo mode returns hardcoded results → deterministic. Real mode reuses the existing consent gate.</p>
+<div class="callout"><strong>Missing amount (adversarial case):</strong> <code>submitText("ramen")</code> → draft with <code>amount == nil</code> → validate raises an amount gap (no chip options) → carried to review → <strong>Save is blocked</strong> (<code>ConfirmError.amountRequired</code>) until the user taps the amount field and enters a value (<code>edit(.amount)</code>).</div>
+
+<h2><span class="n">5</span>Persistence &amp; schema</h2>
+<ul>
+  <li><strong>No SwiftData schema change in v1.</strong> Confirmed bills are created exactly like the manual flow (<code>status: .confirmed</code>), so the store stays at <code>BillMindSchemaV1</code> — no migration risk. <code>sourceSessionID</code>/audit is a SchemaV2 follow-up.</li>
+  <li>Drafts live only in the coordinator's in-memory <code>RecordingSession</code>. Leaving the tab / app discards unconfirmed drafts; nothing partial is persisted.</li>
+</ul>
+
+<h2><span class="n">6</span>Concurrency (Swift 6)</h2>
+<ul>
+  <li><code>RecordingCoordinator</code> is <code>@MainActor</code>; it owns the card array and the only <code>modelContext.insert/save</code>.</li>
+  <li><code>RecordingSession</code>, <code>BillDraft</code>, and the effect/question types are <code>Sendable</code> value types.</li>
+  <li>Photo extraction is structured: a <code>Task</code> awaits <code>AIService</code>, then applies the mapped draft on the main actor. No bare-<code>Task</code> <code>@State</code> mutation (avoids the <code>BillImportFlowView</code> anti-pattern flagged in review).</li>
+</ul>
+
+<h2><span class="n">7</span>Consent &amp; cost</h2>
+<ul>
+  <li><strong>Text path needs no AI</strong> → no data leaves the device → no consent prompt. (This is the E2E path.)</li>
+  <li>Photo path: real AI reuses the existing consent gate; demo mode bypasses it. The session's <code>llmCallBudget</code> caps extraction calls.</li>
+</ul>
+
+<h2><span class="n">8</span>Test plan</h2>
+<h3>Unit (XCTest)</h3>
+<ul>
+  <li><code>DraftExtractorTests</code>: amount parsing (<code>"ramen 2840"</code>, <code>"2,840"</code>, decimals), category keyword mapping, merchant extraction, <strong>no-amount → draft with <code>amount == nil</code></strong>, currency carried from journal.</li>
+  <li><code>AIRecognitionMapperTests</code>: maps merchant/amount/category/currency/lineItems; unknown category preserved (so validate flags it); nil amount preserved.</li>
+  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap.</li>
+</ul>
+<h3>E2E (XCUITest) — adversarial, three cases</h3>
+<ol class="flow">
+  <li><strong>Happy/clarify:</strong> create a journal → Record → select journal → type <code>ramen 2840</code> → answer the date chip → Save → assert the bill appears (merchant + amount) and the count increments.</li>
+  <li><strong>Missing-amount blocked:</strong> type <code>ramen</code> → card in review, amount required → Save does <strong>not</strong> persist → edit the amount → Save persists.</li>
+  <li><strong>Discard:</strong> a card can be discarded and never reaches the journal.</li>
+</ol>
+<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store.</p>
+
+<h2><span class="n">9</span>Risks &amp; mitigations</h2>
+<div class="tablewrap"><table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr><td>No journals exist when opening Record</td><td>Empty state + "Create a journal first" CTA; capture disabled until a journal is selected</td></tr>
+  <tr><td>Text parse ambiguity</td><td>validate → clarify catches gaps; amount is mandatory and never guessed</td></tr>
+  <tr><td><code>@Observable</code> value-type republish</td><td>Coordinator exposes computed <code>cards</code>; mutations go through methods that reassign <code>session</code></td></tr>
+  <tr><td>Keyboard vs. card edit fields</td><td>Edits use focused <code>TextField</code>s; Save reachable via scroll (E2E helper)</td></tr>
+  <tr><td>5-tab crowding</td><td>Acceptable on iPhone; revisit IA when Minds moves into journals (future)</td></tr>
+</table></div>
+
+<h2><span class="n">10</span>Definition of done <span style="font-size:14px;color:var(--ink-soft)">(all roles check against this)</span></h2>
+<ul class="dod">
+  <li>Record tab present and reachable; selecting a journal enables capture.</li>
+  <li>Typing <code>ramen 2840</code> produces a card; the missing date is asked as one chip ("Today"); answering it makes the card saveable.</li>
+  <li>Save writes exactly one <code>BillRecord</code> into the selected journal (appears in the journal, count + total update) and persists across relaunch.</li>
+  <li>A card with no amount cannot be confirmed until an amount is entered (the agent's core guarantee holds in the UI).</li>
+  <li>No SwiftData schema change; existing flows (manual add, import, Minds, stats) still work.</li>
+  <li>App builds; <strong>all unit tests pass</strong>; <strong>the adversarial E2E passes</strong> on the iPhone 17 Pro simulator.</li>
+  <li>No regressions: the existing 59 tests + the create-journal/add-bill E2E still pass.</li>
+  <li>Screenshots captured: empty Record state, a card mid-clarify, a saved bill in the journal.</li>
+</ul>
+
+<footer>BillMind · Record Tab technical design · Worker → Reviewer gate · all working docs are HTML and recorded in <code>design/record-tab/</code>.</footer>
+
+</div>
+</body>
+</html>
