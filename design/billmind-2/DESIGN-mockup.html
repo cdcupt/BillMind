@@ -97,7 +97,8 @@
   /* tabbar */
   .tabs{display:flex;justify-content:space-around;padding:8px 4px 12px;border-top:1px solid var(--rule);background:var(--paper)}
   .tab{text-align:center;font-size:10px;color:var(--soft)}
-  .tab .g{font-size:18px;line-height:1.1}
+  .tab .g{height:23px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+  .tab .g svg{width:22px;height:22px}
   .tab.on{color:var(--terra);font-weight:700}
   /* static panels */
   .panel{padding:0 0 18px}
@@ -147,7 +148,7 @@
       <div class="status"><span>9:41</span><span>BillMind</span><span>⌁ 100%</span></div>
       <div class="thead">
         <div class="row">
-          <div class="emblem"><svg width="22" height="22" viewBox="0 0 40 40"><path d="M8 14 L11 4 L17 11 Z" fill="#F7F4EE"/><path d="M32 14 L29 4 L23 11 Z" fill="#F7F4EE"/><ellipse cx="20" cy="22" rx="13" ry="12" fill="#F7F4EE"/><circle cx="15.4" cy="20.5" r="1.5" fill="#13473C"/><circle cx="24.6" cy="20.5" r="1.5" fill="#13473C"/></svg></div>
+          <div class="emblem"><svg width="25" height="25" viewBox="0 0 100 100"><path d="M30 30 Q30 24 36 24 L64 24 Q70 24 70 30 L70 66 L63 73 L56 66 L49 73 L42 66 L35 73 L30 66 Z" fill="#F7F4EE"/><rect x="37" y="35" width="22" height="3" rx="1.5" fill="#1F6F5C" opacity=".3"/><path d="M50,48 L52,55 L59,57 L52,59 L50,66 L48,59 L41,57 L48,55 Z" fill="#E07B3C"/></svg></div>
           <div class="tmeta"><div class="nm" onclick="toast('Trip switcher: a sheet of trips with cover, total, members.')">Osaka Trip <span class="chev">▾</span></div><div class="dt">Apr 5 – Apr 9 · ¥ JPY · synced</div></div>
           <div class="ttotal"><div class="lab">Trip total</div><div class="amt" id="ttotal">¥16,520</div></div>
         </div>
@@ -172,10 +173,10 @@
         <div class="send" onclick="sendTyped()">↑</div>
       </div>
       <div class="tabs">
-        <div class="tab on"><div class="g">◉</div>Record</div>
-        <div class="tab"><div class="g">∿</div>Stats</div>
-        <div class="tab"><div class="g">✦</div>Minds</div>
-        <div class="tab"><div class="g">☰</div>Settings</div>
+        <div class="tab on"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg></div>Record</div>
+        <div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></div>Stats</div>
+        <div class="tab"><div class="g"><svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg></div>Minds</div>
+        <div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg></div>Settings</div>
       </div>
       <div class="toast" id="toast"></div>
     </div>
@@ -196,7 +197,7 @@
         <button class="signbtn google">G&nbsp;&nbsp;Sign in with Google</button>
         <p class="authnote">Your trips sync to <b>your</b> BillMind server, so they're on every device and backed up. <a>Privacy policy</a></p>
       </div>
-      <div class="tabs" style="opacity:.4"><div class="tab"><div class="g">◉</div>Record</div><div class="tab"><div class="g">∿</div>Stats</div><div class="tab"><div class="g">✦</div>Minds</div><div class="tab"><div class="g">☰</div>Settings</div></div>
+      <div class="tabs" style="opacity:.4"><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg></div>Record</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></div>Stats</div><div class="tab"><div class="g"><svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg></div>Minds</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg></div>Settings</div></div>
     </div>
     <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">Both buttons equal width &amp; prominence. Apple private-relay email handled silently.</p>
   </div>
@@ -223,7 +224,7 @@
           <button onclick="toast('Two-step confirm → DELETE /account purges server data + local cache + tokens.')">Delete account…</button>
         </div>
       </div>
-      <div class="tabs"><div class="tab"><div class="g">◉</div>Record</div><div class="tab"><div class="g">∿</div>Stats</div><div class="tab"><div class="g">✦</div>Minds</div><div class="tab on"><div class="g">☰</div>Settings</div></div>
+      <div class="tabs"><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg></div>Record</div><div class="tab"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></div>Stats</div><div class="tab"><div class="g"><svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg></div>Minds</div><div class="tab on"><div class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg></div>Settings</div></div>
       <div class="toast" id="toast3"></div>
     </div>
     <p style="font-size:12px;color:var(--soft);margin-top:10px;text-align:center">A real destructive flow, not a sign-out — Apple-mandated &amp; QA-verified to purge server data.</p>
