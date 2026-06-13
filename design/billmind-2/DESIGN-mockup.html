@@ -70,7 +70,29 @@
   .ans .prov .pr{display:flex;justify-content:space-between;font-size:11.5px;color:#4a463e;padding:2px 0}
   .ans .more{font-size:11.5px;color:var(--blue);cursor:pointer;margin-top:6px;display:inline-block}
   /* draft card */
-  .draft{background:var(--card);border:2px solid var(--terra);border-radius:14px;padding:11px 13px;margin-top:4px;box-shadow:0 4px 14px rgba(200,100,60,.1);animation:drop .35s ease}
+  .draft{background:var(--card);border:2px solid var(--terra);border-radius:14px;padding:11px 13px;margin-top:4px;box-shadow:0 4px 14px rgba(200,100,60,.1);animation:drop .35s ease;display:flex;gap:11px;align-items:stretch}
+  /* stage rail */
+  .rail{display:flex;flex-direction:column;align-items:center;width:11px;padding-top:5px;flex:none}
+  .dot{width:9px;height:9px;border-radius:50%;border:1.7px solid var(--rule);background:transparent;flex:none;box-sizing:border-box}
+  .dot.done{background:var(--pine);border-color:var(--pine)}
+  .dot.active{border-color:var(--terra);background:#fff;animation:dotpulse 1.2s infinite}
+  .dot.active.sand{border-color:var(--sand);animation:dotpulse-s 1.2s infinite}
+  .conn{width:2px;flex:1;min-height:12px;background:var(--rule);margin:2px 0}
+  .conn.on{background:var(--pine)}
+  @keyframes dotpulse{0%,100%{box-shadow:0 0 0 2px rgba(200,100,60,.22)}50%{box-shadow:0 0 0 5px rgba(200,100,60,.05)}}
+  @keyframes dotpulse-s{0%,100%{box-shadow:0 0 0 2px rgba(233,196,106,.32)}50%{box-shadow:0 0 0 5px rgba(233,196,106,.06)}}
+  @media(prefers-reduced-motion:reduce){.dot.active,.dot.active.sand{animation:none}}
+  .framewrap{flex:1;min-width:0}
+  .fhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .stagetag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  .frame{min-height:118px}
+  .draft .cap{font-size:11px;color:var(--soft);margin-top:8px;font-style:italic}
+  .draft .da.dash{color:var(--terra);opacity:.78;font-family:var(--sans);font-weight:600}
+  .checks{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+  .crow{font-size:12px;display:flex;align-items:center;gap:6px}
+  .crow.ok{color:var(--pine)} .crow.gap{color:var(--terra);font-weight:600} .crow.gap.soft{color:#9a7b1e}
+  .vfoot{font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;color:var(--soft);margin-top:9px}
+  .vfoot.soft{color:#9a7b1e}
   .draft .dh{display:flex;align-items:center;gap:8px;margin-bottom:7px}
   .draft .badge{font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--terra);border:1px solid var(--terra);border-radius:5px;padding:1px 7px}
   .draft .row{display:flex;align-items:center;gap:10px}
@@ -145,7 +167,7 @@
 <div class="head">
   <h1>BillMind 2.0 — <em>a ledger that talks</em></h1>
   <p>The Record home: one scroll holding your trip's bills <em>and</em> the agent that captures and answers. Every number is computed from the ledger, never guessed.</p>
-  <p class="try">try in the first phone: "ramen 2840" (recognize → verify → confirm), "how much on food?" (computed answer), or "dinner in kyoto" → "Add as a bill" — watch it <b>ask for the amount instead of guessing it</b>.</p>
+  <p class="try">try the chips in the first phone — each capture walks the full pipeline on a stage rail: <b>Input → Recognize → Verify → (Clarify) → Confirm → Push</b>. "ramen 2840" passes clean; "dinner in kyoto" pauses to <b>ask for the amount</b> (never guessed); "scan a receipt" pauses to <b>ask which day</b>.</p>
 </div>
 
 <div class="stage">
@@ -172,12 +194,13 @@
         <div style="height:6px"></div>
       </div>
       <div class="suggest" id="suggest">
-        <button onclick="sendText('ramen 2840')">"ramen 2840"</button>
+        <button onclick="demoCapture('ramen 2840')">"ramen 2840" · clean</button>
+        <button onclick="demoCapture('dinner in kyoto')">"dinner in kyoto" · needs amount</button>
+        <button onclick="photoCapture()">scan a receipt · needs date</button>
         <button onclick="sendText('how much on food?')">"how much on food?"</button>
-        <button onclick="sendText('dinner in kyoto')">"dinner in kyoto"</button>
       </div>
       <div class="inbar">
-        <div class="ic" onclick="toast('Photo capture → server-side recognition (no key on device).')">⊞</div>
+        <div class="ic" onclick="photoCapture()">⊞</div>
         <input id="inp" placeholder="Tell Mochi about a bill, or ask…" onkeydown="if(event.key==='Enter')sendTyped()">
         <div class="send" onclick="sendTyped()">↑</div>
       </div>
@@ -304,11 +327,12 @@ function parse(t){
     : has(/\b(hotel|inn|ryokan|hostel|airbnb|stay)\b/)?'accommodation'
     : has(/\b(ramen|sushi|dinner|lunch|breakfast|coffee|cafe|food|drink|konbini|lawson|izakaya)\b/)?'food'
     : has(/\b(shop|store|uniqlo|muji|mall|souvenir)\b/)?'shopping' : 'misc';
+  const day = /\byesterday\b/i.test(t)?'Yesterday':(/\b(today|tonight)\b/i.test(t)?'Today':null);
   const merchant=t.replace(m?m[0]:'','')
-    .replace(/\b(cash|card|yen|jpy|in|on|at|the|for|a|of)\b/gi,' ')
+    .replace(/\b(cash|card|yen|jpy|in|on|at|the|for|a|of|today|tonight|yesterday)\b/gi,' ')
     .trim().split(/\s+/).filter(Boolean).slice(0,3)
     .map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') || 'New bill';
-  return {amt,cat,merchant};
+  return {amt,cat,merchant,day};
 }
 const isQuestion=t=>/how much|what|which|total|average|spend|spent|did i|do i|am i|over budget|balance|owe|breakdown|summary/i.test(t);
 
@@ -321,56 +345,124 @@ function sendText(t){
   if(p.amt===null){ // no number, not a question -> ambiguous
     disamb(t); return;
   }
-  startCapture(p);
+  startCapture(recoP(t));
 }
 
-// --- capture pipeline: input → recognition → verification → confirm → push ---
-// Recognition extracts candidate fields; it NEVER invents an amount.
-function recognize(t){ return parse(t); }   // {amt: number|null, cat, merchant}
+// --- capture pipeline: input → recognition → verification → (clarification) → confirm → push ---
+// Each stage is a VISIBLE, held frame inside one evolving draft card with a 5-dot stage rail.
 const drafts={}; let draftSeq=0;
+const REDUCED = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const wait=(fn,ms)=>setTimeout(fn, REDUCED?60:ms);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+// recognition NEVER invents an amount; a photo's date may be unreadable (a real gap)
+function recoP(t){ const p=parse(t); return {amt:p.amt,cat:p.cat,merchant:p.merchant,day:p.day,dateGap:false,src:t}; }
+function gapKind(d){ return d.amount==null ? 'amount' : (d.dateGap ? 'date' : null); }
 
-// stage 1→2: recognition (shown as a brief stage, server-side for photos)
+// entry points
+function demoCapture(t){ $('suggest')?.remove(); addYou(t); startCapture(recoP(t)); }
+function photoCapture(){ $('suggest')?.remove(); addYou('a receipt photo'); startCapture({amt:980,cat:'food',merchant:'Konbini',day:null,dateGap:true,src:'receipt photo'}); }
+
+// stage 1→2: input echoed (above) → recognition. Photos round-trip to the server first.
 function startCapture(p){
   const id='d'+(++draftSeq);
-  drafts[id]={amount:p.amt, cat:p.cat, merchant:p.merchant||'New bill', day:'Today', padOpen:false};
-  const rec=document.createElement('div'); rec.className='msg'; rec.id=id+'rec';
-  rec.innerHTML=`<div class="agent"><span class="who">Mochi</span><div class="think">${SPARK} Recognizing…</div></div>`;
-  $('thread').appendChild(rec); scrollEnd();
-  setTimeout(()=>{ rec.remove(); $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}"></div>`); renderDraft(id); scrollEnd(); }, 650);
+  drafts[id]={amount:p.amt, cat:p.cat, merchant:p.merchant||'New bill',
+    day:(p.dateGap?null:(p.day||'Today')), dateGap:!!p.dateGap, src:p.src||'', stage:'recognize', _hadGap:false};
+  const mount=()=>{ $('thread').insertAdjacentHTML('beforeend',`<div class="draft" id="${id}"></div>`); advance(id,'recognize'); };
+  if(p.src==='receipt photo'){
+    const rec=document.createElement('div'); rec.className='msg'; rec.id=id+'rec';
+    rec.innerHTML=`<div class="agent"><span class="who">Mochi</span><div class="think">${SPARK} Reading the receipt on the server…</div></div>`;
+    $('thread').appendChild(rec); scrollEnd();
+    wait(()=>{ rec.remove(); mount(); }, 800);
+  } else mount();
 }
-// stage 3: verification — a missing amount is a hard gap that blocks save (money is never guessed)
-function gapsFor(d){ const g=[]; if(d.amount==null) g.push('amount'); return g; }
+
+// drive the pipeline forward; auto-advance only when there is no gap to clarify
+function advance(id, stage){
+  const d=drafts[id]; if(!d) return; d.stage=stage;
+  if((stage==='verify'||stage==='clarify') && gapKind(d)) d._hadGap=true;
+  renderDraft(id); scrollEnd();
+  if(stage==='recognize') d._t=wait(()=>advance(id,'verify'), 700);
+  else if(stage==='verify'){
+    if(gapKind(d)) d._t=wait(()=>advance(id,'clarify'), 700);   // verification FAILED → pause at clarify
+    else d._t=wait(()=>advance(id,'confirm'), 600);             // both checks pass → confirm
+  } // clarify & confirm wait for the user; pushed is handled by confirmDraft
+}
+
+// the 5-dot stage rail (Input · Recognize · Verify · [Clarify] · Confirm · Push)
+function railHTML(d){
+  const curRank={recognize:1,verify:2,clarify:2.5,confirm:3,pushed:4}[d.stage]||1;
+  const sand = gapKind(d)==='date' ? ' sand' : '';
+  const ranks=[0,1,2]; if(d._hadGap) ranks.push(2.5); ranks.push(3,4);
+  return `<div class="rail">`+ranks.map((r,i)=>{
+    const st = r<curRank?'done':(r===curRank?'active':'todo');
+    const clr = (r===2.5 && st==='active') ? sand : '';
+    const conn = i<ranks.length-1 ? `<span class="conn ${r<curRank?'on':''}"></span>` : '';
+    return `<span class="dot ${st}${clr}"></span>${conn}`;
+  }).join('')+`</div>`;
+}
+
 function renderDraft(id){
   const d=drafts[id], el=$(id); if(!el) return;
-  const need=(d.amount==null), c=CAT[d.cat].c;
-  el.innerHTML=`
-    <div class="dh"><span class="badge">draft · verify &amp; confirm</span></div>
-    <div class="row">
-      <div class="ico" style="background:${c}1f;width:36px;height:36px"><div style="width:12px;height:12px;border-radius:4px;background:${c}"></div></div>
-      <div class="dm"><div class="mn">${d.merchant}</div><div class="ct">${CAT[d.cat].n} · ${d.day}</div></div>
-      ${need ? `<div class="da need" onclick="togglePad('${id}')">Add amount ＋</div>` : `<div class="da">${fmt(d.amount)}</div>`}
-    </div>
-    ${need ? `<div class="verify gap">⚠ amount needed — I won't guess it</div>` : `<div class="verify ok">✓ verified · amount &amp; date present</div>`}
-    <div class="pad ${d.padOpen?'show':''}"><div class="field">¥ <input inputmode="numeric" id="${id}pi" placeholder="0" onkeydown="if(event.key==='Enter')setAmount('${id}')"></div><button class="btn save tiny" onclick="setAmount('${id}')">Set</button></div>
-    <div class="acts"><button class="btn save" ${need?'disabled':''} onclick="confirmDraft('${id}')">Save to trip</button><button class="btn ghost" onclick="discardDraft('${id}')">Discard</button></div>`;
-  if(d.padOpen){ const pi=$(id+'pi'); if(pi) pi.focus(); }
+  const c=CAT[d.cat].c, g=gapKind(d);
+  const stageName={recognize:'Recognize',verify:'Verify',clarify:'Clarify',confirm:'Confirm',pushed:'Push'}[d.stage];
+  const amtCell = d.amount!=null ? `<div class="da">${fmt(d.amount)}</div>` : `<div class="da dash">¥ —</div>`;
+  const idRow = `<div class="row">
+      <div class="ico" style="background:${c}1f;width:34px;height:34px"><div style="width:11px;height:11px;border-radius:4px;background:${c}"></div></div>
+      <div class="dm"><div class="mn">${d.merchant}</div><div class="ct">${CAT[d.cat].n} · ${d.day||'which day?'}</div></div>
+      ${amtCell}</div>`;
+  let body='';
+  if(d.stage==='recognize'){
+    body = idRow + `<div class="cap">${d.amount!=null ? 'read from “'+esc(d.src)+'”' : 'no amount in your words — I won’t guess one'}</div>`;
+  } else if(d.stage==='verify' || d.stage==='clarify'){
+    const amtOk=d.amount!=null, dateOk=!d.dateGap;
+    const amtRow = amtOk
+      ? `<div class="crow ok">✓ amount present</div>`
+      : `<div class="crow gap">⚠ amount needed — I won’t guess it</div><div class="pad show"><div class="field">¥ <input inputmode="numeric" id="${id}pi" placeholder="0" onkeydown="if(event.key==='Enter')setAmount('${id}')"></div><button class="btn save tiny" onclick="setAmount('${id}')">Set</button></div>`;
+    const dateRow = dateOk
+      ? `<div class="crow ok">✓ date · ${d.day}</div>`
+      : `<div class="crow gap soft">⚠ which day did this happen?</div><div class="chips"><span class="chip" onclick="setDay('${id}','Today')">Today</span><span class="chip" onclick="setDay('${id}','Yesterday')">Yesterday</span></div>`;
+    const foot = g
+      ? `<div class="vfoot ${g==='date'?'soft':''}">BillValidator · ${g==='amount'?'amount required to save':'pick a day to continue'}</div>`
+      : `<div class="vfoot">BillValidator · 2 checks passed</div>`;
+    body = idRow + `<div class="checks">${amtRow}${dateRow}</div>` + foot;
+    if(d.stage==='clarify'){
+      const disabled = d.amount==null; // only a missing amount hard-blocks the write
+      body += `<div class="acts"><button class="btn save" ${disabled?'disabled':''} onclick="confirmDraft('${id}')">Save to trip</button><button class="btn ghost" onclick="discardDraft('${id}')">Discard</button></div>`;
+    }
+  } else if(d.stage==='confirm'){
+    body = idRow + `<div class="verify ok">✓ verified — checks pass</div>
+      <div class="acts"><button class="btn save" onclick="confirmDraft('${id}')">Save to trip</button><button class="btn ghost" onclick="discardDraft('${id}')">Discard</button></div>
+      <div class="cap">confirm is the only write</div>`;
+  } else if(d.stage==='pushed'){
+    body = idRow + `<div class="think">${SPARK} Saving to your trip…</div>`;
+  }
+  el.className='draft';
+  el.innerHTML = railHTML(d) + `<div class="framewrap"><div class="fhead"><span class="badge">draft · capture</span><span class="stagetag">${stageName}</span></div><div class="frame">${body}</div></div>`;
+  if(d.stage==='clarify' && d.amount==null){ const pi=$(id+'pi'); if(pi) pi.focus(); }
 }
-function togglePad(id){ drafts[id].padOpen=!drafts[id].padOpen; renderDraft(id); scrollEnd(); }
+
+// stage 4: clarification controls feed back into verification
 function setAmount(id){
   const pi=$(id+'pi'); const v=parseFloat((pi?.value||'').replace(/[^\d.]/g,''));
   if(!v||v<=0){ toast('Enter an amount — money is never guessed.'); return; }
-  drafts[id].amount=v; drafts[id].padOpen=false; renderDraft(id);
+  drafts[id].amount=v; advance(id,'verify');   // re-verify: watch the gap close & the rail move on
 }
-// stage 4→5: confirm (the only write) → push into the ledger
+function setDay(id,day){ const d=drafts[id]; if(!d) return; d.day=day; d.dateGap=false; advance(id,'verify'); }
+
+// stage 5: confirm (the only write) → push into the ledger
 function confirmDraft(id){
   const d=drafts[id]; if(!d || d.amount==null){ toast('Add the amount first — it can’t save without it.'); return; }
-  bills.unshift({id:nextId++,day:'Today',merchant:d.merchant,amount:d.amount,cat:d.cat});
-  renderLedger();
-  const el=$(id); if(el) el.outerHTML=`<div class="savedline">✓ saved ${d.merchant} ${fmt(d.amount)} → Today</div>`;
-  const nb=document.querySelector('#ledger .bill'); if(nb) nb.classList.add('drop');
-  countUp('ttotal', tripTotal());
-  toast('Saved — the only write. It docked into Today.');
-  delete drafts[id]; scrollEnd();
+  d.stage='pushed'; renderDraft(id); scrollEnd();
+  wait(()=>{
+    const day=d.day||'Today';
+    bills.unshift({id:nextId++,day,merchant:d.merchant,amount:d.amount,cat:d.cat});
+    renderLedger();
+    const el=$(id); if(el) el.outerHTML=`<div class="savedline">✓ saved ${d.merchant} ${fmt(d.amount)} → ${day}</div>`;
+    const nb=document.querySelector('#ledger .bill'); if(nb) nb.classList.add('drop');
+    countUp('ttotal', tripTotal());
+    toast('Saved — the only write. It docked into '+day+'.');
+    delete drafts[id]; scrollEnd();
+  }, 480);
 }
 function discardDraft(id){ const el=$(id); if(el) el.remove(); delete drafts[id]; }
 function countUp(elId,to){
@@ -411,7 +503,7 @@ function disamb(t){
   const id='x'+Date.now();
   $('thread').insertAdjacentHTML('beforeend',`<div class="msg" id="${id}"><div class="agent"><span class="who">Mochi</span>
     <div class="disamb"><p>Did you mean to log a bill, or ask a question about "${t}"?</p>
-    <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();startCapture(recognize('${t.replace(/'/g,'')}'))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
+    <div class="chips"><span class="chip" onclick="document.getElementById('${id}').remove();startCapture(recoP('${t.replace(/'/g,'')}'))">Add as a bill</span><span class="chip" onclick="document.getElementById('${id}').remove();answer('how much on ${t.replace(/'/g,'')}')">Answer a question</span></div></div></div></div>`);
   scrollEnd();
 }
 </script>
