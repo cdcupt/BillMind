@@ -67,6 +67,7 @@ struct NewJournalView: View {
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
                         TextField("e.g., Tokyo Trip 2026", text: $name)
+                            .accessibilityIdentifier("journalNameField")
                             .font(SketchTheme.bodyFont())
                             .textFieldStyle(.plain)
                             .padding(12)
@@ -150,6 +151,7 @@ struct NewJournalView: View {
                         HandDrawnButton(title: "Create Journal", icon: nil, style: .primary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("createJournalButton")
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
                 }

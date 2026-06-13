@@ -9,6 +9,17 @@ struct BillMindApp: App {
     private static let logger = Logger(subsystem: "com.billmind.app", category: "persistence")
 
     init() {
+        #if DEBUG
+        // UI tests pass --uitesting-reset to start from an empty store so the
+        // create-journal/add-bill E2E is deterministic. DEBUG-only; never ships.
+        if CommandLine.arguments.contains("--uitesting-reset") {
+            let support = URL.applicationSupportDirectory
+            for suffix in ["", "-wal", "-shm"] {
+                try? FileManager.default.removeItem(at: support.appending(path: "default.store\(suffix)"))
+            }
+        }
+        #endif
+
         // Build the schema from the versioned schema's model list. Using the
         // array initializer (the same one the app shipped with) keeps this
         // unambiguous, while the migration plan below drives any future V1→Vn

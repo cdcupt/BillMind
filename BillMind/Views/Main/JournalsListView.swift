@@ -47,6 +47,7 @@ struct JournalsListView: View {
                     }
 
                     newJournalButton
+                        .accessibilityIdentifier("newJournalButton")
                         .padding(.horizontal)
                         .padding(.bottom, 20)
                 }

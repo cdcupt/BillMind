@@ -50,3 +50,34 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/BillMind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BillMind"
+
+  BillMindUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: BillMind
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: BillMind
+
+schemes:
+  BillMind:
+    build:
+      targets:
+        BillMind: all
+    test:
+      targets:
+        - BillMindTests
+        - BillMindUITests
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

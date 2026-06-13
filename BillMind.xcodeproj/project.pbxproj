@@ -27,6 +27,7 @@
 		7B5EC73826E2F14912726B69 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */; };
 		8625C1845463B1DAC256E0C2 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412B83CE985985B1EA8A1BDC /* AIService.swift */; };
 		86486167D856C9062524E0F2 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07DB150C234A230A577B903 /* Extensions.swift */; };
+		884D0B8DC49B9167D8E83497 /* BillMindUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F482D576B472CFCD39CD946 /* BillMindUITests.swift */; };
 		8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */; };
 		8A6BF48F99C48B2D16A116C1 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB6B0F59D31CC474E91E9ED /* RecordingSession.swift */; };
 		8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */; };
@@ -45,6 +46,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0A3D418DC682A2825E855452 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5B88951733D73AD73F1CDA4A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 54D574BD835218BEFC60B4E5;
+			remoteInfo = BillMind;
+		};
 		B3DC7C2196C26CCD482912DF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5B88951733D73AD73F1CDA4A /* Project object */;
@@ -70,6 +78,7 @@
 		4D022264B53C134EA879EFEE /* StatsPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPageView.swift; sourceTree = "<group>"; };
 		4D6E8E943655D70DA1B86213 /* CardState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardState.swift; sourceTree = "<group>"; };
 		4EB6B0F59D31CC474E91E9ED /* RecordingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
+		4F482D576B472CFCD39CD946 /* BillMindUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindUITests.swift; sourceTree = "<group>"; };
 		58096F88B452E5EBF9D427FE /* AnimalMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalMascotView.swift; sourceTree = "<group>"; };
 		58E4C7E03EBEE581920DCD5B /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		66D43D8B9368A0828C39DE04 /* BillDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDraft.swift; sourceTree = "<group>"; };
@@ -77,6 +86,7 @@
 		7357226A0B23BDA5F752CE61 /* JournalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalDetailView.swift; sourceTree = "<group>"; };
 		756A864413BC8D9BB24656BB /* BillMindApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindApp.swift; sourceTree = "<group>"; };
 		77F9C2003861107979A0DE67 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		858481EA92EFAE9A7327A254 /* BillMindUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BillMindUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B3AF02DD8EDF41BEF30E32B /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		94B2A264893EE938283B7450 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchShapes.swift; sourceTree = "<group>"; };
@@ -117,6 +127,14 @@
 				ABB27FFDC2E45385024B2C4B /* Views */,
 			);
 			path = BillMind;
+			sourceTree = "<group>";
+		};
+		1761658469495E31B736E16A /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				4F482D576B472CFCD39CD946 /* BillMindUITests.swift */,
+			);
+			path = UITests;
 			sourceTree = "<group>";
 		};
 		1CD46360F2F66654140323E3 /* Utils */ = {
@@ -182,6 +200,7 @@
 			children = (
 				13241D7F1AD186DBBDAC600E /* BillMind.app */,
 				00E7BA1318E740D41E0B3DAD /* BillMindTests.xctest */,
+				858481EA92EFAE9A7327A254 /* BillMindUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -202,6 +221,7 @@
 			children = (
 				101066CE8707BB8233FBC9BA /* BillMind */,
 				DDED1B312ECCF6E5A70CC5C2 /* Tests */,
+				1761658469495E31B736E16A /* UITests */,
 				5A5FF3BE7520DAF6190C6B73 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -297,6 +317,24 @@
 			productReference = 00E7BA1318E740D41E0B3DAD /* BillMindTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		F0A8F670FE2731C0C12A420D /* BillMindUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ADB228F042FC0CE9F1BB05A4 /* Build configuration list for PBXNativeTarget "BillMindUITests" */;
+			buildPhases = (
+				198B4C8EE1B5BBAB04D2DC55 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1328074FBC0DA88017E9F83A /* PBXTargetDependency */,
+			);
+			name = BillMindUITests;
+			packageProductDependencies = (
+			);
+			productName = BillMindUITests;
+			productReference = 858481EA92EFAE9A7327A254 /* BillMindUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -306,6 +344,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					F0A8F670FE2731C0C12A420D = {
+						TestTargetID = 54D574BD835218BEFC60B4E5;
+					};
 				};
 			};
 			buildConfigurationList = 399AA5E0D06BE9E819ABD21B /* Build configuration list for PBXProject "BillMind" */;
@@ -324,6 +365,7 @@
 			targets = (
 				54D574BD835218BEFC60B4E5 /* BillMind */,
 				EBF8B59D3AFD3310A479CB68 /* BillMindTests */,
+				F0A8F670FE2731C0C12A420D /* BillMindUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -347,6 +389,14 @@
 			files = (
 				8A17D36564E233CDC58ED460 /* BillMindTests.swift in Sources */,
 				C85C987EFC96A61259A39B42 /* RecordingAgentTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		198B4C8EE1B5BBAB04D2DC55 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				884D0B8DC49B9167D8E83497 /* BillMindUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +441,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1328074FBC0DA88017E9F83A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 54D574BD835218BEFC60B4E5 /* BillMind */;
+			targetProxy = 0A3D418DC682A2825E855452 /* PBXContainerItemProxy */;
+		};
 		677041C83D0C9B2BFB4DCF0A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 54D574BD835218BEFC60B4E5 /* BillMind */;
@@ -548,6 +603,24 @@
 			};
 			name = Debug;
 		};
+		507F8535834D8445EEE531AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.BillMindUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BillMind;
+			};
+			name = Release;
+		};
 		91EF380CFE00F80686752361 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -563,6 +636,24 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillMind.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BillMind";
+			};
+			name = Debug;
+		};
+		A9B0CCC6012F08D3A5DD9DD9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.billmind.BillMindUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BillMind;
 			};
 			name = Debug;
 		};
@@ -640,6 +731,15 @@
 			buildConfigurations = (
 				91EF380CFE00F80686752361 /* Debug */,
 				CCA132F324DF5C134D1B2CC8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		ADB228F042FC0CE9F1BB05A4 /* Build configuration list for PBXNativeTarget "BillMindUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9B0CCC6012F08D3A5DD9DD9 /* Debug */,
+				507F8535834D8445EEE531AC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
