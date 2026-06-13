@@ -223,16 +223,22 @@ function dateChips(id){
   return `<div class="q">When was it? <span style="color:var(--lbrown);font-size:11px">(no date in your text)</span></div>
     <div class="chips"><button class="chip" onclick="answerDate(${id},'Today')">Today</button><button class="chip" onclick="answerDate(${id},'Yesterday')">Yesterday</button><button class="chip" onclick="pickDate(${id})">📅 Pick a date…</button></div>`;
 }
-const CATS = ['Food','Transport','Hotel','Shopping','Fun','Utilities','Medical','Education','Subscription','Other'];
+// Real impl: the picker iterates BillCategory.allCases, labels with englishName,
+// and passes category.rawValue. Three labels differ from their raw value
+// (Hotel->accommodation, Fun->entertainment, Other->misc), so the chip shows the
+// display name while the carried value is the raw — never the label.
+const CATS = [['Food','food'],['Transport','transport'],['Hotel','accommodation'],['Shopping','shopping'],['Fun','entertainment'],['Utilities','utilities'],['Medical','medical'],['Education','education'],['Subscription','subscription'],['Other','misc']];
 function pickCat(id){
   const cp=$('cp'+id); if(!cp) return;
   if(cp.classList.contains('show')){ cp.classList.remove('show'); return; }
-  cp.innerHTML = CATS.map(c=>`<button onclick="chooseCat(${id},'${c}')">${c}</button>`).join('');
+  cp.innerHTML = CATS.map(c=>`<button onclick="chooseCat(${id},'${c[1]}')">${c[0]}</button>`).join('');
   cp.classList.add('show');
 }
-function chooseCat(id, name){
-  $('cat'+id).innerHTML = name+' ▾'; $('cp'+id).classList.remove('show');
-  toast('Category set to '+name+' — change it anytime before saving.');
+function chooseCat(id, raw){
+  const disp=(CATS.find(c=>c[1]===raw)||['',raw])[0];
+  const chip=$('cat'+id); chip.innerHTML = disp+' ▾'; chip.dataset.raw = raw;
+  $('cp'+id).classList.remove('show');
+  toast('Category → '+disp+' (stored as "'+raw+'") — change anytime before saving.');
 }
 function pickDate(id){
   $('q'+id).innerHTML = `<div class="q">Pick a date:</div><div class="dateinput"><input type="date" id="di${id}"><button class="chip" onclick="applyPickedDate(${id})">set</button></div>`;
@@ -242,7 +248,7 @@ function applyPickedDate(id){
   const v=$('di'+id).value; if(!v){ toast('Choose a date first'); return; }
   const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const parts=v.split('-');
-  answerDate(id, m[parseInt(parts[1])-1]+' '+parseInt(parts[2])+', '+parts[0]);
+  answerDate(id, m[parseInt(parts[1])-1]+' '+parseInt(parts[2]));  // MMM d, matching Date.relativeLabel
 }
 function fmt(n){ return Number(n).toLocaleString('en-US',{maximumFractionDigits:2}); }
 function setReadyIfComplete(id){

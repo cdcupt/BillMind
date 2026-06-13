@@ -118,7 +118,7 @@
 
 <h3>Core addition (agent core, with unit test)</h3>
 <p><code>RecordingSession.edit(cardID:field:value:)</code> — applies a direct field edit (tap-to-edit on a card), <strong>pins</strong> the field, and re-resolves the card (same machinery as <code>answer</code>, but not tied to an open clarify question). This is what makes a blocked/flagged card recoverable by editing rather than only by chip.</p>
-<p>One-line validator change: the missing-date gap lists <strong>Today and Yesterday</strong> as its chip options (computed from the injected <code>today</code>). Everything else for date/category correction is a UI affordance that calls <code>answer</code>/<code>edit</code> with an arbitrary value — no further core change.</p>
+<p>One-line validator change: the missing-date gap lists <strong>Today and Yesterday</strong> as its chip options — Yesterday via a <code>guard let</code> on <code>Calendar.current.date(byAdding: .day, value: -1, to: today)</code> (not a force-unwrap, matching the file's style). Everything else for date/category correction is a UI affordance that calls <code>answer</code>/<code>edit</code> with an arbitrary value — no further core change.</p>
 
 <h3>The coordinator (the "session actor")</h3>
 <pre><code>@MainActor @Observable
@@ -152,8 +152,9 @@ final class RecordingCoordinator {
 
 <h3>Clarify affordances — date &amp; category (user feedback)</h3>
 <ul>
-  <li><strong>Date — quick chips + a real picker.</strong> The date clarify offers <strong>Today</strong> and <strong>Yesterday</strong> chips for the common case, plus a <strong>"Pick a date…"</strong> control that opens a SwiftUI <code>DatePicker</code> (graphical) for any specific day — e.g. a receipt from earlier in the trip. All three resolve via <code>answer(cardID:, .date, .date(chosen))</code>; the core already accepts an arbitrary date, so the picker is UI-only.</li>
-  <li><strong>Category ("tag") — always one-tap changeable at recognition time.</strong> Every card renders its category as a <strong>tappable chip</strong> (icon + name). Tapping opens the 10-category picker (the grid reused from <code>AddBillManualView</code>), so the user can correct it the moment the card appears, <em>not only</em> when the agent is unsure. The agent cannot detect a <em>valid-but-wrong</em> category (it's not a gap), so the fix is to make the chip always editable rather than to add a clarify prompt. An <em>unknown</em> category is still highlighted via the validator's category gap; a confident guess is still one tap from change. Selecting maps to <code>edit(cardID:, .category, .category(raw))</code>.</li>
+  <li><strong>Date — quick chips + a real picker.</strong> The date clarify offers <strong>Today</strong> and <strong>Yesterday</strong> chips for the common case, plus a <strong>"Pick a date…"</strong> control that opens a SwiftUI <code>DatePicker</code> (graphical) for any specific day — e.g. a receipt from earlier in the trip. All three resolve via <code>answer(cardID:, .date, .date(chosen))</code>; the core already accepts an arbitrary date, so the picker is UI-only. The "Pick a date…" picker is also the resolver for the <em>unparseable-date</em> gap (<code>rawDateText != nil</code>), which carries no chips. Reuse <code>Date.relativeLabel</code> (existing in <code>Extensions.swift</code>) for chip/card date labels so a "Yesterday" pick and the Yesterday chip render identically.</li>
+  <li><strong>Category ("tag") — always one-tap changeable at recognition time.</strong> Every card renders its category as a <strong>tappable chip</strong> (icon + name). Tapping opens the 10-category picker (the grid reused from <code>AddBillManualView</code>), so the user can correct it the moment the card appears, <em>not only</em> when the agent is unsure. The agent cannot detect a <em>valid-but-wrong</em> category (it's not a gap), so the fix is to make the chip always editable rather than to add a clarify prompt. An <em>unknown</em> category is still highlighted via the validator's category gap; a confident guess is still one tap from change.</li>
+  <li><strong>Category value contract (must-get-right).</strong> The picker iterates <code>BillCategory.allCases</code>, shows <code>category.englishName</code> as the label, and passes <code>edit(cardID:, .category, .category(category.rawValue))</code> — <strong>the rawValue, never the label</strong>. Three labels differ from their raw value (<strong>Hotel→<code>accommodation</code>, Fun→<code>entertainment</code>, Other→<code>misc</code></strong>); passing the label would store a non-<code>BillCategory</code> raw and re-flag the category as unknown. This mirrors how <code>AddBillManualView</code> binds the enum case, not the label.</li>
 </ul>
 
 <h2><span class="n">4</span>Data flow</h2>
@@ -196,7 +197,8 @@ final class RecordingCoordinator {
 <ul>
   <li><code>DraftExtractorTests</code>: amount parsing (<code>"ramen 2840"</code>, <code>"2,840"</code>, decimals), category keyword mapping, merchant extraction, <strong>no-amount → draft with <code>amount == nil</code></strong>, currency carried from journal.</li>
   <li><code>AIRecognitionMapperTests</code>: maps merchant/amount/category/currency/lineItems; unknown category preserved (so validate flags it); nil amount preserved.</li>
-  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap; the missing-date gap offers both <strong>Today</strong> and <strong>Yesterday</strong> options.</li>
+  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap; editing the category to a valid <code>rawValue</code> clears the category gap.</li>
+  <li><code>BillValidatorTests</code> (tighten <code>testMissingDateRaisesAnswerableGap</code>): assert the date gap's options are exactly <code>["Today", "Yesterday"]</code> and that Yesterday's value equals <code>today − 1 day</code> (the injected <code>today</code> is fixed, so the <code>Date</code> is deterministic) — so the Yesterday addition is locked in, not just "options non-empty".</li>
 </ul>
 <h3>E2E (XCUITest) — adversarial, three cases</h3>
 <ol class="flow">
