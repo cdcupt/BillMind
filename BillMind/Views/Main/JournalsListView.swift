@@ -3,6 +3,7 @@ import SwiftData
 
 struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sync: SyncCoordinator
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
     @State private var navigationPath = NavigationPath()
@@ -53,6 +54,7 @@ struct JournalsListView: View {
                 }
                 .padding(.top, 8)
             }
+            .refreshable { await sync.sync() }
             .paperBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

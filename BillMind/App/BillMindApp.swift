@@ -66,10 +66,41 @@ final class AuthSession: ObservableObject {
     }
 }
 
+/// Drives the SyncEngine from the UI: a single in-flight reconcile, surfaced
+/// `isSyncing`/`lastError` for pull-to-refresh and a quiet status. Holds its own
+/// APIClient backed by the shared Keychain vault, so it stays authed without
+/// depending on AuthSession's instance.
+@MainActor
+final class SyncCoordinator: ObservableObject {
+    @Published private(set) var isSyncing = false
+    @Published var lastError: String?
+    @Published private(set) var lastOutcome: SyncOutcome?
+
+    private let engine: SyncEngine
+
+    init(container: ModelContainer, api: SyncAPI) {
+        engine = SyncEngine(container: container, api: api)
+    }
+
+    func sync() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+        do {
+            lastOutcome = try await engine.sync()
+            lastError = nil
+        } catch {
+            lastError = (error as? APIError)?.errorDescription ?? "Couldn't sync. Pull to retry."
+        }
+    }
+}
+
 @main
 struct BillMindApp: App {
     let container: ModelContainer
     @StateObject private var auth = AuthSession()
+    @StateObject private var sync: SyncCoordinator
+    @Environment(\.scenePhase) private var scenePhase
 
     private static let logger = Logger(subsystem: "com.billmind.app", category: "persistence")
 
@@ -133,6 +164,12 @@ struct BillMindApp: App {
                 )
             }
         }
+
+        // Sync runs against the server using the shared Keychain token vault.
+        // Bind to a local so the StateObject autoclosure doesn't capture self.
+        let modelContainer = container
+        _sync = StateObject(wrappedValue: SyncCoordinator(
+            container: modelContainer, api: APIClient(tokenStore: TokenVault())))
     }
 
     /// Delete the legacy unversioned cache (`default.store` + sidecars). Safe:
@@ -180,7 +217,17 @@ struct BillMindApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(auth)
+                .environmentObject(sync)
                 .task { auth.bootstrap() }
+                // Sync once signed in, and again whenever the app returns to foreground.
+                .task(id: auth.state) {
+                    if case .signedIn = auth.state { await sync.sync() }
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active, case .signedIn = auth.state {
+                        Task { await sync.sync() }
+                    }
+                }
         }
         .modelContainer(container)
     }
