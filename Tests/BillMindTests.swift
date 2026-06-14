@@ -665,6 +665,21 @@ final class AuthSessionTests: XCTestCase {
         auth.bootstrap()
         XCTAssertEqual(auth.state, .signedOut)
     }
+
+    func testDeleteAccountClearsSessionOnSuccess() async throws {
+        try XCTSkipUnless(keychainAvailable(), "Keychain unavailable in this host")
+        let session = stubSession { _ in (204, Data()) }   // DELETE /v1/account → 204
+        let vault = TokenVault()
+        await vault.update(APIAuthTokens(accessToken: "a", refreshToken: "r",
+                                         userID: UUID(uuidString: kUUID)!))
+        let auth = AuthSession(baseURL: URL(string: "https://test.local")!, session: session, vault: vault)
+
+        let ok = await auth.deleteAccount()
+        XCTAssertTrue(ok)
+        XCTAssertEqual(auth.state, .signedOut)
+        let access = await vault.accessToken()
+        XCTAssertNil(access)                                // tokens wiped after deletion
+    }
 }
 
 // MARK: - SwiftData cache schema V2 (sync metadata)

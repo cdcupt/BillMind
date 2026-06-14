@@ -20,9 +20,9 @@ struct WelcomeNoticeView: View {
                 .accessibilityIdentifier("welcome-title")
 
             VStack(alignment: .leading, spacing: 12) {
-                point("🔒", "Your journals and bills stay on this device. No servers, no account.")
-                point("✨", "AI recognition sends a photo to your chosen provider — only after you agree, the first time.")
-                point("🗂", "Delete a trip anytime — it removes its bills too.")
+                point("🔒", "Your trips sync to your private BillMind account over an encrypted connection.")
+                point("✨", "Receipts and questions are read by BillMind's AI to help you record — never sold.")
+                point("🗂", "Delete a trip — or your whole account — anytime; it removes the data too.")
             }
             .padding(.horizontal, 4)
 

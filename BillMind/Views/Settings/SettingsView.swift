@@ -5,6 +5,10 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var auth: AuthSession
+    @State private var showDeleteAccount = false
+    @State private var isDeletingAccount = false
+    @State private var accountError: String?
     @State private var settings: AppSettings?
     @State private var selectedProvider: AIProvider = .gemini
     @State private var customModel = ""
@@ -275,6 +279,50 @@ struct SettingsView: View {
                         }
                     }
 
+                    // Account Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionTitle("Account")
+                        settingsCard {
+                            Button { Task { await auth.signOut() } } label: {
+                                settingsRow("Sign Out") {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .foregroundStyle(SketchTheme.softBrown)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Rectangle()
+                                .fill(SketchTheme.lightBrown.opacity(0.2))
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+
+                            Button(role: .destructive) { showDeleteAccount = true } label: {
+                                settingsRow("Delete Account") {
+                                    if isDeletingAccount {
+                                        ProgressView()
+                                    } else {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(SketchTheme.mutedRed)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDeletingAccount)
+                            .accessibilityIdentifier("delete-account")
+                        }
+                        Text(accountError
+                            ?? "Deleting your account permanently removes your trips and bills from BillMind's servers and this device.")
+                            .font(.system(size: 12, design: .serif))
+                            .foregroundStyle(accountError == nil ? SketchTheme.lightBrown : SketchTheme.mutedRed)
+                            .padding(.horizontal, 4)
+                    }
+                    .confirmationDialog("Delete your account?", isPresented: $showDeleteAccount, titleVisibility: .visible) {
+                        Button("Delete Account", role: .destructive) { Task { await performDeleteAccount() } }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This permanently deletes your account and all trips and bills — on BillMind's servers and on this device. This can't be undone.")
+                    }
+
                     // About
                     VStack(spacing: 4) {
                         Text("BillMind v1.0.0")
@@ -344,6 +392,23 @@ struct SettingsView: View {
         Text(title)
             .font(SketchTheme.headlineFont(18))
             .foregroundStyle(SketchTheme.lightBrown)
+    }
+
+    /// Delete the account on the server, then wipe the local cache + cursor.
+    /// On success AuthSession drops to the sign-in gate.
+    private func performDeleteAccount() async {
+        isDeletingAccount = true
+        accountError = nil
+        defer { isDeletingAccount = false }
+        guard await auth.deleteAccount() else {
+            accountError = auth.errorMessage ?? "Couldn't delete your account. Try again."
+            return
+        }
+        // Server account is gone — discard the disposable local cache too.
+        try? modelContext.delete(model: BillRecord.self)
+        try? modelContext.delete(model: Journal.self)
+        try? modelContext.save()
+        SyncCursor.reset()
     }
 
     @ViewBuilder

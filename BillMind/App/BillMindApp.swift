@@ -67,6 +67,24 @@ final class AuthSession: ObservableObject {
         state = .signedOut
     }
 
+    /// Permanently delete the account on the server (DELETE /v1/account), then
+    /// clear the local session. Returns true on success; the caller wipes the
+    /// local SwiftData cache. Apple requires in-app account deletion.
+    func deleteAccount() async -> Bool {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await api.deleteAccount()
+            await vault.clear()
+            state = .signedOut
+            return true
+        } catch {
+            errorMessage = (error as? APIError)?.errorDescription ?? "Couldn't delete your account. Try again."
+            return false
+        }
+    }
+
     /// Called by the APIClient when a refresh fails — drop to the sign-in gate.
     private func forceSignedOut() async {
         await vault.clear()
