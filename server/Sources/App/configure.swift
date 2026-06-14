@@ -39,4 +39,6 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: AgentController(agent: AgentService(
         llm: UnconfiguredLLMClient(), moderation: moderationService, quota: QuotaService()
     )))
+    try app.register(collection: SyncController())
+    try app.register(collection: ReportController())
 }
