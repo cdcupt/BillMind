@@ -253,6 +253,54 @@ final class DraftExtractorTests: XCTestCase {
     func testUnmatchedCategoryDefaultsToMisc() {
         XCTAssertEqual(DraftExtractor.parse("widget 500", currencyCode: "JPY").categoryRaw, "misc")
     }
+
+    // A UTC, noon-anchored calendar date — mirrors DraftExtractor's own construction
+    // so equality holds regardless of the machine's time zone.
+    private func ymd(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        return cal.date(from: DateComponents(year: y, month: m, day: d, hour: 12))!
+    }
+
+    func testParsesExplicitMonthNameDateAndKeepsMerchantClean() {
+        // The reported bug: "taxi 202$ june 10th 2026" must yield date = 2026-06-10
+        // and merchant = "Taxi" — the date words must not leak into the name.
+        let d = DraftExtractor.parse("taxi 202$ june 10th 2026", currencyCode: "JPY")
+        XCTAssertEqual(d.amount, Decimal(string: "202"))
+        XCTAssertEqual(d.categoryRaw, "transport")
+        XCTAssertEqual(d.merchant, "Taxi")
+        XCTAssertEqual(d.date, ymd(2026, 6, 10))
+    }
+
+    func testParsesDayFirstDate() {
+        let d = DraftExtractor.parse("10 june 2026 sushi 1500", currencyCode: "JPY")
+        XCTAssertEqual(d.date, ymd(2026, 6, 10))
+        XCTAssertEqual(d.merchant, "Sushi")
+        XCTAssertEqual(d.categoryRaw, "food")
+    }
+
+    func testParsesISODate() {
+        XCTAssertEqual(DraftExtractor.parse("hotel 9800 2026-04-06", currencyCode: "JPY").date, ymd(2026, 4, 6))
+    }
+
+    func testYearDefaultsToReferenceYear() {
+        let ref = Date(timeIntervalSince1970: 1_775_000_000)   // 2026
+        XCTAssertEqual(
+            DraftExtractor.parse("coffee 500 march 3", currencyCode: "JPY", reference: ref).date,
+            ymd(2026, 3, 3)
+        )
+    }
+
+    func testNoExplicitDateStaysNil() {
+        // No month/ISO → date stays nil so the client's Today/Yesterday clarify
+        // (which knows the real local day) handles it.
+        XCTAssertNil(DraftExtractor.parse("ramen 2840 cash", currencyCode: "JPY").date)
+        XCTAssertNil(DraftExtractor.parse("dinner in tokyo 3000", currencyCode: "JPY").date)
+    }
+
+    func testInvalidCalendarDateIsRejected() {
+        XCTAssertNil(DraftExtractor.parse("taxi 300 february 30 2026", currencyCode: "JPY").date)
+    }
 }
 
 // MARK: - AIRecognitionMapper
