@@ -1,111 +1,53 @@
 import XCTest
 
-/// End-to-end UI test driving the real app on the simulator: it creates a
-/// journal and adds a manual bill, then verifies the bill is persisted and shown.
-/// This exercises the full SwiftUI navigation + SwiftData write path (through the
-/// versioned-schema container) that unit tests can't reach.
-///
-/// The agent capture flow is intentionally not covered here — it has no UI yet
-/// (logic + unit tests only). Add agent E2E once the Record tab ships.
+/// End-to-end UI test on the simulator for the BillMind 2.0 (Voyage) structure:
+/// it signs in via the DEBUG bypass, lands on the Record home, creates a trip,
+/// and captures a bill by text — exercising the auth gate, the 4-tab IA, the
+/// create-trip sheet, and the local DraftExtractor capture path (no server).
 final class BillMindUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
 
     @MainActor
-    func testCreateJournalAndAddBillEndToEnd() throws {
+    func testCreateTripAndCaptureEntry() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--uitesting-reset"]
+        // Reset the store + enter the signed-in shell directly (Sign in with Apple
+        // can't complete on the simulator).
+        app.launchArguments = ["--uitesting-reset", "--uitesting-signedin"]
         app.launch()
 
-        // 1. Fresh launch shows the empty Journals state.
+        // 1. Signed in → Record is the home, with the empty-trips state.
         XCTAssertTrue(
-            app.staticTexts["No journals yet!"].waitForExistence(timeout: 15),
-            "Expected the empty-journals state on a reset launch"
+            app.staticTexts["No trips yet!"].waitForExistence(timeout: 15),
+            "Expected the empty-trips state on the Record home"
         )
 
-        // 2. Create a journal.
-        let newJournal = app.buttons["newJournalButton"]
-        XCTAssertTrue(newJournal.waitForExistence(timeout: 5))
-        newJournal.tap()
+        // 2. Create a trip from the Record empty state.
+        let create = app.buttons["record-create-journal"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        create.tap()
 
         let nameField = app.textFields["journalNameField"]
-        XCTAssertTrue(nameField.waitForExistence(timeout: 5), "New Journal sheet should present a name field")
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5), "New Trip sheet should present a name field")
         nameField.tap()
         nameField.typeText("Osaka Trip")
-
         app.buttons["createJournalButton"].tap()
 
-        // 3. We navigate into the new journal, which has no bills yet.
-        XCTAssertTrue(
-            app.staticTexts["No bills yet!"].waitForExistence(timeout: 15),
-            "Creating a journal should navigate to its (empty) detail view"
-        )
+        // 3. We land on the trip's Record capture surface.
+        let input = app.textFields["record-input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 15), "Creating a trip should open its Record capture surface")
 
-        // 4. Open the add menu and choose manual entry.
-        app.buttons["addBillMenu"].tap()
-        tapMenuItem(named: "Add Manually", in: app)
+        // 4. Text capture (local, offline) turns a phrase into a card with the amount.
+        input.tap()
+        input.typeText("ramen 2840")
+        app.buttons["record-send"].tap()
 
-        // 5. Fill the bill form.
-        let amountField = app.textFields["billAmountField"]
-        XCTAssertTrue(amountField.waitForExistence(timeout: 5), "Manual bill form should present an amount field")
-        amountField.tap()
-        amountField.typeText("2840")
-
-        // Tapping a category also dismisses the decimal keypad.
-        app.buttons["Food"].firstMatch.tap()
-
-        let merchantField = app.textFields["billMerchantField"]
-        merchantField.tap()
-        merchantField.typeText("Ichiran Ramen")
-
-        // Dismiss the keyboard before reaching the Save button.
-        app.staticTexts["Add Bill"].firstMatch.tap()
-
-        scrollToAndTap(app.buttons["saveBillButton"], in: app)
-
-        // 6. The bill is persisted and rendered in the journal: merchant + amount.
-        XCTAssertTrue(
-            app.staticTexts["Ichiran Ramen"].waitForExistence(timeout: 15),
-            "Saved bill's merchant should appear in the journal"
-        )
         let amountShown = app.staticTexts.containing(
             NSPredicate(format: "label CONTAINS '2,840' OR label CONTAINS '2840'")
         ).firstMatch
-        XCTAssertTrue(amountShown.waitForExistence(timeout: 5), "Saved bill's amount should appear")
-
-        // 7. The journal's count widget reflects the new bill.
-        XCTAssertTrue(
-            app.staticTexts["1 bills"].waitForExistence(timeout: 5),
-            "Journal bill count should update to 1"
-        )
+        XCTAssertTrue(amountShown.waitForExistence(timeout: 10), "The captured card should show the parsed amount")
 
         add(XCTAttachment(screenshot: app.screenshot()))
-    }
-
-    // MARK: - Helpers
-
-    /// SwiftUI `Menu` items surface as either `.buttons` or `.menuItems` depending
-    /// on the OS; try both so the test is robust across versions.
-    private func tapMenuItem(named label: String, in app: XCUIApplication) {
-        let asButton = app.buttons[label]
-        if asButton.waitForExistence(timeout: 3) {
-            asButton.tap()
-            return
-        }
-        let asMenuItem = app.menuItems[label]
-        XCTAssertTrue(asMenuItem.waitForExistence(timeout: 3), "Menu item \"\(label)\" not found")
-        asMenuItem.tap()
-    }
-
-    /// Scroll the form up until the target button is hittable, then tap it.
-    private func scrollToAndTap(_ element: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5), "Element never appeared")
-        var attempts = 0
-        while !element.isHittable && attempts < 6 {
-            app.swipeUp()
-            attempts += 1
-        }
-        element.tap()
     }
 }

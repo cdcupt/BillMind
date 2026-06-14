@@ -1,7 +1,9 @@
 import XCTest
 
-/// End-to-end tests for the Record tab agent flow and the first-launch notice.
-/// All use the text path (no API key) and `--uitesting-reset` for a clean store.
+/// End-to-end tests for the Record capture flow + the first-launch notice, on the
+/// Voyage 4-tab structure. All use the text path (local DraftExtractor, no server)
+/// and the DEBUG signed-in bypass for a clean, gated launch. Persistence is
+/// verified via the card's recorded state ("In the trip") — no Journals tab.
 final class RecordTabUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
@@ -9,26 +11,23 @@ final class RecordTabUITests: XCTestCase {
 
     private func launchedApp(_ extraArgs: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--uitesting-reset"] + extraArgs
+        app.launchArguments = ["--uitesting-reset", "--uitesting-signedin"] + extraArgs
         app.launch()
         return app
     }
 
-    private func createJournal(_ app: XCUIApplication, named name: String) {
-        let newJournal = app.buttons["newJournalButton"]
-        XCTAssertTrue(newJournal.waitForExistence(timeout: 15))
-        newJournal.tap()
+    /// Create a trip from the Record empty state; lands on its capture surface.
+    private func createTrip(_ app: XCUIApplication, named name: String) {
+        let create = app.buttons["record-create-journal"]
+        XCTAssertTrue(create.waitForExistence(timeout: 15))
+        create.tap()
         let nameField = app.textFields["journalNameField"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 5))
         nameField.tap()
         nameField.typeText(name)
         app.buttons["createJournalButton"].tap()
-        XCTAssertTrue(app.staticTexts["No bills yet!"].waitForExistence(timeout: 15))
-    }
-
-    private func openRecordTab(_ app: XCUIApplication) {
-        app.tabBars.buttons["Record"].tap()
-        XCTAssertTrue(app.textFields["record-input"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["record-input"].waitForExistence(timeout: 15),
+                      "Creating a trip should open its Record capture surface")
     }
 
     private func type(_ app: XCUIApplication, _ text: String) {
@@ -38,20 +37,10 @@ final class RecordTabUITests: XCTestCase {
         app.buttons["record-send"].tap()
     }
 
-    private func openJournalAndAssertBill(_ app: XCUIApplication, journal: String, merchant: String, amountFragment: String) {
-        app.tabBars.buttons["Journals"].tap()
-        // We may already be in the journal's detail (the create flow navigates
-        // there); if not, tap the journal card to open it.
-        if !app.staticTexts[merchant].waitForExistence(timeout: 4),
-           app.staticTexts[journal].firstMatch.exists {
-            app.staticTexts[journal].firstMatch.tap()
-        }
-        XCTAssertTrue(app.staticTexts[merchant].waitForExistence(timeout: 8),
-                      "Saved bill's merchant should appear in the journal")
-        let amount = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS %@", amountFragment)
-        ).firstMatch
-        XCTAssertTrue(amount.waitForExistence(timeout: 5), "Saved bill's amount should appear")
+    /// The card's recorded state proves persistence without leaving Record.
+    private func assertRecorded(_ app: XCUIApplication) {
+        XCTAssertTrue(app.staticTexts["In the trip"].waitForExistence(timeout: 10),
+                      "Saved card should show its recorded state")
     }
 
     // MARK: - 1. Happy / clarify + category correction
@@ -59,8 +48,7 @@ final class RecordTabUITests: XCTestCase {
     @MainActor
     func testRecordTextAnswerDateChangeCategorySaves() throws {
         let app = launchedApp()
-        createJournal(app, named: "Osaka Trip")
-        openRecordTab(app)
+        createTrip(app, named: "Osaka Trip")
 
         type(app, "ramen 2840")
 
@@ -68,7 +56,7 @@ final class RecordTabUITests: XCTestCase {
         XCTAssertTrue(app.buttons["clarify-Today"].waitForExistence(timeout: 10))
         app.buttons["clarify-Today"].tap()
 
-        // Change the category via the edit drawer (recognition guessed Food → Transport).
+        // Change the category via the edit drawer.
         app.buttons["card-category"].tap()
         let transport = app.buttons["drawer-cat-transport"]
         XCTAssertTrue(transport.waitForExistence(timeout: 5))
@@ -79,32 +67,29 @@ final class RecordTabUITests: XCTestCase {
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         save.tap()
 
-        openJournalAndAssertBill(app, journal: "Osaka Trip", merchant: "Ramen", amountFragment: "2,840")
+        assertRecorded(app)
     }
 
-    // MARK: - 2. Missing amount is blocked until entered (3-step)
+    // MARK: - 2. Missing amount is blocked until entered
 
     @MainActor
     func testMissingAmountBlockedUntilEntered() throws {
         let app = launchedApp()
-        createJournal(app, named: "Kyoto Trip")
-        openRecordTab(app)
+        createTrip(app, named: "Kyoto Trip")
 
         type(app, "ramen")    // no number → amount missing
 
         XCTAssertTrue(app.buttons["clarify-Today"].waitForExistence(timeout: 10))
         app.buttons["clarify-Today"].tap()
 
-        // The card is in review but blocked: Save shows "Enter amount to save" and
-        // tapping it opens the amount drawer rather than persisting.
+        // Tapping save with no amount opens the amount drawer instead of persisting.
         let save = app.buttons["card-save"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         save.tap()
 
         let amountField = app.textFields["drawer-amount-field"]
         XCTAssertTrue(amountField.waitForExistence(timeout: 5), "Tapping save with no amount should open the amount drawer")
-        // The blocked save must not have recorded the card (no "In the journal" yet).
-        XCTAssertFalse(app.staticTexts["In the journal"].exists, "A no-amount card must not persist on the blocked save")
+        XCTAssertFalse(app.staticTexts["In the trip"].exists, "A no-amount card must not persist on the blocked save")
         amountField.tap()
         amountField.typeText("980")
         app.buttons["drawer-set"].tap()
@@ -112,48 +97,43 @@ final class RecordTabUITests: XCTestCase {
         // Now it persists.
         XCTAssertTrue(app.buttons["card-save"].waitForExistence(timeout: 5))
         app.buttons["card-save"].tap()
-
-        openJournalAndAssertBill(app, journal: "Kyoto Trip", merchant: "Ramen", amountFragment: "980")
+        assertRecorded(app)
     }
 
-    // MARK: - 3. Discard never reaches the journal
+    // MARK: - 3. Discard removes the card (never persists)
 
     @MainActor
     func testDiscardDoesNotPersist() throws {
         let app = launchedApp()
-        createJournal(app, named: "Nara Trip")
-        openRecordTab(app)
+        createTrip(app, named: "Nara Trip")
 
         type(app, "coffee 600")
         let discard = app.buttons["card-discard"]
         XCTAssertTrue(discard.waitForExistence(timeout: 10))
         discard.tap()
 
-        app.tabBars.buttons["Journals"].tap()
-        if !app.staticTexts["No bills yet!"].waitForExistence(timeout: 4),
-           app.staticTexts["Nara Trip"].firstMatch.exists {
-            app.staticTexts["Nara Trip"].firstMatch.tap()
-        }
-        XCTAssertTrue(app.staticTexts["No bills yet!"].waitForExistence(timeout: 8),
-                      "A discarded card must not create a bill")
+        // The discarded card (and its save button) is gone; nothing recorded.
+        XCTAssertFalse(app.buttons["card-save"].waitForExistence(timeout: 3),
+                       "A discarded card must be removed")
+        XCTAssertFalse(app.staticTexts["In the trip"].exists, "A discarded card must not persist")
     }
 
     // MARK: - 4. First-launch notice shows once
 
     @MainActor
     func testFirstLaunchNoticeShowsOnce() throws {
-        // Force the notice on this launch.
+        // Force the notice on this (signed-in) launch.
         let app = XCUIApplication()
-        app.launchArguments = ["--uitesting-reset", "--uitesting-show-notice"]
+        app.launchArguments = ["--uitesting-reset", "--uitesting-signedin", "--uitesting-show-notice"]
         app.launch()
         XCTAssertTrue(app.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 10))
         app.buttons["welcome-get-started"].tap()
         XCTAssertFalse(app.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 2))
 
-        // Relaunch with NO show-notice arg → the persisted flag suppresses it.
+        // Relaunch signed-in WITHOUT reset/show-notice → the persisted flag suppresses it.
         app.terminate()
         let relaunch = XCUIApplication()
-        relaunch.launchArguments = []
+        relaunch.launchArguments = ["--uitesting-signedin"]
         relaunch.launch()
         XCTAssertFalse(relaunch.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 5),
                        "The notice must not reappear after Get started")
