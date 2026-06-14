@@ -12,7 +12,7 @@ struct TripDTO: Content {
     let id: UUID
     let name: String
     let currencyCode: String
-    let exchangeRate: Decimal
+    @DecimalString var exchangeRate: Decimal
     let mascot: String?
     let rowVersion: Int
 
@@ -31,7 +31,7 @@ struct TripDTO: Content {
 struct CreateBillRequest: Content {
     let tripID: UUID
     let merchant: String?
-    let amount: Decimal
+    @DecimalString var amount: Decimal
     let currencyCode: String?
     let date: Date
     let categoryRaw: String?
@@ -43,7 +43,7 @@ struct BillDTO: Content {
     let id: UUID
     let tripID: UUID
     let merchant: String?
-    let amount: Decimal
+    @DecimalString var amount: Decimal
     let currencyCode: String
     let date: Date
     let categoryRaw: String?
@@ -69,12 +69,12 @@ struct BillDTO: Content {
 
 struct CategoryTotalDTO: Content {
     let category: String
-    let amount: Decimal
+    @DecimalString var amount: Decimal
 }
 
 struct StatsDTO: Content {
     let scope: String          // trip | all
-    let total: Decimal
+    @DecimalString var total: Decimal
     let billCount: Int
     let byCategory: [CategoryTotalDTO]
 }

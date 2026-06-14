@@ -6,7 +6,7 @@ struct TripSyncDTO: Content {
     let id: UUID
     let name: String
     let currencyCode: String
-    let exchangeRate: Decimal
+    @DecimalString var exchangeRate: Decimal
     let mascot: String?
     let rowVersion: Int
     let updatedAt: Date?
@@ -28,7 +28,7 @@ struct BillSyncDTO: Content {
     let id: UUID
     let tripID: UUID
     let merchant: String?
-    let amount: Decimal
+    @DecimalString var amount: Decimal
     let currencyCode: String
     let date: Date
     let categoryRaw: String?
@@ -66,7 +66,7 @@ struct BillUpsert: Content {
     let id: UUID
     let tripID: UUID
     let merchant: String?
-    let amount: Decimal
+    @DecimalString var amount: Decimal
     let currencyCode: String?
     let date: Date
     let categoryRaw: String?

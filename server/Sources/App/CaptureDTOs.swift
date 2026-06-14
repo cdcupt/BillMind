@@ -4,7 +4,7 @@ import BillMindCore
 /// A draft serialized for the client to render + edit.
 struct BillDraftDTO: Content {
     let merchant: String?
-    let amount: Decimal?
+    @OptionalDecimalString var amount: Decimal?
     let currencyCode: String
     let categoryRaw: String?
     let date: Date?
@@ -61,7 +61,7 @@ struct CaptureRequest: Content {
 struct ConfirmRequest: Content {
     let tripID: UUID
     let merchant: String?
-    let amount: Decimal?
+    @OptionalDecimalString var amount: Decimal?
     let currencyCode: String?
     let date: Date?
     let categoryRaw: String?
