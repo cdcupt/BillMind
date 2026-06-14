@@ -1,6 +1,7 @@
 import XCTVapor
 import Fluent
 import FluentSQLiteDriver
+import BillMindCore
 @testable import App
 
 private struct StubOIDC2: OIDCVerifier {
@@ -11,6 +12,11 @@ private struct StubOIDC2: OIDCVerifier {
 private struct StubMod: ModerationClient {
     let scores: [String: Double]
     func score(_ text: String, on req: Request) async throws -> ModerationScores { ModerationScores(categories: scores) }
+}
+
+private struct StubRecognizer: Recognizer {
+    var result = AIRecognitionResult(merchant: "Konbini", totalAmount: 980, currency: "JPY", category: "food")
+    func recognize(imageBase64: String, mimeType: String, on req: Request) async throws -> AIRecognitionResult { result }
 }
 
 final class CaptureTests: XCTestCase {
@@ -24,7 +30,9 @@ final class CaptureTests: XCTestCase {
         try app.register(collection: AuthController(oidc: StubOIDC2(identity: id)))
         try app.register(collection: TripController())
         try app.register(collection: BillController())
-        try app.register(collection: CaptureController(moderation: ModerationService(client: StubMod(scores: modScores))))
+        try app.register(collection: CaptureController(
+            moderation: ModerationService(client: StubMod(scores: modScores)),
+            recognizer: StubRecognizer()))
         return app
     }
 

@@ -1,22 +1,41 @@
 import Foundation
 
-struct AIRecognitionResult: Codable {
-    let merchant: String?
-    let date: String?
-    let totalAmount: Double?
-    let currency: String?
-    let category: String?
-    let lineItems: [RecognizedLineItem]?
-    let notes: String?
+public struct AIRecognitionResult: Codable, Sendable {
+    public let merchant: String?
+    public let date: String?
+    public let totalAmount: Double?
+    public let currency: String?
+    public let category: String?
+    public let lineItems: [RecognizedLineItem]?
+    public let notes: String?
 
-    struct RecognizedLineItem: Codable {
-        let description: String
-        let quantity: Int?
-        let unitPrice: Double?
-        let amount: Double
+    public struct RecognizedLineItem: Codable, Sendable {
+        public let description: String
+        public let quantity: Int?
+        public let unitPrice: Double?
+        public let amount: Double
+
+        public init(description: String, quantity: Int? = nil, unitPrice: Double? = nil, amount: Double) {
+            self.description = description
+            self.quantity = quantity
+            self.unitPrice = unitPrice
+            self.amount = amount
+        }
     }
 
-    var parsedDate: Date? {
+    public init(merchant: String? = nil, date: String? = nil, totalAmount: Double? = nil,
+                currency: String? = nil, category: String? = nil,
+                lineItems: [RecognizedLineItem]? = nil, notes: String? = nil) {
+        self.merchant = merchant
+        self.date = date
+        self.totalAmount = totalAmount
+        self.currency = currency
+        self.category = category
+        self.lineItems = lineItems
+        self.notes = notes
+    }
+
+    public var parsedDate: Date? {
         guard let dateString = date else { return nil }
         let formatters: [DateFormatter] = {
             let formats = [
@@ -39,12 +58,12 @@ struct AIRecognitionResult: Codable {
         return nil
     }
 
-    var parsedCategory: BillCategory? {
+    public var parsedCategory: BillCategory? {
         guard let cat = category?.lowercased() else { return nil }
         return BillCategory(rawValue: cat)
     }
 
-    var parsedAmount: Decimal? {
+    public var parsedAmount: Decimal? {
         guard let amount = totalAmount else { return nil }
         return Decimal(amount)
     }

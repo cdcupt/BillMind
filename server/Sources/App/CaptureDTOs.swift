@@ -44,8 +44,17 @@ struct CaptureResponse: Content {
 }
 
 struct CaptureRequest: Content {
-    let text: String
+    let text: String?
     let tripID: UUID
+    let imageBase64: String?
+    let mimeType: String?
+
+    init(text: String? = nil, tripID: UUID, imageBase64: String? = nil, mimeType: String? = nil) {
+        self.text = text
+        self.tripID = tripID
+        self.imageBase64 = imageBase64
+        self.mimeType = mimeType
+    }
 }
 
 /// The resolved draft the client confirms → the only write path.

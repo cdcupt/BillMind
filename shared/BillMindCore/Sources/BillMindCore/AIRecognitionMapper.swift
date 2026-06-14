@@ -6,8 +6,8 @@ import Foundation
 /// Foundation-only. Preserves the AI's raw category string (so an unknown category
 /// is flagged by the validator), and routes an unparseable date string into
 /// `rawDateText` so the "date hard to read" clarify path is exercised.
-enum AIRecognitionMapper {
-    static func draft(from result: AIRecognitionResult, currencyCode: String) -> BillDraft {
+public enum AIRecognitionMapper {
+    public static func draft(from result: AIRecognitionResult, currencyCode: String) -> BillDraft {
         let parsedDate = result.parsedDate
         // Keep the raw date string when it couldn't be parsed, so the agent asks.
         let rawDateText: String? = (parsedDate == nil) ? result.date : nil
