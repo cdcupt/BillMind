@@ -6,7 +6,8 @@ final class BillRecord {
     var id: UUID
     var journal: Journal?
     var date: Date
-    var amountDouble: Double
+    /// Money stored exactly as Decimal (no Double round-trip — currency precision).
+    var amount: Decimal = 0
     var originalCurrency: String?
     var categoryRaw: String
     var merchant: String?
@@ -37,11 +38,6 @@ final class BillRecord {
     }
 
     // MARK: - Computed Properties
-
-    var amount: Decimal {
-        get { Decimal(amountDouble) }
-        set { amountDouble = NSDecimalNumber(decimal: newValue).doubleValue }
-    }
 
     var category: BillCategory {
         get { BillCategory(rawValue: categoryRaw) ?? .misc }
@@ -89,7 +85,7 @@ final class BillRecord {
     ) {
         self.id = UUID()
         self.date = date
-        self.amountDouble = NSDecimalNumber(decimal: amount).doubleValue
+        self.amount = amount
         self.originalCurrency = originalCurrency
         self.categoryRaw = category.rawValue
         self.merchant = merchant

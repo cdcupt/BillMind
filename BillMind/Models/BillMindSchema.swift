@@ -38,15 +38,16 @@ enum BillMindSchemaV1: VersionedSchema {
 /// entirely (which crashes CoreData when two VersionedSchemas share model
 /// classes) and never risks server data.
 enum BillMindSchemaV2: VersionedSchema {
-    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
         [Journal.self, BillRecord.self, AppSettings.self]
     }
 
     /// The on-disk cache filename for this schema version. Bump on every schema
-    /// change so the old cache is discarded rather than migrated.
-    static let storeName = "billmind-cache-v2.store"
+    /// change so the old cache is discarded rather than migrated. v3: money moved
+    /// from Double (amountDouble) to a stored Decimal (amount) — exact currency.
+    static let storeName = "billmind-cache-v3.store"
 }
 
 /// Single current schema; no historical migration (versioned store file instead).

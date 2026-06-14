@@ -708,10 +708,7 @@ final class SchemaV2Tests: XCTestCase {
         XCTAssertEqual(bill.syncState, .local)
         XCTAssertNil(journal.serverID)
         XCTAssertEqual(journal.syncState, .local)
-        // NOTE: BillRecord stores money as Double (amountDouble), so it is only
-        // accurate to display precision (2dp), not exact Decimal. To be fixed when
-        // capture writes exact server amounts (BillRecord.amount → stored Decimal).
-        XCTAssertEqual((bill.amount as NSDecimalNumber).doubleValue, 19.99, accuracy: 0.005)
+        XCTAssertEqual(bill.amount, Decimal(string: "19.99"))   // exact: money is now a stored Decimal
 
         // Sync metadata round-trips.
         bill.serverID = UUID(uuidString: kUUID)
