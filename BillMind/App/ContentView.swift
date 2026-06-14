@@ -28,41 +28,36 @@ struct MainTabView: View {
     @State private var showWelcome = false
 
     var body: some View {
+        // Voyage IA: four tabs. Record is home (trip browse folds in via its
+        // Trips button); Journals is no longer a top-level tab.
         TabView(selection: $selectedTab) {
-            JournalsListView()
-                .tabItem {
-                    Image(systemName: "book.closed.fill")
-                    Text("Trips")
-                }
-                .tag(0)
-
             RecordView()
                 .tabItem {
                     Image(systemName: "text.bubble.fill")
                     Text("Record")
                 }
-                .tag(1)
+                .tag(0)
 
             StatsPageView()
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
-                    Text("Statistics")
+                    Text("Stats")
                 }
-                .tag(2)
+                .tag(1)
 
             MindsView()
                 .tabItem {
                     Image(systemName: "sparkles")
                     Text("Minds")
                 }
-                .tag(3)
+                .tag(2)
 
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape.fill")
                     Text("Settings")
                 }
-                .tag(4)
+                .tag(3)
         }
         .tint(SketchTheme.dustyRose)
         .sheet(isPresented: $showWelcome) {

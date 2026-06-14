@@ -17,6 +17,7 @@ struct RecordView: View {
     @State private var editTarget: EditTarget?
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showNewJournal = false
+    @State private var showTrips = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -33,6 +34,19 @@ struct RecordView: View {
             .paperBackground()
             .navigationTitle("Record")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showTrips = true } label: {
+                        Image(systemName: "book.closed.fill")
+                            .foregroundStyle(SketchTheme.softBrown)
+                    }
+                    .accessibilityIdentifier("record-trips")
+                }
+            }
+            .sheet(isPresented: $showTrips) {
+                JournalsListView()
+                    .environmentObject(sync)
+            }
         }
         .onAppear { if coordinator == nil { setup() } }
         .onChange(of: selectedJournalID) { _, _ in rebuild() }
