@@ -12,7 +12,10 @@ public func configure(_ app: Application) async throws {
     // next slice (the data model).
     if let databaseURL = Environment.get("DATABASE_URL") {
         try app.databases.use(.postgres(url: databaseURL), as: .psql)
-        app.logger.info("Postgres configured from DATABASE_URL")
+        app.migrations.add(CreateInitialSchema())
+        // Single-instance v1: apply pending migrations on boot.
+        try await app.autoMigrate()
+        app.logger.info("Postgres configured + migrated")
     } else {
         app.logger.warning("DATABASE_URL not set — running without a database (skeleton mode)")
     }

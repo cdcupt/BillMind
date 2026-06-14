@@ -12,6 +12,9 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.99.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.9.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.8.0"),
+        // Test-only: run migrations + model logic against in-memory SQLite (no
+        // Docker/Postgres needed locally; live Postgres is verified at deploy).
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.7.0"),
     ],
     targets: [
         .executableTarget(
@@ -24,6 +27,15 @@ let package = Package(
             ],
             // Vapor/Fluent are battle-tested under the Swift 5 language mode;
             // the shared core stays Swift 6. Keeps the first build clean.
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .testTarget(
+            name: "AppTests",
+            dependencies: [
+                .target(name: "App"),
+                .product(name: "XCTVapor", package: "vapor"),
+                .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
+            ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
     ]
