@@ -506,6 +506,16 @@ struct APIAgentTurn: Codable, Sendable {
     let conversationID: UUID?
 }
 
+/// A typed frame from the agent's SSE stream (/v1/agent/chat/stream). Figures
+/// only ever ride in `toolResult` (computed server-side), never parsed out of
+/// the assistant's prose.
+enum AgentEvent: Sendable, Equatable {
+    case toolResult(resultJSON: String)
+    case message(String)
+    case declined(String)
+    case done
+}
+
 // Sync
 struct APITripSync: Codable, Sendable, Identifiable {
     let id: UUID
@@ -699,6 +709,86 @@ actor APIClient {
 
     func chat(message: String) async throws -> APIAgentTurn {
         try await post("v1/agent/chat", body: APIChatRequest(message: message))
+    }
+
+    /// Streams an agent turn as typed SSE events: `toolResult`* then `message`
+    /// then `done`, or a lone `declined`. Cancelling the consuming Task cancels
+    /// the network read.
+    func chatStream(message: String) async throws -> AsyncThrowingStream<AgentEvent, Error> {
+        let request = try await makeRequest("POST", "v1/agent/chat/stream",
+                                            body: APIChatRequest(message: message), authed: true)
+        let session = self.session
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let (bytes, response) = try await session.bytes(for: request)
+                    if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                        throw http.statusCode == 401 ? APIError.unauthorized
+                            : APIError.http(http.statusCode, "chat stream failed")
+                    }
+                    var eventName: String?
+                    var dataLine: String?
+                    for try await line in bytes.lines {
+                        if line.isEmpty {
+                            if let event = APIClient.frame(event: eventName, data: dataLine) {
+                                continuation.yield(event)
+                            }
+                            eventName = nil; dataLine = nil
+                        } else if line.hasPrefix("event:") {
+                            eventName = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces)
+                        } else if line.hasPrefix("data:") {
+                            dataLine = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                        }
+                    }
+                    if let event = APIClient.frame(event: eventName, data: dataLine) {
+                        continuation.yield(event)   // flush a trailing frame with no blank line
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Turn one SSE `event:`/`data:` pair into an AgentEvent. Pure + static so it
+    /// is unit-tested without a network stream.
+    static func frame(event: String?, data: String?) -> AgentEvent? {
+        guard let event else { return nil }
+        switch event {
+        case "tool_result": return .toolResult(resultJSON: data ?? "")
+        case "message": return .message(jsonField(data, "text") ?? (data ?? ""))
+        case "declined": return .declined(jsonField(data, "message") ?? (data ?? ""))
+        case "done": return .done
+        default: return nil
+        }
+    }
+
+    /// Parse a full SSE payload into events (test helper; mirrors the streaming loop).
+    static func parseSSE(_ raw: String) -> [AgentEvent] {
+        var events: [AgentEvent] = []
+        var eventName: String?
+        var dataLine: String?
+        for piece in raw.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(piece)
+            if line.isEmpty {
+                if let event = frame(event: eventName, data: dataLine) { events.append(event) }
+                eventName = nil; dataLine = nil
+            } else if line.hasPrefix("event:") {
+                eventName = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces)
+            } else if line.hasPrefix("data:") {
+                dataLine = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        if let event = frame(event: eventName, data: dataLine) { events.append(event) }
+        return events
+    }
+
+    private static func jsonField(_ data: String?, _ key: String) -> String? {
+        guard let data, let bytes = data.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any] else { return nil }
+        return obj[key] as? String
     }
 
     func stats(tripID: UUID? = nil, scope: String? = nil) async throws -> APIStats {

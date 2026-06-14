@@ -914,3 +914,35 @@ final class ServerDraftMappingTests: XCTestCase {
         XCTAssertNil(draft.categoryRaw)
     }
 }
+
+// MARK: - Agent chat SSE parsing
+
+final class AgentSSETests: XCTestCase {
+    func testParsesToolResultThenMessageThenDone() {
+        let raw = "event: tool_result\ndata: {\"total\":\"48230.50\"}\n\n"
+            + "event: message\ndata: {\"text\":\"You've spent ¥48,230 so far.\"}\n\n"
+            + "event: done\ndata: {}\n\n"
+        let events = APIClient.parseSSE(raw)
+        XCTAssertEqual(events.count, 3)
+        XCTAssertEqual(events[0], .toolResult(resultJSON: "{\"total\":\"48230.50\"}"))
+        XCTAssertEqual(events[1], .message("You've spent ¥48,230 so far."))
+        XCTAssertEqual(events[2], .done)
+    }
+
+    func testParsesLoneDeclinedFrame() {
+        let raw = "event: declined\ndata: {\"message\":\"I can only help with travel and money.\"}\n\n"
+        XCTAssertEqual(APIClient.parseSSE(raw),
+                       [.declined("I can only help with travel and money.")])
+    }
+
+    func testMessageTextTakenVerbatimNotParsedForFigures() {
+        // Figures live only in tool_result; the message text is passed through as-is.
+        let events = APIClient.parseSSE("event: message\ndata: {\"text\":\"about 50\"}\n\n")
+        XCTAssertEqual(events, [.message("about 50")])
+    }
+
+    func testTrailingFrameWithoutBlankLineIsFlushed() {
+        let events = APIClient.parseSSE("event: done\ndata: {}")
+        XCTAssertEqual(events, [.done])
+    }
+}
