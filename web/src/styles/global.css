@@ -1,0 +1,71 @@
+/* Latin subset only — keeps the font payload lean (no cyrillic/math). */
+@import "@fontsource/caveat/latin-400.css";
+@import "@fontsource/caveat/latin-600.css";
+@import "@fontsource/noto-serif/latin-400.css";
+@import "@fontsource/noto-serif/latin-600.css";
+@import "./tokens.css";
+@import "./buttons.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--ink);
+  background-color: var(--paper);
+  /* faint paper grain — atmosphere, not noise */
+  background-image:
+    radial-gradient(oklch(80% 0.03 70 / 0.18) 0.5px, transparent 0.6px),
+    radial-gradient(oklch(80% 0.03 70 / 0.12) 0.5px, transparent 0.6px);
+  background-size: 22px 22px, 38px 38px;
+  background-position: 0 0, 11px 19px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-hand);
+  font-weight: 600;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--stamp-deep);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--stamp);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
