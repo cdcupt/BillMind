@@ -109,6 +109,23 @@ final class AgentChatTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    func testChatStreamEmitsSSEFrames() async throws {
+        let app = try await makeApp(llm: ScriptedLLM())
+        let t = try await setup(app)
+        try await app.test(.POST, "v1/agent/chat/stream", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: { try $0.content.encode(AgentController.ChatRequest(message: "how much?")) },
+            afterResponse: { res async in
+                XCTAssertEqual(res.status, .ok)
+                XCTAssertTrue(res.headers.first(name: .contentType)?.contains("text/event-stream") ?? false)
+                let s = res.body.string
+                XCTAssertTrue(s.contains("event: tool_result"))
+                XCTAssertTrue(s.contains("2840"))
+                XCTAssertTrue(s.contains("event: message"))
+                XCTAssertTrue(s.contains("event: done"))
+            })
+        try await app.asyncShutdown()
+    }
+
     func testQuotaEnforced() async throws {
         let app = try await makeApp(llm: ScriptedLLM(), quota: QuotaService(dailyChatLimit: 1))
         let t = try await setup(app)
