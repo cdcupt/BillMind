@@ -19,24 +19,28 @@ struct SketchTheme {
 
     // MARK: - Fonts
 
+    // Voyage typographic intent via system faces (exact Fraunces/Inter/Plex Mono
+    // bundling is a later PM-reviewed pass): serif display (New York ≈ Fraunces),
+    // sans body (SF ≈ Inter), monospaced tabular figures (SF Mono ≈ Plex Mono).
     static func titleFont(_ size: CGFloat = 28) -> Font {
-        .system(size: size, weight: .bold, design: .rounded)
+        .system(size: size, weight: .bold, design: .serif)
     }
 
     static func headlineFont(_ size: CGFloat = 20) -> Font {
-        .system(size: size, weight: .semibold, design: .rounded)
+        .system(size: size, weight: .semibold, design: .serif)
     }
 
     static func bodyFont(_ size: CGFloat = 16) -> Font {
-        .system(size: size, weight: .regular, design: .serif)
+        .system(size: size, weight: .regular, design: .default)
     }
 
+    /// Money/figures — monospaced design gives tabular digits that align in columns.
     static func amountFont(_ size: CGFloat = 36) -> Font {
-        .system(size: size, weight: .bold, design: .rounded)
+        .system(size: size, weight: .bold, design: .monospaced)
     }
 
     static func captionFont(_ size: CGFloat = 13) -> Font {
-        .system(size: size, weight: .medium, design: .rounded)
+        .system(size: size, weight: .medium, design: .default)
     }
 
     // MARK: - Gradients
