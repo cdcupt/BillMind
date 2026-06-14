@@ -88,8 +88,39 @@ struct RecordView: View {
                     withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
             }
+            if let decline = coordinator.declineMessage {
+                noticeBanner(decline, icon: "hand.raised.fill", tone: SketchTheme.softBlue) {
+                    coordinator.declineMessage = nil
+                }
+            }
+            if let error = coordinator.errorMessage {
+                noticeBanner(error, icon: "exclamationmark.triangle.fill", tone: SketchTheme.mutedRed) {
+                    coordinator.errorMessage = nil
+                }
+            }
             inputBar(coordinator)
         }
+    }
+
+    /// A calm, dismissable banner — used for moderation declines and errors.
+    private func noticeBanner(_ text: String, icon: String, tone: Color,
+                              onDismiss: @escaping () -> Void) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon).foregroundStyle(tone)
+            Text(text).font(SketchTheme.bodyFont(13)).foregroundStyle(SketchTheme.softBrown)
+            Spacer(minLength: 4)
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(SketchTheme.lightBrown)
+            }
+            .accessibilityIdentifier("record-notice-dismiss")
+        }
+        .padding(10)
+        .background(SketchTheme.warmWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(tone.opacity(0.4), lineWidth: 1.5))
+        .padding(.horizontal)
+        .padding(.bottom, 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private func journalChip(_ coordinator: RecordCoordinator) -> some View {
