@@ -5,6 +5,7 @@ struct NewJournalView: View {
     var onCreated: ((UUID) -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var sync: SyncCoordinator
 
     @State private var name = ""
     @State private var selectedCurrency = "CNY"
@@ -189,6 +190,9 @@ struct NewJournalView: View {
         } catch {
             print("Failed to save journal: \(error)")
         }
+        // The trip is created locally (syncState defaults to .local); sync creates
+        // it on the server (/v1/trips) so its bills become pushable.
+        Task { await sync.sync() }
         onCreated?(journal.id)
         dismiss()
     }

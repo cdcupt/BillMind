@@ -597,9 +597,12 @@ enum APIError: LocalizedError, Equatable {
 
 // MARK: - Sync API seam
 
-/// The two sync calls the SyncEngine needs, abstracted so it can be tested with
-/// a mock. APIClient conforms via its existing syncPull/syncPush.
+/// The server calls the SyncEngine needs, abstracted so it can be tested with a
+/// mock. APIClient conforms via its existing createTrip/syncPull/syncPush.
+/// `createTrip` lets the engine push locally-created trips (the sync contract
+/// pushes bills only), so trips can be made offline and created on reconnect.
 protocol SyncAPI: Sendable {
+    func createTrip(_ req: APICreateTripRequest) async throws -> APITrip
     func syncPull(since cursor: Double) async throws -> APISyncDelta
     func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult
 }

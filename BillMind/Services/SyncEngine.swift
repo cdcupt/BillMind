@@ -3,6 +3,7 @@ import SwiftData
 
 /// One full reconcile's tallies (for logging / pull-to-refresh feedback).
 struct SyncOutcome: Sendable {
+    let createdTrips: Int
     let pushedBills: Int
     let conflicts: Int
     let pulledTrips: Int
@@ -32,10 +33,32 @@ actor SyncEngine {
     @discardableResult
     func sync() async throws -> SyncOutcome {
         let context = ModelContext(container)
+        let createdTrips = try await pushPendingTrips(context)   // trips must exist before their bills
         let pushed = try await pushPendingBills(context)
         let pulled = try await pullDeltas(context)
-        return SyncOutcome(pushedBills: pushed.applied, conflicts: pushed.conflicts,
+        return SyncOutcome(createdTrips: createdTrips,
+                           pushedBills: pushed.applied, conflicts: pushed.conflicts,
                            pulledTrips: pulled.trips, pulledBills: pulled.bills)
+    }
+
+    // MARK: - Push trips (created via /v1/trips; the sync contract pushes bills only)
+
+    private func pushPendingTrips(_ context: ModelContext) async throws -> Int {
+        // Locally-created trips have no serverID yet. Create them on the server so
+        // their bills become pushable. (Trip edits/deletes are out of scope for v1.)
+        let pending = try context.fetch(FetchDescriptor<Journal>(
+            predicate: #Predicate { $0.serverID == nil && $0.isDeleted == false }))
+        var created = 0
+        for journal in pending {
+            let trip = try await api.createTrip(APICreateTripRequest(
+                name: journal.name, currencyCode: journal.currency, mascot: journal.coverAnimalRaw))
+            journal.serverID = trip.id
+            journal.rowVersion = trip.rowVersion
+            journal.syncState = .synced
+            created += 1
+        }
+        if created > 0 { try context.save() }
+        return created
     }
 
     // MARK: - Push (bills only; trips are created via /v1/trips)

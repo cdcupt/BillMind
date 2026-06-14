@@ -728,6 +728,7 @@ actor MockSyncAPI: SyncAPI {
     private let delta: APISyncDelta
     private let pushResult: APISyncPushResult
     private(set) var pushedBills: [APIBillUpsert] = []
+    private(set) var createdTripNames: [String] = []
     private(set) var pullCount = 0
     private(set) var pushCount = 0
 
@@ -735,6 +736,12 @@ actor MockSyncAPI: SyncAPI {
          pushResult: APISyncPushResult = APISyncPushResult(appliedBills: 0, conflicts: [])) {
         self.delta = delta
         self.pushResult = pushResult
+    }
+
+    func createTrip(_ req: APICreateTripRequest) async throws -> APITrip {
+        createdTripNames.append(req.name)
+        return APITrip(id: UUID(), name: req.name, currencyCode: req.currencyCode,
+                       exchangeRate: 1, mascot: req.mascot, rowVersion: 1)
     }
 
     func syncPull(since cursor: Double) async throws -> APISyncDelta { pullCount += 1; return delta }
@@ -853,5 +860,32 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(bill?.merchant, "ServerMerchant")         // local overwritten by server
         XCTAssertEqual(bill?.rowVersion, 5)
         XCTAssertEqual(bill?.syncState, .synced)
+    }
+
+    func testCreatesPendingTripThenPushesItsBill() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let seed = ModelContext(container)
+        let j = Journal(name: "Lisbon", currency: "EUR")        // serverID nil, syncState .local
+        let b = BillRecord(amount: 30, category: .food, merchant: "Pastel")
+        b.journal = j; b.syncState = .local
+        seed.insert(j); seed.insert(b); try seed.save()
+
+        let mock = MockSyncAPI(delta: APISyncDelta(trips: [], bills: [], cursor: 5),
+                               pushResult: APISyncPushResult(appliedBills: 1, conflicts: []))
+        let outcome = try await SyncEngine(container: container, api: mock).sync()
+        XCTAssertEqual(outcome.createdTrips, 1)
+        XCTAssertEqual(outcome.pushedBills, 1)
+
+        let createdNames = await mock.createdTripNames
+        XCTAssertEqual(createdNames, ["Lisbon"])                 // local trip created on the server
+        let pushed = await mock.pushedBills
+        XCTAssertEqual(pushed.count, 1)                          // its bill is now pushable
+        XCTAssertNotNil(pushed.first?.tripID)
+
+        let ctx = ModelContext(container)
+        let journal = try ctx.fetch(FetchDescriptor<Journal>()).first
+        XCTAssertNotNil(journal?.serverID)
+        XCTAssertEqual(journal?.syncState, .synced)
     }
 }

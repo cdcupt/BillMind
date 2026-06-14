@@ -84,6 +84,7 @@ struct JournalsListView: View {
                         navigationPath.append(journalId)
                     }
                 }
+                .environmentObject(sync)   // sheets don't always inherit environmentObjects
             }
             .alert("Delete Journal?", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { journalToDelete = nil }
