@@ -427,13 +427,30 @@ final class StubURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+/// In-memory TokenStore for engine tests (actor → safe under concurrency).
+actor StubTokenStore: TokenStore {
+    private var access: String?
+    private var refresh: String?
+    private(set) var updateCount = 0
+    private(set) var cleared = false
+    init(access: String? = nil, refresh: String? = nil) { self.access = access; self.refresh = refresh }
+    func accessToken() async -> String? { access }
+    func refreshToken() async -> String? { refresh }
+    func update(_ tokens: APIAuthTokens) async {
+        access = tokens.accessToken; refresh = tokens.refreshToken; updateCount += 1
+    }
+    func clear() async { access = nil; refresh = nil; cleared = true }
+    func currentAccess() -> String? { access }
+}
+
 final class APIClientEngineTests: XCTestCase {
-    private func makeClient() -> APIClient {
+    private func makeClient(store: TokenStore? = StubTokenStore(access: "stub-token"),
+                            onSignedOut: (@Sendable () async -> Void)? = nil) -> APIClient {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [StubURLProtocol.self]
         let session = URLSession(configuration: config)
         return APIClient(baseURL: URL(string: "https://test.local")!, session: session,
-                         accessTokenProvider: { "stub-token" })
+                         tokenStore: store, onSignedOut: onSignedOut)
     }
 
     override func tearDown() { StubURLProtocol.handler = nil; super.tearDown() }
@@ -489,5 +506,100 @@ final class APIClientEngineTests: XCTestCase {
         }
         _ = try await makeClient().me()
         XCTAssertEqual(seenAuth, "Bearer stub-token")
+    }
+}
+
+// MARK: - Auth: single-flight refresh + Keychain vault
+
+final class AuthClientTests: XCTestCase {
+    private func makeClient(store: TokenStore,
+                            onSignedOut: (@Sendable () async -> Void)? = nil) -> APIClient {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        return APIClient(baseURL: URL(string: "https://test.local")!,
+                         session: URLSession(configuration: config),
+                         tokenStore: store, onSignedOut: onSignedOut)
+    }
+
+    override func tearDown() { StubURLProtocol.handler = nil; super.tearDown() }
+
+    func testRefreshOn401ThenRetrySucceeds() async throws {
+        let store = StubTokenStore(access: "old", refresh: "refresh-1")
+        nonisolated(unsafe) var refreshCount = 0
+        nonisolated(unsafe) var meCount = 0
+        StubURLProtocol.handler = { req in
+            if (req.url?.path ?? "").contains("/auth/refresh") {
+                refreshCount += 1
+                return (200, Data(#"{"accessToken":"new","refreshToken":"refresh-2","userID":"\#(kUUID)"}"#.utf8))
+            }
+            meCount += 1
+            if req.value(forHTTPHeaderField: "Authorization") == "Bearer new" {
+                return (200, Data(#"{"id":"\#(kUUID)","displayName":null,"email":null,"aiQuotaTier":"free"}"#.utf8))
+            }
+            return (401, Data(#"{"error":true,"reason":"expired"}"#.utf8))
+        }
+        let user = try await makeClient(store: store).me()
+        XCTAssertEqual(user.aiQuotaTier, "free")
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(meCount, 2)                       // initial 401, then retry 200
+        let newAccess = await store.currentAccess()
+        XCTAssertEqual(newAccess, "new")                 // store updated by refresh
+    }
+
+    func testConcurrent401sShareOneRefresh() async throws {
+        let store = StubTokenStore(access: "old", refresh: "refresh-1")
+        nonisolated(unsafe) var refreshCount = 0
+        StubURLProtocol.handler = { req in
+            if (req.url?.path ?? "").contains("/auth/refresh") {
+                refreshCount += 1
+                Thread.sleep(forTimeInterval: 0.3)       // widen the window so all 401s queue on one refresh
+                return (200, Data(#"{"accessToken":"new","refreshToken":"r2","userID":"\#(kUUID)"}"#.utf8))
+            }
+            if req.value(forHTTPHeaderField: "Authorization") == "Bearer new" {
+                return (200, Data(#"{"id":"\#(kUUID)","displayName":null,"email":null,"aiQuotaTier":"free"}"#.utf8))
+            }
+            return (401, Data(#"{"error":true,"reason":"expired"}"#.utf8))
+        }
+        let client = makeClient(store: store)
+        async let a = client.me()
+        async let b = client.me()
+        async let c = client.me()
+        let users = try await [a, b, c]
+        XCTAssertEqual(users.count, 3)
+        XCTAssertEqual(refreshCount, 1)                  // single-flight
+    }
+
+    func testRefreshFailureSignsOut() async {
+        let store = StubTokenStore(access: "old", refresh: "bad")
+        nonisolated(unsafe) var signedOut = false
+        StubURLProtocol.handler = { _ in (401, Data(#"{"error":true,"reason":"expired"}"#.utf8)) }
+        let client = makeClient(store: store, onSignedOut: { signedOut = true })
+        do {
+            _ = try await client.me()
+            XCTFail("expected unauthorized")
+        } catch {
+            XCTAssertEqual(error as? APIError, .unauthorized)
+        }
+        XCTAssertTrue(signedOut)                          // AuthSession will clear the vault
+    }
+
+    func testKeychainVaultRoundTripIfAvailable() async throws {
+        // Skip cleanly if the test host lacks Keychain entitlement (sim CI).
+        let probe = "probe_\(UUID().uuidString)"
+        do { try KeychainStore.set("ok", account: probe); try KeychainStore.delete(account: probe) }
+        catch { throw XCTSkip("Keychain unavailable in this host: \(error)") }
+
+        let vault = TokenVault()
+        await vault.clear()
+        await vault.update(APIAuthTokens(accessToken: "acc", refreshToken: "ref",
+                                         userID: UUID(uuidString: kUUID)!))
+        let a = await vault.accessToken()
+        let r = await vault.refreshToken()
+        XCTAssertEqual(a, "acc")
+        XCTAssertEqual(r, "ref")
+        XCTAssertEqual(vault.userID(), UUID(uuidString: kUUID))
+        await vault.clear()
+        let cleared = await vault.accessToken()
+        XCTAssertNil(cleared)                             // no tokens linger after sign-out
     }
 }

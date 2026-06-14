@@ -597,23 +597,36 @@ enum APIError: LocalizedError, Equatable {
 
 // MARK: - BillMind API — client
 
+/// Reads/writes the session token pair. Abstracted so the production Keychain
+/// vault and an in-memory test double share one interface, and so the client can
+/// refresh + clear tokens itself.
+protocol TokenStore: Sendable {
+    func accessToken() async -> String?
+    func refreshToken() async -> String?
+    func update(_ tokens: APIAuthTokens) async
+    func clear() async
+}
+
 /// The single typed entry point to the BillMind server. An actor so token reads
-/// and refresh stay serialized. Token wiring (Keychain + 401 refresh) lands in
-/// the auth slice; for now `accessTokenProvider` defaults to none and no app
-/// code calls this yet — it is the foundation the next slices build on.
+/// and the single-flight refresh stay serialized: when several requests 401 at
+/// once, exactly one refresh runs and the rest await it, then each retries once.
 actor APIClient {
     static let defaultBaseURL = URL(string: "https://api.billmind.app")!
 
     private let baseURL: URL
     private let session: URLSession
-    private let tokenProvider: @Sendable () async -> String?
+    private let tokenStore: TokenStore?
+    private let onSignedOut: (@Sendable () async -> Void)?
+    private var refreshInFlight: Task<Bool, Never>?
 
     init(baseURL: URL = APIClient.defaultBaseURL,
          session: URLSession = .shared,
-         accessTokenProvider: @escaping @Sendable () async -> String? = { nil }) {
+         tokenStore: TokenStore? = nil,
+         onSignedOut: (@Sendable () async -> Void)? = nil) {
         self.baseURL = baseURL
         self.session = session
-        self.tokenProvider = accessTokenProvider
+        self.tokenStore = tokenStore
+        self.onSignedOut = onSignedOut
     }
 
     // MARK: Endpoints (auth)
@@ -690,23 +703,73 @@ actor APIClient {
     // MARK: Request engine
 
     private func get<R: Decodable>(_ path: String, query: [URLQueryItem] = [], authed: Bool = true) async throws -> R {
-        let request = try await makeRequest("GET", path, query: query, body: Optional<Int>.none, authed: authed)
-        return try await perform(request)
+        let data = try await dataWithRetry(authed: authed) {
+            try await self.makeRequest("GET", path, query: query, body: Optional<Int>.none, authed: authed)
+        }
+        return try decode(data)
     }
 
     private func post<B: Encodable, R: Decodable>(_ path: String, body: B, authed: Bool = true) async throws -> R {
-        let request = try await makeRequest("POST", path, body: body, authed: authed)
-        return try await perform(request)
+        let data = try await dataWithRetry(authed: authed) {
+            try await self.makeRequest("POST", path, body: body, authed: authed)
+        }
+        return try decode(data)
     }
 
     private func postNoContent<B: Encodable>(_ path: String, body: B, authed: Bool = true) async throws {
-        let request = try await makeRequest("POST", path, body: body, authed: authed)
-        try await performNoContent(request)
+        _ = try await dataWithRetry(authed: authed) {
+            try await self.makeRequest("POST", path, body: body, authed: authed)
+        }
     }
 
     private func delete(_ path: String, authed: Bool = true) async throws {
-        let request = try await makeRequest("DELETE", path, body: Optional<Int>.none, authed: authed)
-        try await performNoContent(request)
+        _ = try await dataWithRetry(authed: authed) {
+            try await self.makeRequest("DELETE", path, body: Optional<Int>.none, authed: authed)
+        }
+    }
+
+    private func decode<R: Decodable>(_ data: Data) throws -> R {
+        do { return try APICoders.decoder.decode(R.self, from: data) }
+        catch { throw APIError.decoding(error.localizedDescription) }
+    }
+
+    /// Sends the built request; on a 401 for an authed call, runs (or joins) a
+    /// single refresh and retries once with the rebuilt request (fresh token).
+    /// If refresh fails, signs out and surfaces `.unauthorized`.
+    private func dataWithRetry(authed: Bool, _ build: () async throws -> URLRequest) async throws -> Data {
+        do {
+            return try await validatedData(try await build())
+        } catch APIError.unauthorized where authed && tokenStore != nil {
+            guard await refreshOnce() else {
+                await onSignedOut?()
+                throw APIError.unauthorized
+            }
+            do {
+                return try await validatedData(try await build())
+            } catch APIError.unauthorized {
+                await onSignedOut?()
+                throw APIError.unauthorized
+            }
+        }
+    }
+
+    /// Single-flight refresh: concurrent callers share one in-flight task.
+    private func refreshOnce() async -> Bool {
+        if let inFlight = refreshInFlight { return await inFlight.value }
+        let task = Task { () -> Bool in
+            guard let store = self.tokenStore, let rt = await store.refreshToken() else { return false }
+            do {
+                let tokens = try await self.refresh(refreshToken: rt)
+                await store.update(tokens)
+                return true
+            } catch {
+                return false
+            }
+        }
+        refreshInFlight = task
+        let result = await task.value
+        refreshInFlight = nil
+        return result
     }
 
     private func makeRequest<B: Encodable>(
@@ -725,20 +788,10 @@ actor APIClient {
             do { request.httpBody = try APICoders.encoder.encode(body) }
             catch { throw APIError.decoding("encode failed: \(error.localizedDescription)") }
         }
-        if authed, let token = await tokenProvider() {
+        if authed, let token = await tokenStore?.accessToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         return request
-    }
-
-    private func perform<R: Decodable>(_ request: URLRequest) async throws -> R {
-        let data = try await validatedData(request)
-        do { return try APICoders.decoder.decode(R.self, from: data) }
-        catch { throw APIError.decoding(error.localizedDescription) }
-    }
-
-    private func performNoContent(_ request: URLRequest) async throws {
-        _ = try await validatedData(request)
     }
 
     /// Transport + status mapping. Returns the body data on 2xx; throws a typed
