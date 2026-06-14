@@ -73,8 +73,13 @@
   }
   .shell__head {
     grid-column: 1 / -1;
+    grid-row: 1;
   }
+  /* Explicit placement: nav in the left rail, content in the wide column.
+     (DOM order is content-before-nav, so auto-placement would swap them.) */
   .shell__nav {
+    grid-column: 1;
+    grid-row: 2;
     position: sticky;
     top: 3.4rem;
     align-self: start;
@@ -85,6 +90,10 @@
     border-right: 1.5px solid var(--hairline);
     background: transparent;
     backdrop-filter: none;
+  }
+  .shell__content {
+    grid-column: 2;
+    grid-row: 2;
   }
   .shell__tab {
     flex: none;
