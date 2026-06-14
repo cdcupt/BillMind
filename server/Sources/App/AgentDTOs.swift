@@ -39,6 +39,19 @@ struct CreateBillRequest: Content {
     let notes: String?
 }
 
+/// Full edit payload for `PATCH /v1/bills/:billID`. The client sends the complete
+/// editable state (no absent-vs-null ambiguity): amount/currency/date/category are
+/// always present; merchant/notes are nullable. Amount stays a decimal string on
+/// the wire and must be positive (money is never zeroed by an edit).
+struct UpdateBillRequest: Content {
+    let merchant: String?
+    @DecimalString var amount: Decimal
+    let currencyCode: String
+    let date: Date
+    let categoryRaw: String
+    let notes: String?
+}
+
 struct BillDTO: Content {
     let id: UUID
     let tripID: UUID

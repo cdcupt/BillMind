@@ -158,8 +158,23 @@ export const api = {
       body: { name, currencyCode, mascot },
     }),
 
-  billsInTrip: (tripID: string) =>
-    request<Bill[]>(`/v1/trips/${tripID}/bills`),
+  billsInTrip: (tripID: string, signal?: AbortSignal) =>
+    request<Bill[]>(`/v1/trips/${tripID}/bills`, { signal }),
+
+  updateBill: (
+    id: string,
+    patch: {
+      merchant: string | null;
+      amount: string; // decimal string
+      currencyCode: string;
+      date: string; // ISO8601
+      categoryRaw: string;
+      notes: string | null;
+    },
+  ) => request<Bill>(`/v1/bills/${id}`, { method: "PATCH", body: patch }),
+
+  deleteBill: (id: string) =>
+    request<void>(`/v1/bills/${id}`, { method: "DELETE" }),
 
   recognize: (req: CaptureRequest) =>
     request<CaptureResponse>("/v1/recognition", { method: "POST", body: req }),

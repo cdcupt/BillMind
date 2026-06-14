@@ -474,6 +474,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/bills/{billID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                billID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a saved bill
+         * @description Tenant-scoped soft-delete (tombstone). Propagates to other devices via sync. A bill the caller does not own returns 404.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    billID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Edit a saved bill
+         * @description Tenant-scoped edit. Bumps `rowVersion` so the change wins last-write-wins on sync. Amount must be positive; category must be a known value. A bill the caller does not own returns 404.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    billID: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateBillRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated bill. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Bill"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                /** @description Invalid field (non-positive amount, unknown category, bad currency). */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/recognition": {
         parameters: {
             query?: never;
@@ -832,6 +915,19 @@ export interface components {
             date: string;
             categoryRaw?: string | null;
             source?: string | null;
+            notes?: string | null;
+        };
+        /** @description Full edit payload — the client sends the complete editable state. */
+        UpdateBillRequest: {
+            merchant?: string | null;
+            /** @description Decimal string; must be positive. */
+            amount: string;
+            /** @description 3-letter ISO 4217 code. */
+            currencyCode: string;
+            /** Format: date-time */
+            date: string;
+            /** @description A known BillCategory raw value. */
+            categoryRaw: string;
             notes?: string | null;
         };
         Bill: {

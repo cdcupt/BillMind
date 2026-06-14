@@ -44,10 +44,85 @@ struct TripController: RouteCollection {
 
 /// `/v1/bills` — manual create (the agent capture-confirm path lands here too in 6b).
 struct BillController: RouteCollection {
+    /// A generous single-bill ceiling: blocks absurd/overflow values (e.g. `1e400`)
+    /// while clearing any realistic travel expense in any currency.
+    private static let maxBillAmount: Decimal = 1_000_000_000_000
+    private static let maxMerchantLength = 200
+    private static let maxNotesLength = 2000
+
     func boot(routes: RoutesBuilder) throws {
         let bills = routes.grouped("v1", "bills").grouped(UserAuthMiddleware())
         bills.post(use: create)
         bills.post("confirm", use: confirm)
+        bills.patch(":billID", use: update)
+        bills.delete(":billID", use: delete)
+    }
+
+    /// Tenant-scoped fetch: the bill must belong to a trip the caller owns. A bill
+    /// id that isn't theirs (or doesn't exist) returns 404 — never another user's
+    /// data, and never a 403 that confirms the id exists.
+    private func ownedBill(_ req: Request, uid: User.IDValue) async throws -> Bill {
+        guard let billID = req.parameters.get("billID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "invalid bill id")
+        }
+        guard let bill = try await Bill.query(on: req.db).filter(\.$id == billID).first(),
+              let _ = try await Trip.query(on: req.db)
+                  .filter(\.$id == bill.$trip.id).filter(\.$owner.$id == uid).first()
+        else { throw Abort(.notFound) }
+        return bill
+    }
+
+    /// PATCH /v1/bills/:billID — edit a saved bill. Bumps `row_version` so the
+    /// change wins last-write-wins on every other device via sync. Amount must stay
+    /// positive; an unknown category is rejected.
+    func update(_ req: Request) async throws -> BillDTO {
+        let user = try req.auth.require(User.self)
+        let bill = try await ownedBill(req, uid: try user.requireID())
+        let body = try req.content.decode(UpdateBillRequest.self)
+
+        guard body.amount > 0, body.amount <= Self.maxBillAmount else {
+            throw Abort(.unprocessableEntity, reason: "amount must be positive and within range")
+        }
+        guard BillCategory(rawValue: body.categoryRaw) != nil else {
+            throw Abort(.unprocessableEntity, reason: "unknown category")
+        }
+        let currency = body.currencyCode.uppercased()
+        guard currency.count == 3, currency.allSatisfy(\.isLetter) else {
+            throw Abort(.unprocessableEntity, reason: "currencyCode must be a 3-letter ISO 4217 code")
+        }
+        let merchant = body.merchant?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let notes = body.notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (merchant?.count ?? 0) <= Self.maxMerchantLength else {
+            throw Abort(.unprocessableEntity, reason: "merchant is too long")
+        }
+        guard (notes?.count ?? 0) <= Self.maxNotesLength else {
+            throw Abort(.unprocessableEntity, reason: "notes are too long")
+        }
+
+        bill.merchant = (merchant?.isEmpty == false) ? merchant : nil
+        bill.amount = body.amount
+        bill.currencyCode = currency
+        bill.date = body.date
+        bill.categoryRaw = body.categoryRaw
+        bill.notes = (notes?.isEmpty == false) ? notes : nil
+        bill.rowVersion += 1
+        try await bill.save(on: req.db)
+        return try BillDTO(bill)
+    }
+
+    /// DELETE /v1/bills/:billID — soft-delete (tombstone). The bumped `row_version`
+    /// is persisted by the soft-delete write so the tombstone wins LWW on sync.
+    func delete(_ req: Request) async throws -> HTTPStatus {
+        let user = try req.auth.require(User.self)
+        let bill = try await ownedBill(req, uid: try user.requireID())
+        // Atomic: bump the version (soft-delete alone won't persist it) then tombstone,
+        // so a crash can't leave a version-bumped-but-not-deleted row.
+        try await req.db.transaction { db in
+            bill.rowVersion += 1
+            try await bill.save(on: db)
+            try await bill.delete(on: db)
+        }
+        return .noContent
     }
 
     /// Confirm a resolved draft → write a Bill. This is the ONLY write path, and

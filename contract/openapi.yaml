@@ -242,6 +242,48 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /v1/bills/{billID}:
+    parameters:
+      - name: billID
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Bills]
+      summary: Edit a saved bill
+      description: >
+        Tenant-scoped edit. Bumps `rowVersion` so the change wins last-write-wins
+        on sync. Amount must be positive; category must be a known value. A bill
+        the caller does not own returns 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBillRequest" }
+      responses:
+        "200":
+          description: Updated bill.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: Invalid field (non-positive amount, unknown category, bad currency).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Bills]
+      summary: Delete a saved bill
+      description: >
+        Tenant-scoped soft-delete (tombstone). Propagates to other devices via
+        sync. A bill the caller does not own returns 404.
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /v1/recognition:
     post:
       tags: [Capture]
@@ -501,6 +543,18 @@ components:
         source: { type: string, nullable: true }
         notes: { type: string, nullable: true }
       required: [tripID, amount, date]
+
+    UpdateBillRequest:
+      type: object
+      description: Full edit payload — the client sends the complete editable state.
+      properties:
+        merchant: { type: string, nullable: true }
+        amount: { type: string, description: Decimal string; must be positive. }
+        currencyCode: { type: string, description: 3-letter ISO 4217 code. }
+        date: { type: string, format: date-time }
+        categoryRaw: { type: string, description: A known BillCategory raw value. }
+        notes: { type: string, nullable: true }
+      required: [amount, currencyCode, date, categoryRaw]
 
     Bill:
       type: object

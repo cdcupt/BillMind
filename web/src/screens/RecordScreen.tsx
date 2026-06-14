@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type CaptureResponse } from "../api/client";
 import { useTrips } from "../hooks/useTrips";
 import { CaptureCard } from "../components/CaptureCard";
+import { BillsList } from "../components/BillsList";
 import "./screen.css";
 import "./record.css";
 
@@ -25,6 +26,7 @@ export function RecordScreen() {
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
+  const [ledgerVersion, setLedgerVersion] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Default the trip selection once trips arrive.
@@ -164,6 +166,7 @@ export function RecordScreen() {
           onSaved={() => {
             setPhase({ kind: "saved" });
             setText("");
+            setLedgerVersion((v) => v + 1);
           }}
         />
       )}
@@ -176,6 +179,12 @@ export function RecordScreen() {
           </button>
         </div>
       )}
+
+      <BillsList
+        tripID={tripID}
+        currency={trips.find((t) => t.id === tripID)?.currencyCode ?? "JPY"}
+        refreshToken={ledgerVersion}
+      />
     </section>
   );
 }
