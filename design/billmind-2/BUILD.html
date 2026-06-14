@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind 2.0 — Build Progress</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--paper:#F7F4EE;--ink:#1B201D;--soft:#5f655f;--rule:#e4ded2;--card:#fff;--pine:#1F6F5C;--terra:#C8643C;--sand:#E9C46A;--blue:#2D6CA8;--gate:#B23A3A;
+--sans:'Inter',system-ui,sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'IBM Plex Mono',monospace}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.55;overflow-x:clip}
+.wrap{max-width:920px;margin:0 auto;padding:0 22px 60px;overflow-x:clip}
+header{background:linear-gradient(160deg,#1c5f7a,#13473C);color:#F7F4EE;padding:46px 22px 34px;text-align:center}
+header .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;opacity:.82}
+header h1{font-family:var(--serif);font-size:clamp(30px,6vw,50px);font-weight:600;margin:6px 0 2px}
+header h1 em{font-style:italic;color:var(--sand)}
+header .meta{font-family:var(--mono);font-size:12px;opacity:.85;margin-top:12px}
+.stats{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:920px;margin:-22px auto 0;padding:0 22px}
+.stat{background:var(--card);border:1.5px solid var(--rule);border-radius:14px;padding:14px 22px;text-align:center;box-shadow:0 8px 24px rgba(27,32,29,.07)}
+.stat .n{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--pine);line-height:1}
+.stat .l{font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+h2{font-family:var(--serif);font-size:23px;font-weight:600;margin:34px 0 6px}
+p{margin:8px 0;font-size:15px}
+.scrollx{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px;background:var(--card)}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{background:#eef2ee;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#3a463f}
+tr:last-child td{border-bottom:none}
+code{font-family:var(--mono);font-size:.86em;background:#efe9dd;border-radius:5px;padding:1px 5px}
+.done{color:var(--pine);font-weight:700}
+.pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.pill.green{background:rgba(31,111,92,.13);color:var(--pine)}
+.pill.todo{background:rgba(180,140,30,.16);color:#8a6d12}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+.box{background:var(--card);border:1.5px solid var(--rule);border-radius:12px;padding:13px 15px;font-size:13.5px}
+.box h4{font-family:var(--serif);font-size:15px;margin-bottom:5px}
+.box ul{list-style:none} .box li{padding:2px 0 2px 14px;position:relative;font-size:13px}
+.box li::before{content:"›";position:absolute;left:0;color:var(--soft)}
+.bar{height:14px;border-radius:7px;background:#e4ded2;overflow:hidden;margin:10px 0}
+.bar .fill{height:100%;background:linear-gradient(90deg,#1F6F5C,#2A8A72);width:62%}
+pre{background:#1f2420;color:#e9e4d8;border-radius:12px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:12px 0;line-height:1.5}
+footer{text-align:center;color:var(--soft);font-size:12.5px;font-style:italic;margin-top:30px}
+</style></head>
+<body>
+<header>
+  <div class="eyebrow">Build Progress · feat/billmind-2-server</div>
+  <h1>BillMind 2.0 — <em>build in progress</em></h1>
+  <div class="meta">Step 6 (build) · looping toward Gate 3 · 2026-06-14</div>
+</header>
+<div class="stats">
+  <div class="stat"><div class="n">10</div><div class="l">verified slices</div></div>
+  <div class="stat"><div class="n">55</div><div class="l">tests green</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">failures</div></div>
+  <div class="stat"><div class="n">19</div><div class="l">API routes</div></div>
+</div>
+<div class="wrap">
+
+<h2>Where we are</h2>
+<p>The backend's <b>v1 HTTP API is feature-complete and tested</b> — auth, account deletion, ledger CRUD, the capture→confirm pipeline, the agent chat (JSON + SSE), stats, sync, and the report endpoint. The verified agent core runs as a shared module on both server and (soon) iOS. Remaining: wire the live Gemini model, then the iOS &amp; web clients, then deploy.</p>
+<div class="bar"><div class="fill"></div></div>
+<p style="font-size:13px;color:var(--soft)">Roughly server-done; clients + deploy ahead. Each bar segment below is a committed, test-green slice.</p>
+
+<h2>Committed slices</h2>
+<div class="scrollx"><table>
+<thead><tr><th>Slice</th><th>What landed</th><th>Tests</th><th>Commit</th></tr></thead>
+<tbody>
+<tr><td><b>1 · Shared core</b></td><td><code>BillMindCore</code> SwiftPM module — the verified agent core, Foundation-only</td><td>24</td><td><code>5bb8fc8</code></td></tr>
+<tr><td><b>2 · Server skeleton</b></td><td>Vapor + Fluent app, <code>/healthz</code>, env validation; Docker Compose · Caddy · Dockerfile</td><td>build ✓</td><td><code>70db26c</code></td></tr>
+<tr><td><b>3 · Data model</b></td><td>13 Fluent models + initial migration (money NUMERIC, tombstones, FKs) + SQLite harness</td><td>2</td><td><code>b803d35</code></td></tr>
+<tr><td><b>4 · Auth</b></td><td>Apple/Google OIDC, revocable sessions, tenant middleware, account-deletion purge</td><td>5</td><td><code>2ed8c8b</code></td></tr>
+<tr><td><b>5 · Moderation gate</b></td><td>intent-aware scoring, false-positive guard, denylist, fail-safe, event logging</td><td>8</td><td><code>6e2abe0</code></td></tr>
+<tr><td><b>6a · Ledger + tools</b></td><td>trips/bills CRUD, compute_totals/query_bills, stats — tenant-scoped</td><td>3</td><td><code>aa227db</code></td></tr>
+<tr><td><b>6b · Capture→confirm</b></td><td>public core API; text recognition → card → confirm → bill (never-guess gate)</td><td>5</td><td><code>c38b56e</code></td></tr>
+<tr><td><b>6c.1 · Agent chat</b></td><td>bounded LLM↔tools loop, tool_call audit, quota — injectable LLM</td><td>4</td><td><code>9de65c6</code></td></tr>
+<tr><td><b>6c.2 · SSE</b></td><td>streaming agent turn (tool_result → message → done frames)</td><td>1</td><td><code>d6ee3ea</code></td></tr>
+<tr><td><b>7 · Sync + report</b></td><td>delta pull/push (per-bill LWW + tombstones); moderation report endpoint</td><td>3</td><td><code>dc3b6e3</code></td></tr>
+</tbody>
+</table></div>
+
+<h2>API surface (v1, all behind auth + tenant-scoped)</h2>
+<div class="scrollx"><table>
+<thead><tr><th>Method · Path</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>POST /v1/auth/apple · /google</code></td><td>OIDC sign-in → session</td></tr>
+<tr><td><code>POST /v1/auth/refresh · /logout</code></td><td>rotate / revoke session</td></tr>
+<tr><td><code>GET · DELETE /v1/account</code> · <code>/me</code></td><td>identity + Apple-mandated deletion (ordered purge)</td></tr>
+<tr><td><code>POST · GET /v1/trips</code> · <code>GET /v1/trips/:id/bills</code></td><td>create / list trips, list a trip's bills</td></tr>
+<tr><td><code>POST /v1/bills</code> · <code>/bills/confirm</code></td><td>manual create · confirm a draft (only write, validator-gated)</td></tr>
+<tr><td><code>POST /v1/recognition</code></td><td>text capture → moderation → card</td></tr>
+<tr><td><code>POST /v1/agent/chat</code> · <code>/chat/stream</code></td><td>ask-anything (JSON · SSE), tools + audit + quota</td></tr>
+<tr><td><code>GET /v1/stats</code></td><td>totals + category breakdown (trip / all)</td></tr>
+<tr><td><code>GET · POST /v1/sync</code></td><td>delta pull + push (per-bill LWW, tombstones)</td></tr>
+<tr><td><code>POST /v1/moderation/report</code></td><td>report objectionable AI output (Apple 1.2)</td></tr>
+<tr><td><code>GET /healthz</code></td><td>liveness probe</td></tr>
+</tbody>
+</table></div>
+
+<h2>Roadmap</h2>
+<div class="grid">
+  <div class="box"><h4 class="done">✓ Done</h4><ul>
+    <li>Shared verified agent core</li>
+    <li>Server + DB + migrations</li>
+    <li>Auth + account deletion</li>
+    <li>Moderation gate</li>
+    <li>Ledger + tools + stats</li>
+    <li>Capture → confirm</li>
+    <li>Agent chat (JSON + SSE)</li>
+    <li>Sync + report</li>
+  </ul></div>
+  <div class="box"><h4 style="color:#8a6d12">⏭ Remaining</h4><ul>
+    <li><span class="pill todo">next</span> Live Gemini (function-calling + photo recognition)</li>
+    <li>OpenAPI spec (shared contract)</li>
+    <li>iOS client re-point at the API</li>
+    <li>Web client (React + Vite)</li>
+    <li>Deploy to the VPS → <b>Gate 3</b></li>
+  </ul></div>
+</div>
+
+<h2>Verify it yourself</h2>
+<pre>! cd ~/codes/github.com/BillMind && git log --oneline -10
+! cd ~/codes/github.com/BillMind/shared/BillMindCore &amp;&amp; \
+    DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test 2>&amp;1 | tail -2
+! cd ~/codes/github.com/BillMind/server &amp;&amp; \
+    DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test 2>&amp;1 | tail -2</pre>
+
+<footer>BillMind 2.0 · build dashboard · branch feat/billmind-2-server · all green, loop running toward Gate 3</footer>
+</div>
+</body>
+</html>
