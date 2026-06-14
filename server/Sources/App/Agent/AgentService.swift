@@ -72,7 +72,7 @@ struct AgentService {
                 try await ToolCall(messageID: try toolMsg.requireID(), toolName: name,
                                    argsJSON: argsJSON, resultJSON: resultJSON, status: "ok").save(on: req.db)
                 toolResults.append((name, resultJSON))
-                llmMessages.append(LLMMessage(role: "tool", content: resultJSON))
+                llmMessages.append(LLMMessage(role: "tool", content: resultJSON, toolName: name))
 
             case .finalText(let text):
                 try await Message(conversationID: convoID, role: "assistant", content: text).save(on: req.db)

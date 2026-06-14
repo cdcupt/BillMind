@@ -36,8 +36,9 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: StatsController())
     let moderationService = ModerationService(client: OpenAIModerationClient())
     try app.register(collection: CaptureController(moderation: moderationService))
+    let geminiModel = Environment.get("GEMINI_MODEL") ?? "gemini-2.0-flash"
     try app.register(collection: AgentController(agent: AgentService(
-        llm: UnconfiguredLLMClient(), moderation: moderationService, quota: QuotaService()
+        llm: GeminiLLMClient(model: geminiModel), moderation: moderationService, quota: QuotaService()
     )))
     try app.register(collection: SyncController())
     try app.register(collection: ReportController())

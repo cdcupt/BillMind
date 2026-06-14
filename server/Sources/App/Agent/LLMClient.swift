@@ -2,8 +2,15 @@ import Vapor
 
 /// A message in the agent turn (sent to / produced by the model).
 struct LLMMessage: Sendable {
-    let role: String        // user | assistant | tool
+    let role: String          // user | assistant | tool
     let content: String
+    let toolName: String?     // set on tool-result messages
+
+    init(role: String, content: String, toolName: String? = nil) {
+        self.role = role
+        self.content = content
+        self.toolName = toolName
+    }
 }
 
 /// A tool the model may call (declared to the LLM as a function).
