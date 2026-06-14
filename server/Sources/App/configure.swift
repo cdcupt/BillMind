@@ -23,5 +23,12 @@ public func configure(_ app: Application) async throws {
     // Body size cap (receipt uploads get a dedicated, larger route limit later).
     app.routes.defaultMaxBodySize = "1mb"
 
+    // Session signing (HS256). Required secret in production; dev fallback only.
+    let signingKey = Environment.get("JWT_SIGNING_KEY")
+        ?? "dev-insecure-signing-key-change-me-0123456789"
+    app.jwt.signers.use(.hs256(key: Array(signingKey.utf8)))
+
     try routes(app)
+    try app.register(collection: AuthController(oidc: LiveOIDCVerifier()))
+    try app.register(collection: AccountController())
 }

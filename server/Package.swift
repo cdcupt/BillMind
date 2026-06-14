@@ -12,6 +12,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.99.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.9.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.8.0"),
+        .package(url: "https://github.com/vapor/jwt.git", from: "4.2.2"),
         // Test-only: run migrations + model logic against in-memory SQLite (no
         // Docker/Postgres needed locally; live Postgres is verified at deploy).
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.7.0"),
@@ -23,6 +24,7 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
+                .product(name: "JWT", package: "jwt"),
                 .product(name: "BillMindCore", package: "BillMindCore"),
             ],
             // Vapor/Fluent are battle-tested under the Swift 5 language mode;
