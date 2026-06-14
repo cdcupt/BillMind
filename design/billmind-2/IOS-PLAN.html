@@ -49,6 +49,22 @@
   at every step. Anchored to the real contract: capture is <b>stateless</b> (recognition → Card,
   confirm is the only write).</p>
 
+  <div class="risks" style="background:#fbf6ea;border-color:#e0d3b0;margin:1.2rem 0;">
+    <strong>Plan update (build-time, 2026-06-14):</strong>
+    <ul style="margin:.5rem 0 0;">
+      <li><b>Slice 3 (adopt shared BillMindCore / delete the iOS Agent fork) is DEFERRED.</b>
+      It is not the "pure refactor" assumed: the shared module also ships
+      <code>BillCategory</code> and <code>AIRecognitionResult</code>, which the app already has its own
+      richer versions of (app <code>BillCategory</code> carries the <code>cat_*</code> AI-icon names the
+      tests assert; app <code>AIRecognitionResult</code> has <code>toBillLineItems()</code> for SwiftData).
+      Adopting the module means deleting the app's versions and re-homing their app-specific
+      bits as extensions across the data layer, views, and tests — a large, risky change that
+      is internal cleanup, off the user-facing critical path. The fork is already unit-tested and
+      identical to the module today, so drift risk is low short-term. Revisit after the re-point lands.</li>
+      <li>Order is now: 1 → 2 → <b>4 (schema) → 5 (sync) → 6 → 7 → 8 → 9 → 10</b>, with 3 slotted back in as cleanup before release if worthwhile.</li>
+    </ul>
+  </div>
+
   <h2>Approach</h2>
   <p>Server becomes the single source of truth; SwiftData drops to a disposable offline cache.
   The verified <code>shared/BillMindCore</code> agent core is adopted (the iOS <code>Agent/</code> fork is
