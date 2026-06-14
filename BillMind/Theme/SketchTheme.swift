@@ -3,17 +3,19 @@ import SwiftUI
 struct SketchTheme {
     // MARK: - Colors
 
-    static let cream = Color(hex: "FDF6EC")
-    static let warmWhite = Color(hex: "FEFCF7")
-    static let softBrown = Color(hex: "8B7355")
-    static let lightBrown = Color(hex: "B8A080")
-    static let dustyRose = Color(hex: "D4A0A0")
-    static let sageGreen = Color(hex: "A8BFA0")
-    static let softBlue = Color(hex: "9CB8C8")
-    static let warmOrange = Color(hex: "E8B87A")
-    static let mutedRed = Color(hex: "C27070")
-    static let mutedPurple = Color(hex: "A88BBE")
-    static let paperShadow = Color(hex: "D4C5A9").opacity(0.3)
+    // Voyage palette (token names kept so every view re-skins at once):
+    // paper/ink/soft/card + pine·terra·sand·gate·blue accents.
+    static let cream = Color(hex: "F7F4EE")        // paper — app background
+    static let warmWhite = Color(hex: "FFFFFF")    // card surface
+    static let softBrown = Color(hex: "1B201D")    // ink — primary text
+    static let lightBrown = Color(hex: "6B675F")   // soft — muted text/hairline
+    static let dustyRose = Color(hex: "C8643C")    // terra — primary accent
+    static let sageGreen = Color(hex: "1F6F5C")    // pine — positive
+    static let softBlue = Color(hex: "2D6CA8")     // blue
+    static let warmOrange = Color(hex: "E9C46A")   // sand
+    static let mutedRed = Color(hex: "B23A3A")     // gate — destructive
+    static let mutedPurple = Color(hex: "A84E2C")  // deep terra (gradient pair)
+    static let paperShadow = Color(hex: "E4DED2").opacity(0.5)  // rule
 
     // MARK: - Fonts
 
@@ -46,7 +48,7 @@ struct SketchTheme {
     )
 
     static let backgroundGradient = LinearGradient(
-        colors: [cream, Color(hex: "F5EDE0")],
+        colors: [cream, Color(hex: "EFEAE0")],
         startPoint: .top,
         endPoint: .bottom
     )
