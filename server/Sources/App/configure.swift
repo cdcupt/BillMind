@@ -34,4 +34,5 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: TripController())
     try app.register(collection: BillController())
     try app.register(collection: StatsController())
+    try app.register(collection: CaptureController(moderation: ModerationService(client: OpenAIModerationClient())))
 }

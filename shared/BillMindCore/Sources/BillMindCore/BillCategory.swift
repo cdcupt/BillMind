@@ -6,7 +6,7 @@ import Foundation
 ///
 /// Foundation-only by design: presentation concerns (SwiftUI `Color`, asset
 /// names) belong in the client and are layered on via extensions there.
-enum BillCategory: String, Codable, CaseIterable, Identifiable, Sendable {
+public enum BillCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     case food
     case transport
     case accommodation
@@ -18,11 +18,11 @@ enum BillCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     case subscription
     case misc
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var displayName: String { englishName }
+    public var displayName: String { englishName }
 
-    var englishName: String {
+    public var englishName: String {
         switch self {
         case .food: return "Food"
         case .transport: return "Transport"
@@ -39,7 +39,7 @@ enum BillCategory: String, Codable, CaseIterable, Identifiable, Sendable {
 
     /// The SF Symbol name a client can use; kept here as a plain string so the
     /// core stays platform-independent (no `Image`/`UIImage` dependency).
-    var sfSymbol: String {
+    public var sfSymbol: String {
         switch self {
         case .food: return "fork.knife"
         case .transport: return "car.fill"

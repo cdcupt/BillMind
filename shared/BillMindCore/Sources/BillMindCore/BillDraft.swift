@@ -10,31 +10,31 @@ import Foundation
 /// Foundation-only by design — no SwiftData, SwiftUI, or UIKit — so the recording
 /// agent's logic compiles and unit-tests without the iOS SDK and stays decoupled
 /// from persistence and presentation.
-struct BillDraft: Identifiable, Sendable, Equatable {
-    let id: UUID
+public struct BillDraft: Identifiable, Sendable, Equatable {
+    public let id: UUID
 
-    var merchant: String?
+    public var merchant: String?
     /// The total. `nil` means "unknown" — the agent never guesses an amount; a
     /// missing amount becomes a clarifying question or blocks confirmation.
-    var amount: Decimal?
-    var currencyCode: String
-    var date: Date?
+    public var amount: Decimal?
+    public var currencyCode: String
+    public var date: Date?
     /// A date string the extractor read but could not parse (smudged/ambiguous).
-    var rawDateText: String?
+    public var rawDateText: String?
     /// The category as returned by extraction, lowercased when compared. May be a
     /// value outside the known set, which the validator flags.
-    var categoryRaw: String?
-    var lineItems: [DraftLineItem]
-    var source: DraftSource
+    public var categoryRaw: String?
+    public var lineItems: [DraftLineItem]
+    public var source: DraftSource
 
     /// Fields the user has explicitly decided. Validation must not re-question a
     /// pinned field, which is what makes the clarify→re-validate loop terminate.
-    var pinnedFields: Set<BillField>
+    public var pinnedFields: Set<BillField>
     /// Gaps the user chose to leave unresolved (via "skip"/budget exhaustion).
     /// These require an explicit acknowledgment before the draft can be recorded.
-    var acknowledgedGaps: Set<BillField>
+    public var acknowledgedGaps: Set<BillField>
 
-    init(
+    public init(
         id: UUID = UUID(),
         merchant: String? = nil,
         amount: Decimal? = nil,
@@ -61,25 +61,25 @@ struct BillDraft: Identifiable, Sendable, Equatable {
     }
 
     /// Sum of line-item amounts, or `nil` when there are no line items to reconcile.
-    var lineItemTotal: Decimal? {
+    public var lineItemTotal: Decimal? {
         guard !lineItems.isEmpty else { return nil }
         return lineItems.reduce(Decimal.zero) { $0 + $1.amount }
     }
 }
 
 /// A single line on a receipt. Value type so drafts stay `Sendable` and copyable.
-struct DraftLineItem: Sendable, Equatable {
-    var label: String
-    var amount: Decimal
+public struct DraftLineItem: Sendable, Equatable {
+    public var label: String
+    public var amount: Decimal
 
-    init(label: String, amount: Decimal) {
+    public init(label: String, amount: Decimal) {
         self.label = label
         self.amount = amount
     }
 }
 
 /// How a draft entered the pipeline. Drives provenance on the recorded bill.
-enum DraftSource: String, Sendable, Equatable, CaseIterable {
+public enum DraftSource: String, Sendable, Equatable, CaseIterable {
     case photo
     case voice
     case text
@@ -88,7 +88,7 @@ enum DraftSource: String, Sendable, Equatable, CaseIterable {
 
 /// The editable fields a clarification can target. Simple enum so it is `Hashable`
 /// (usable in `Set`) and `Sendable` automatically.
-enum BillField: String, Sendable, Equatable, CaseIterable {
+public enum BillField: String, Sendable, Equatable, CaseIterable {
     case amount
     case date
     case category

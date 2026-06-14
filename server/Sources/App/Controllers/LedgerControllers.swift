@@ -1,5 +1,6 @@
 import Vapor
 import Fluent
+import BillMindCore
 
 /// `/v1/trips` — create / list / list-bills. All behind auth + tenant-scoped.
 struct TripController: RouteCollection {
@@ -46,6 +47,39 @@ struct BillController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let bills = routes.grouped("v1", "bills").grouped(UserAuthMiddleware())
         bills.post(use: create)
+        bills.post("confirm", use: confirm)
+    }
+
+    /// Confirm a resolved draft → write a Bill. This is the ONLY write path, and
+    /// it runs the shared BillValidator: a missing amount is rejected (the agent
+    /// never guesses money). Soft gaps (date/category) carry safe defaults.
+    func confirm(_ req: Request) async throws -> BillDTO {
+        let user = try req.auth.require(User.self)
+        let uid = try user.requireID()
+        let body = try req.content.decode(ConfirmRequest.self)
+        guard let trip = try await Trip.query(on: req.db)
+            .filter(\.$id == body.tripID).filter(\.$owner.$id == uid).first()
+        else { throw Abort(.notFound, reason: "trip not found") }
+
+        let draft = BillDraft(
+            merchant: body.merchant, amount: body.amount,
+            currencyCode: body.currencyCode ?? trip.currencyCode,
+            date: body.date, categoryRaw: body.categoryRaw,
+            source: DraftSource(rawValue: body.source ?? "text") ?? .text
+        )
+        let validator = BillValidator(
+            knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
+            journalCurrencyCode: trip.currencyCode, today: Date()
+        )
+        guard !validator.unresolvedFields(for: draft).contains(.amount) else {
+            throw Abort(.unprocessableEntity, reason: "amount is required — the agent never guesses it")
+        }
+        let bill = Bill(tripID: try trip.requireID(), merchant: draft.merchant,
+                        amount: draft.amount!, currencyCode: draft.currencyCode,
+                        date: draft.date ?? Date(), categoryRaw: draft.categoryRaw,
+                        source: draft.source.rawValue, createdByID: uid)
+        try await bill.save(on: req.db)
+        return try BillDTO(bill)
     }
 
     func create(_ req: Request) async throws -> BillDTO {

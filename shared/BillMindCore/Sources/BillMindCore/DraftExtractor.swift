@@ -7,7 +7,7 @@ import Foundation
 /// Foundation-only by design. Emits `BillCategory` **raw values** (not display
 /// names) so `BillValidator` recognizes them; date is left `nil` so the agent asks
 /// for it (Today / Yesterday / pick a date).
-enum DraftExtractor {
+public enum DraftExtractor {
 
     /// Keyword → `BillCategory.rawValue`. First match wins; unmatched → `misc`.
     private static let categoryKeywords: [(words: Set<String>, raw: String)] = [
@@ -29,7 +29,7 @@ enum DraftExtractor {
         "yen", "jpy", "usd", "eur", "dollars", "euros", "yuan", "rmb", "cny",
     ]
 
-    static func parse(_ raw: String, currencyCode: String) -> BillDraft {
+    public static func parse(_ raw: String, currencyCode: String) -> BillDraft {
         BillDraft(
             merchant: merchant(in: raw),
             amount: firstAmount(in: raw),
@@ -43,7 +43,7 @@ enum DraftExtractor {
     /// First numeric run (supports thousands separators and decimals). `nil` when
     /// no number is present — the agent then blocks confirmation until an amount is
     /// entered, never guessing one.
-    static func firstAmount(in raw: String) -> Decimal? {
+    public static func firstAmount(in raw: String) -> Decimal? {
         let pattern = "[0-9][0-9,]*(?:\\.[0-9]+)?"
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
@@ -54,7 +54,7 @@ enum DraftExtractor {
 
     /// Keyword-matched category raw value, defaulting to `misc` (a valid category
     /// the user can change via the picker — not flagged as unknown).
-    static func category(in raw: String) -> String {
+    public static func category(in raw: String) -> String {
         let tokens = Set(raw.lowercased().split { !$0.isLetter }.map(String.init))
         for entry in categoryKeywords where !entry.words.isDisjoint(with: tokens) {
             return entry.raw
@@ -64,7 +64,7 @@ enum DraftExtractor {
 
     /// Leftover words after removing the amount and filler, title-cased; `nil` when
     /// nothing meaningful remains.
-    static func merchant(in raw: String) -> String? {
+    public static func merchant(in raw: String) -> String? {
         var text = raw
         if let amount = try? NSRegularExpression(pattern: "[0-9][0-9,]*(?:\\.[0-9]+)?") {
             let full = NSRange(text.startIndex..., in: text)

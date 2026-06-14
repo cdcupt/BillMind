@@ -1,7 +1,7 @@
 import Foundation
 
 /// A concrete value a clarification answer can carry back into a draft.
-enum ClarificationValue: Sendable, Equatable {
+public enum ClarificationValue: Sendable, Equatable {
     case amount(Decimal)
     case date(Date)
     case category(String)
@@ -9,11 +9,11 @@ enum ClarificationValue: Sendable, Equatable {
 }
 
 /// One selectable answer for a clarifying question (rendered as a chip).
-struct ClarificationOption: Sendable, Equatable {
-    let label: String
-    let value: ClarificationValue
+public struct ClarificationOption: Sendable, Equatable {
+    public let label: String
+    public let value: ClarificationValue
 
-    init(label: String, value: ClarificationValue) {
+    public init(label: String, value: ClarificationValue) {
         self.label = label
         self.value = value
     }
@@ -21,12 +21,12 @@ struct ClarificationOption: Sendable, Equatable {
 
 /// A question the agent asks to resolve a validation gap. Always chip-answerable —
 /// answering patches the draft field directly, with no second AI call.
-struct ClarificationQuestion: Sendable, Equatable {
-    let field: BillField
-    let prompt: String
-    let options: [ClarificationOption]
+public struct ClarificationQuestion: Sendable, Equatable {
+    public let field: BillField
+    public let prompt: String
+    public let options: [ClarificationOption]
 
-    init(field: BillField, prompt: String, options: [ClarificationOption]) {
+    public init(field: BillField, prompt: String, options: [ClarificationOption]) {
         self.field = field
         self.prompt = prompt
         self.options = options
@@ -34,10 +34,10 @@ struct ClarificationQuestion: Sendable, Equatable {
 }
 
 /// A problem the validator found, paired with the question that resolves it.
-struct ValidationGap: Sendable, Equatable {
-    let field: BillField
-    let reason: String
-    let question: ClarificationQuestion
+public struct ValidationGap: Sendable, Equatable {
+    public let field: BillField
+    public let reason: String
+    public let question: ClarificationQuestion
 }
 
 /// Deterministic, AI-free validation of a draft.
@@ -47,26 +47,26 @@ struct ValidationGap: Sendable, Equatable {
 /// confidence — and emits the gaps that drive clarification. Because answering
 /// a gap *pins* the field, re-running `validate` after an answer cannot re-raise
 /// the same gap, which is what bounds the clarify loop.
-struct BillValidator: Sendable {
+public struct BillValidator: Sendable {
     /// Smallest difference treated as a real amount mismatch (currency-agnostic).
     /// Exact in base-10 Decimal; avoids a force-unwrapped string initializer.
-    static let amountTolerance: Decimal = Decimal(1) / Decimal(100)
+    public static let amountTolerance: Decimal = Decimal(1) / Decimal(100)
 
     /// Known category raw values (lowercased), e.g. BillCategory.allCases rawValues.
-    let knownCategoryRaws: Set<String>
+    public let knownCategoryRaws: Set<String>
     /// Currency the active journal files in; a differing card currency is flagged.
-    let journalCurrencyCode: String
+    public let journalCurrencyCode: String
     /// Reference "today" for the missing-date question. Injected for testability.
-    let today: Date
+    public let today: Date
 
-    init(knownCategoryRaws: Set<String>, journalCurrencyCode: String, today: Date) {
+    public init(knownCategoryRaws: Set<String>, journalCurrencyCode: String, today: Date) {
         self.knownCategoryRaws = knownCategoryRaws
         self.journalCurrencyCode = journalCurrencyCode
         self.today = today
     }
 
     /// All gaps for a draft, skipping fields the user has pinned or acknowledged.
-    func validate(_ draft: BillDraft) -> [ValidationGap] {
+    public func validate(_ draft: BillDraft) -> [ValidationGap] {
         var gaps: [ValidationGap] = []
 
         if shouldCheck(.amount, in: draft) {
@@ -86,7 +86,7 @@ struct BillValidator: Sendable {
 
     /// A draft is recordable only when it has an amount and no *unacknowledged* gaps.
     /// Missing amount is never auto-resolved, so it always blocks confirmation.
-    func unresolvedFields(for draft: BillDraft) -> [BillField] {
+    public func unresolvedFields(for draft: BillDraft) -> [BillField] {
         validate(draft).map(\.field)
     }
 
