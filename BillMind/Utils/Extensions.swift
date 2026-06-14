@@ -133,6 +133,21 @@ struct OptionalDecimalString: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Sync Cursor
+
+/// Persists the delta-sync cursor (epoch seconds from the server's SyncDelta).
+/// Absent/0 means "full pull". Device-local; cleared on sign-out / cache reset.
+enum SyncCursor {
+    private static let key = "billmind.sync.cursor"
+
+    static var value: Double {
+        get { UserDefaults.standard.double(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+
+    static func reset() { UserDefaults.standard.removeObject(forKey: key) }
+}
+
 // MARK: - API JSON Coders
 
 /// The coders used for all BillMind API traffic: ISO-8601 dates (matching the

@@ -10,6 +10,18 @@ final class Journal {
     var currency: String
     var notes: String?
 
+    // MARK: - Sync metadata (maps to the server Trip; see BillRecord for semantics)
+    var serverID: UUID? = nil
+    var rowVersion: Int = 0
+    var updatedAt: Date? = nil
+    var isDeleted: Bool = false
+    var syncStateRaw: String = SyncState.local.rawValue
+
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .local }
+        set { syncStateRaw = newValue.rawValue }
+    }
+
     @Relationship(deleteRule: .cascade, inverse: \BillRecord.journal)
     var bills: [BillRecord] = []
 

@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import SwiftData
 @testable import BillMind
 
 // MARK: - Enum Tests
@@ -663,5 +664,60 @@ final class AuthSessionTests: XCTestCase {
         let auth = AuthSession(vault: vault)
         auth.bootstrap()
         XCTAssertEqual(auth.state, .signedOut)
+    }
+}
+
+// MARK: - SwiftData cache schema V2 (sync metadata)
+
+final class SchemaV2Tests: XCTestCase {
+    @MainActor
+    func testV2InsertHasSyncDefaultsAndPersists() throws {
+        let schema = Schema(BillMindSchemaV2.models)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema,
+                                           migrationPlan: BillMindMigrationPlan.self,
+                                           configurations: [config])
+        let ctx = container.mainContext
+
+        let journal = Journal(name: "Osaka", currency: "JPY")
+        let bill = BillRecord(amount: Decimal(string: "19.99")!, category: .food, merchant: "Ichiran")
+        bill.journal = journal
+        ctx.insert(journal)
+        ctx.insert(bill)
+        try ctx.save()
+
+        // New rows start as local, unsynced, not deleted.
+        XCTAssertNil(bill.serverID)
+        XCTAssertEqual(bill.rowVersion, 0)
+        XCTAssertFalse(bill.isDeleted)
+        XCTAssertEqual(bill.syncState, .local)
+        XCTAssertNil(journal.serverID)
+        XCTAssertEqual(journal.syncState, .local)
+        // NOTE: BillRecord stores money as Double (amountDouble), so it is only
+        // accurate to display precision (2dp), not exact Decimal. To be fixed when
+        // capture writes exact server amounts (BillRecord.amount → stored Decimal).
+        XCTAssertEqual((bill.amount as NSDecimalNumber).doubleValue, 19.99, accuracy: 0.005)
+
+        // Sync metadata round-trips.
+        bill.serverID = UUID(uuidString: kUUID)
+        bill.rowVersion = 3
+        bill.updatedAt = Date(timeIntervalSince1970: 1_775_210_400)
+        bill.syncState = .synced
+        try ctx.save()
+
+        let fetched = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(fetched.count, 1)
+        XCTAssertEqual(fetched.first?.serverID, UUID(uuidString: kUUID))
+        XCTAssertEqual(fetched.first?.rowVersion, 3)
+        XCTAssertEqual(fetched.first?.syncState, .synced)
+    }
+
+    func testSyncCursorRoundTrip() {
+        SyncCursor.reset()
+        XCTAssertEqual(SyncCursor.value, 0)            // absent → full pull
+        SyncCursor.value = 1_775_210_400
+        XCTAssertEqual(SyncCursor.value, 1_775_210_400, accuracy: 0.001)
+        SyncCursor.reset()
+        XCTAssertEqual(SyncCursor.value, 0)
     }
 }

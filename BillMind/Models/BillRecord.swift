@@ -19,6 +19,23 @@ final class BillRecord {
     var statusRaw: String
     var createdDate: Date
 
+    // MARK: - Sync metadata
+    //
+    // The server is the source of truth; this row is a cache entry. `serverID`
+    // links to the server's Bill; `rowVersion`/`updatedAt` drive last-write-wins;
+    // `isDeleted` is a tombstone pending push; `syncState` marks local edits that
+    // still need pushing. All default so existing inits/call sites are unchanged.
+    var serverID: UUID? = nil
+    var rowVersion: Int = 0
+    var updatedAt: Date? = nil
+    var isDeleted: Bool = false
+    var syncStateRaw: String = SyncState.local.rawValue
+
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .local }
+        set { syncStateRaw = newValue.rawValue }
+    }
+
     // MARK: - Computed Properties
 
     var amount: Decimal {

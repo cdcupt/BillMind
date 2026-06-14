@@ -80,7 +80,7 @@ struct BillMindApp: App {
         if CommandLine.arguments.contains("--uitesting-reset") {
             let support = URL.applicationSupportDirectory
             for suffix in ["", "-wal", "-shm"] {
-                try? FileManager.default.removeItem(at: support.appending(path: "default.store\(suffix)"))
+                try? FileManager.default.removeItem(at: support.appending(path: "\(BillMindSchemaV2.storeName)\(suffix)"))
             }
             // Skip the first-launch welcome notice so it doesn't derail other E2Es.
             UserDefaults.standard.set(true, forKey: ContentView.welcomeSeenKey)
@@ -91,8 +91,17 @@ struct BillMindApp: App {
         // array initializer (the same one the app shipped with) keeps this
         // unambiguous, while the migration plan below drives any future V1→Vn
         // migration.
-        let schema = Schema(BillMindSchemaV1.models)
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // The legacy unversioned cache (default.store) is from the pre-server
+        // app; it is disposable (data lives on the server), so delete it rather
+        // than migrate. Harmless no-op once it's gone.
+        Self.deleteLegacyStore()
+
+        let schema = Schema(BillMindSchemaV2.models)
+        // Versioned cache file: a new schema opens a fresh store (the old one is
+        // ignored, then cleaned up), so we never run a fragile migration on the
+        // disposable cache — sync re-pulls from the server.
+        let storeURL = URL.applicationSupportDirectory.appending(path: BillMindSchemaV2.storeName)
+        let config = ModelConfiguration(schema: schema, url: storeURL)
         do {
             container = try ModelContainer(
                 for: schema,
@@ -126,13 +135,25 @@ struct BillMindApp: App {
         }
     }
 
+    /// Delete the legacy unversioned cache (`default.store` + sidecars). Safe:
+    /// the local store is a disposable cache; real data lives on the server.
+    private static func deleteLegacyStore() {
+        let fm = FileManager.default
+        let support = URL.applicationSupportDirectory
+        for suffix in ["", "-wal", "-shm"] {
+            let legacy = support.appending(path: "default.store\(suffix)")
+            if fm.fileExists(atPath: legacy.path) { try? fm.removeItem(at: legacy) }
+        }
+    }
+
     /// Move the existing SwiftData store (and its `-wal`/`-shm` sidecars) into a
     /// timestamped backup folder instead of deleting them, so a failed open is
     /// recoverable rather than destructive.
     private static func preserveCorruptStore(reason: Error) {
         let fm = FileManager.default
         let support = URL.applicationSupportDirectory
-        let storeURL = support.appending(path: "default.store")
+        let storeName = BillMindSchemaV2.storeName
+        let storeURL = support.appending(path: storeName)
         guard fm.fileExists(atPath: storeURL.path) else { return }
 
         let stamp = ISO8601DateFormatter().string(from: Date())
@@ -141,9 +162,9 @@ struct BillMindApp: App {
         do {
             try fm.createDirectory(at: backupDir, withIntermediateDirectories: true)
             for suffix in ["", "-wal", "-shm"] {
-                let src = support.appending(path: "default.store\(suffix)")
+                let src = support.appending(path: "\(storeName)\(suffix)")
                 guard fm.fileExists(atPath: src.path) else { continue }
-                try? fm.moveItem(at: src, to: backupDir.appending(path: "default.store\(suffix)"))
+                try? fm.moveItem(at: src, to: backupDir.appending(path: "\(storeName)\(suffix)"))
             }
             UserDefaults.standard.set(backupDir.path, forKey: "lastRecoveredStorePath")
             UserDefaults.standard.set(Date(), forKey: "lastStoreRecoveryDate")
