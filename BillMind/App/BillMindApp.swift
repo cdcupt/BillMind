@@ -2,9 +2,74 @@ import SwiftUI
 import SwiftData
 import os
 
+/// Authentication state for the whole app. Owns the shared APIClient (already
+/// wired with the Keychain TokenVault + single-flight refresh) and drives the
+/// launch gate: loading → signedOut → signedIn. @MainActor so SwiftUI observes
+/// state changes directly.
+@MainActor
+final class AuthSession: ObservableObject {
+    enum State: Equatable {
+        case loading
+        case signedOut
+        case signedIn(UUID)
+    }
+
+    @Published private(set) var state: State = .loading
+    @Published var errorMessage: String?
+    @Published private(set) var isWorking = false
+
+    private let vault: TokenVault
+    private var api: APIClient!
+
+    init(baseURL: URL = APIClient.defaultBaseURL,
+         session: URLSession = .shared,
+         vault: TokenVault = TokenVault()) {
+        self.vault = vault
+        self.api = APIClient(baseURL: baseURL, session: session, tokenStore: vault,
+                             onSignedOut: { [weak self] in await self?.forceSignedOut() })
+    }
+
+    /// The shared, auth-wired client the data slices (sync, capture, stats) use.
+    var client: APIClient { api }
+
+    /// Resolve the launch gate from persisted tokens (no network).
+    func bootstrap() {
+        if let uid = vault.userID() { state = .signedIn(uid) } else { state = .signedOut }
+    }
+
+    /// Exchange a provider ID token for a session and persist it.
+    func signIn(provider: String, idToken: String, nonce: String? = nil) async {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            let tokens = try await api.signIn(provider: provider, idToken: idToken, nonce: nonce)
+            await vault.update(tokens)
+            state = .signedIn(tokens.userID)
+        } catch {
+            errorMessage = (error as? APIError)?.errorDescription ?? "Sign-in failed. Please try again."
+        }
+    }
+
+    func signOut() async {
+        if let refresh = await vault.refreshToken() {
+            try? await api.logout(refreshToken: refresh)   // best-effort server revoke
+        }
+        await vault.clear()
+        state = .signedOut
+    }
+
+    /// Called by the APIClient when a refresh fails — drop to the sign-in gate.
+    private func forceSignedOut() async {
+        await vault.clear()
+        state = .signedOut
+    }
+}
+
 @main
 struct BillMindApp: App {
     let container: ModelContainer
+    @StateObject private var auth = AuthSession()
 
     private static let logger = Logger(subsystem: "com.billmind.app", category: "persistence")
 
@@ -93,6 +158,8 @@ struct BillMindApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(auth)
+                .task { auth.bootstrap() }
         }
         .modelContainer(container)
     }

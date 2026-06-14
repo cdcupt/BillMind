@@ -603,3 +603,65 @@ final class AuthClientTests: XCTestCase {
         XCTAssertNil(cleared)                             // no tokens linger after sign-out
     }
 }
+
+// MARK: - AuthSession state machine
+
+@MainActor
+final class AuthSessionTests: XCTestCase {
+    private func keychainAvailable() -> Bool {
+        let probe = "probe_\(UUID().uuidString)"
+        do { try KeychainStore.set("ok", account: probe); try KeychainStore.delete(account: probe); return true }
+        catch { return false }
+    }
+
+    private func stubSession(_ handler: @escaping (URLRequest) -> (Int, Data)) -> URLSession {
+        StubURLProtocol.handler = handler
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: config)
+    }
+
+    override func tearDown() { StubURLProtocol.handler = nil; super.tearDown() }
+
+    func testSignInThenSignOutDrivesStateAndVault() async throws {
+        try XCTSkipUnless(keychainAvailable(), "Keychain unavailable in this host")
+        let session = stubSession { _ in
+            (200, Data(#"{"accessToken":"a","refreshToken":"r","userID":"\#(kUUID)"}"#.utf8))
+        }
+        let vault = TokenVault()
+        await vault.clear()
+        let auth = AuthSession(baseURL: URL(string: "https://test.local")!, session: session, vault: vault)
+
+        await auth.signIn(provider: "apple", idToken: "stub-identity-token")
+        XCTAssertEqual(auth.state, .signedIn(UUID(uuidString: kUUID)!))
+        XCTAssertNil(auth.errorMessage)
+        let access = await vault.accessToken()
+        XCTAssertEqual(access, "a")
+
+        await auth.signOut()
+        XCTAssertEqual(auth.state, .signedOut)
+        let cleared = await vault.accessToken()
+        XCTAssertNil(cleared)
+    }
+
+    func testSignInFailureSetsErrorNotSignedIn() async throws {
+        try XCTSkipUnless(keychainAvailable(), "Keychain unavailable in this host")
+        let session = stubSession { _ in (401, Data(#"{"error":true,"reason":"bad token"}"#.utf8)) }
+        let vault = TokenVault()
+        await vault.clear()
+        let auth = AuthSession(baseURL: URL(string: "https://test.local")!, session: session, vault: vault)
+
+        await auth.signIn(provider: "apple", idToken: "bad")
+        if case .signedIn = auth.state { XCTFail("should not be signed in") }
+        XCTAssertNotNil(auth.errorMessage)
+    }
+
+    func testBootstrapSignedOutWhenNoToken() async throws {
+        try XCTSkipUnless(keychainAvailable(), "Keychain unavailable in this host")
+        let vault = TokenVault()
+        await vault.clear()
+        let auth = AuthSession(vault: vault)
+        auth.bootstrap()
+        XCTAssertEqual(auth.state, .signedOut)
+    }
+}
