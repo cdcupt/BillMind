@@ -6,7 +6,9 @@
 # docker-compose.yml already sets `context: .` for this reason.
 
 # ── Build ────────────────────────────────────────────────────────────────────
-FROM swift:6.0-jammy AS build
+# 6.2 (not 6.0): transitive deps (postgres-nio, async-http-client, swift-nio…)
+# require Swift tools 6.1/6.2. Runtime stays ubuntu:jammy (glibc-compatible).
+FROM swift:6.2-jammy AS build
 
 # OS deps for building (libpq headers etc. come via SwiftPM packages).
 RUN apt-get update -qq \
