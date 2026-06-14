@@ -12,15 +12,19 @@ final class RecordCoordinator {
     private(set) var session: RecordingSession
     let journal: Journal
     private let modelContext: ModelContext
+    private let recognizer: RecognitionAPI
     /// Source images kept in memory for retry; not persisted, not observed.
     @ObservationIgnored private var sourceImages: [UUID: UIImage] = [:]
 
     /// User-facing extraction error (e.g. provider failure), shown then cleared.
     var errorMessage: String?
+    /// A calm decline from moderation (intent isn't travel-and-money), shown then cleared.
+    var declineMessage: String?
 
-    init(journal: Journal, modelContext: ModelContext) {
+    init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI) {
         self.journal = journal
         self.modelContext = modelContext
+        self.recognizer = recognizer
         let validator = BillValidator(
             knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
             journalCurrencyCode: journal.currency,
@@ -47,10 +51,14 @@ final class RecordCoordinator {
         _ = session.completeExtraction(cardID: id, draft: draft)
     }
 
-    /// Photo path — one extraction call per image (demo mode needs no key).
+    /// Photo path — server-side recognition (Gemini vision + moderation). The
+    /// user's own API key is no longer needed; the trip must exist on the server.
     func submitPhotos(_ images: [UIImage]) {
         guard !images.isEmpty else { return }
-        let settings = AppSettings.getOrCreate(context: modelContext)
+        guard let tripID = journal.serverID else {
+            errorMessage = "This trip isn't synced yet — pull to refresh, then try again."
+            return
+        }
         for image in images {
             let id = session.enqueue(source: .photo)
             sourceImages[id] = image
@@ -58,35 +66,46 @@ final class RecordCoordinator {
                 errorMessage = "Session limit reached — start a new session."
                 continue
             }
-            Task { await extract(image: image, cardID: id, settings: settings) }
+            Task { await extract(image: image, cardID: id, tripID: tripID) }
         }
     }
 
-    private func extract(image: UIImage, cardID: UUID, settings: AppSettings) async {
-        let provider = settings.selectedProvider
-        let model = settings.customModel.isEmpty ? provider.defaultModel : settings.customModel
-        let aiService = AIService()   // stateless; created locally so it isn't sent from MainActor storage
+    private func extract(image: UIImage, cardID: UUID, tripID: UUID) async {
+        guard let data = image.jpegData(compressionQuality: 0.8) else {
+            _ = session.failExtraction(cardID: cardID)
+            errorMessage = "Could not read that image."
+            return
+        }
         do {
-            let result = try await aiService.recognizeBill(
-                images: [image], provider: provider, model: model,
-                apiKey: settings.apiKey, demoMode: settings.demoMode
-            )
-            let draft = AIRecognitionMapper.draft(from: result, currencyCode: journal.currency)
+            let response = try await recognizer.recognize(APICaptureRequest(
+                text: nil, tripID: tripID, imageBase64: data.base64EncodedString(), mimeType: "image/jpeg"))
+            if response.declined {
+                _ = session.failExtraction(cardID: cardID)
+                declineMessage = response.message ?? "I can only help with travel and money."
+                return
+            }
+            guard let card = response.card else {
+                _ = session.failExtraction(cardID: cardID)
+                errorMessage = "Recognition returned nothing — try again."
+                return
+            }
+            // Seed the local clarify-loop from the server card (the local
+            // BillValidator re-derives gaps; amount stays nil if unread).
+            let draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
             _ = session.completeExtraction(cardID: cardID, draft: draft)
         } catch {
             _ = session.failExtraction(cardID: cardID)
-            errorMessage = error.localizedDescription
+            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
         }
     }
 
     func retry(cardID: UUID) {
-        guard let image = sourceImages[cardID] else { return }
-        let settings = AppSettings.getOrCreate(context: modelContext)
+        guard let image = sourceImages[cardID], let tripID = journal.serverID else { return }
         guard session.retryExtraction(cardID: cardID) else {
             errorMessage = "Session limit reached — start a new session."
             return
         }
-        Task { await extract(image: image, cardID: cardID, settings: settings) }
+        Task { await extract(image: image, cardID: cardID, tripID: tripID) }
     }
 
     // MARK: - Clarify / edit
@@ -153,5 +172,23 @@ final class RecordCoordinator {
         bill.journal = journal
         modelContext.insert(bill)
         try? modelContext.save()
+    }
+}
+
+// MARK: - Server card → local draft
+
+extension BillDraft {
+    /// Seed a draft from the server's recognized card. Amount stays nil if the
+    /// server couldn't read it (never guessed); the local validator then asks.
+    init(serverDraft d: APIBillDraft, fallbackCurrency: String) {
+        self.init(
+            merchant: d.merchant,
+            amount: d.amount,
+            currencyCode: d.currencyCode.isEmpty ? fallbackCurrency : d.currencyCode,
+            date: d.date,
+            categoryRaw: d.categoryRaw,
+            lineItems: [],
+            source: DraftSource(rawValue: d.source) ?? .photo
+        )
     }
 }

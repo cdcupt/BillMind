@@ -609,6 +609,14 @@ protocol SyncAPI: Sendable {
 
 extension APIClient: SyncAPI {}
 
+/// Server-side capture the Record flow needs, abstracted for testing. APIClient
+/// conforms via its existing `recognize`.
+protocol RecognitionAPI: Sendable {
+    func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse
+}
+
+extension APIClient: RecognitionAPI {}
+
 // MARK: - BillMind API — client
 
 /// Reads/writes the session token pair. Abstracted so the production Keychain

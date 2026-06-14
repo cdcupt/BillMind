@@ -889,3 +889,28 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(journal?.syncState, .synced)
     }
 }
+
+// MARK: - Capture re-point: server card → local draft mapping
+
+final class ServerDraftMappingTests: XCTestCase {
+    func testMapsServerCardDraft() {
+        let dto = APIBillDraft(merchant: "Ichiran", amount: Decimal(string: "2840")!,
+                               currencyCode: "JPY", categoryRaw: "food",
+                               date: Date(timeIntervalSince1970: 1_700_000_000), source: "photo")
+        let draft = BillDraft(serverDraft: dto, fallbackCurrency: "USD")
+        XCTAssertEqual(draft.merchant, "Ichiran")
+        XCTAssertEqual(draft.amount, Decimal(string: "2840"))
+        XCTAssertEqual(draft.currencyCode, "JPY")
+        XCTAssertEqual(draft.categoryRaw, "food")
+        XCTAssertEqual(draft.source, .photo)
+    }
+
+    func testNilAmountPreservedAndCurrencyFallback() {
+        let dto = APIBillDraft(merchant: "Blurry", amount: nil, currencyCode: "",
+                               categoryRaw: nil, date: nil, source: "photo")
+        let draft = BillDraft(serverDraft: dto, fallbackCurrency: "JPY")
+        XCTAssertNil(draft.amount)                       // never guessed
+        XCTAssertEqual(draft.currencyCode, "JPY")        // fallback when server gave empty
+        XCTAssertNil(draft.categoryRaw)
+    }
+}

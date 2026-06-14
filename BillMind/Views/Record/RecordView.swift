@@ -7,6 +7,8 @@ import PhotosUI
 /// AI or API key.
 struct RecordView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var auth: AuthSession
+    @EnvironmentObject private var sync: SyncCoordinator
     @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
 
     @State private var coordinator: RecordCoordinator?
@@ -43,6 +45,7 @@ struct RecordView: View {
         }
         .sheet(isPresented: $showNewJournal) {
             NewJournalView { id in selectedJournalID = id }
+                .environmentObject(sync)
         }
     }
 
@@ -169,13 +172,13 @@ struct RecordView: View {
         let id = selectedJournalID ?? journals.first?.id
         selectedJournalID = id
         if let journal = journals.first(where: { $0.id == id }) {
-            coordinator = RecordCoordinator(journal: journal, modelContext: modelContext)
+            coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client)
         }
     }
 
     private func rebuild() {
         guard let id = selectedJournalID, let journal = journals.first(where: { $0.id == id }) else { return }
-        coordinator = RecordCoordinator(journal: journal, modelContext: modelContext)
+        coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client)
     }
 
     private func loadPhotos(_ items: [PhotosPickerItem]) {
