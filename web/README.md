@@ -8,11 +8,20 @@ generated from it, so the client and server can never silently drift.
 
 ```bash
 npm install
+cp .env.example .env.local   # set VITE_GOOGLE_CLIENT_ID for sign-in
 npm run gen:api        # regenerate src/api/schema.ts from the contract
 npm run dev            # http://localhost:5173 (proxies /v1 → :8080)
 npm run build          # tsc -b && vite build → dist/
 npm run preview        # serve the production build
 ```
+
+### Sign-in config
+
+`VITE_GOOGLE_CLIENT_ID` is the Google OAuth **web** client ID (Google Cloud
+Console → Credentials). It must match the server's `GOOGLE_CLIENT_ID` audience.
+Without it the landing renders a "not configured" note instead of a dead button.
+Sessions are bearer tokens in `localStorage` (the API is mobile-first / bearer
+by design, shared with iOS — not cookie/BFF based).
 
 Run the Vapor server (`cd ../server && swift run`) alongside `npm run dev`; the
 Vite proxy forwards `/v1` and `/healthz` to `127.0.0.1:8080`.
@@ -40,6 +49,7 @@ Noto Serif (latin subset) for the ledger body. Tokens live in
 
 ## Status
 
-Scaffold + Landing + shell are live and verified (desktop + mobile, no overflow).
-Sign-in (Google Identity Services) and the Record/Stats data screens light up in
-the following slices; the API + ledger they call are already green.
+Live and verified (desktop + mobile, no overflow): Landing + Google sign-in,
+the 4-section shell, Record (capture → card → gap-resolution → confirm), Stats
+(totals + category bars), and Settings (account + sign-out). Apple web sign-in
+is a documented placeholder (needs a Services ID + domain verification).

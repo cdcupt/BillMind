@@ -73,6 +73,19 @@
   font-style: italic;
 }
 
+.landing__error {
+  margin: 0;
+  color: var(--alert);
+  font-size: var(--text-sm);
+}
+
+.landing__actions .stamp-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: none;
+}
+
 /* ── Pillars ─────────────────────────────────────────────────────────── */
 .landing__pillars {
   display: grid;

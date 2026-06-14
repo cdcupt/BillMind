@@ -1,12 +1,33 @@
+import { useCallback, useState } from "react";
+import { api, ApiError } from "../api/client";
+import { setSession } from "../api/session";
+import { GoogleSignIn } from "../components/GoogleSignIn";
 import "./landing.css";
 
 /**
  * Voyage landing — the unauthenticated front door. The hero states the one
- * promise ("talk to record"), the three pillars echo the app's surfaces, and
- * the sign-in stamps slot in here once Google Identity Services is wired
- * (slice: web auth). For now they are presentational anchors.
+ * promise ("talk to record"), the pillars echo the app's surfaces, and sign-in
+ * exchanges a Google ID token for a session (setSession flips the app into the
+ * authed shell). Apple web sign-in needs a Services ID + domain verification,
+ * so it stays a documented placeholder for now.
  */
 export function Landing() {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGoogle = useCallback(async (idToken: string) => {
+    setError(null);
+    try {
+      const tokens = await api.signIn("google", idToken);
+      setSession({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        userId: tokens.userID,
+      });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.reason : "Sign-in failed — try again.");
+    }
+  }, []);
+
   return (
     <main className="landing">
       <header className="landing__nav">
@@ -28,16 +49,17 @@ export function Landing() {
         </p>
 
         <div className="landing__actions">
-          <button className="stamp-button" type="button">
+          <GoogleSignIn onCredential={handleGoogle} />
+          <button
+            className="stamp-button stamp-button--ghost"
+            type="button"
+            disabled
+            title="Apple web sign-in is configured at deploy"
+          >
             Continue with Apple
           </button>
-          <button className="stamp-button stamp-button--ghost" type="button">
-            Continue with Google
-          </button>
         </div>
-        <p className="landing__fineprint">
-          Sign-in arrives with the web-auth slice — the API and ledger are live.
-        </p>
+        {error && <p className="landing__error">{error}</p>}
       </section>
 
       <section className="landing__pillars" aria-label="What it does">
