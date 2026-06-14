@@ -1,0 +1,97 @@
+import Foundation
+
+/// A bill being assembled by the recording agent.
+///
+/// A `BillDraft` lives only in memory (inside `RecordingSession`) until the user
+/// confirms it; only at confirmation does the host persist a `BillRecord`. This is
+/// the agent equivalent of an open issue: it carries everything extracted so far
+/// plus the user's decisions about it.
+///
+/// Foundation-only by design — no SwiftData, SwiftUI, or UIKit — so the recording
+/// agent's logic compiles and unit-tests without the iOS SDK and stays decoupled
+/// from persistence and presentation.
+struct BillDraft: Identifiable, Sendable, Equatable {
+    let id: UUID
+
+    var merchant: String?
+    /// The total. `nil` means "unknown" — the agent never guesses an amount; a
+    /// missing amount becomes a clarifying question or blocks confirmation.
+    var amount: Decimal?
+    var currencyCode: String
+    var date: Date?
+    /// A date string the extractor read but could not parse (smudged/ambiguous).
+    var rawDateText: String?
+    /// The category as returned by extraction, lowercased when compared. May be a
+    /// value outside the known set, which the validator flags.
+    var categoryRaw: String?
+    var lineItems: [DraftLineItem]
+    var source: DraftSource
+
+    /// Fields the user has explicitly decided. Validation must not re-question a
+    /// pinned field, which is what makes the clarify→re-validate loop terminate.
+    var pinnedFields: Set<BillField>
+    /// Gaps the user chose to leave unresolved (via "skip"/budget exhaustion).
+    /// These require an explicit acknowledgment before the draft can be recorded.
+    var acknowledgedGaps: Set<BillField>
+
+    init(
+        id: UUID = UUID(),
+        merchant: String? = nil,
+        amount: Decimal? = nil,
+        currencyCode: String,
+        date: Date? = nil,
+        rawDateText: String? = nil,
+        categoryRaw: String? = nil,
+        lineItems: [DraftLineItem] = [],
+        source: DraftSource,
+        pinnedFields: Set<BillField> = [],
+        acknowledgedGaps: Set<BillField> = []
+    ) {
+        self.id = id
+        self.merchant = merchant
+        self.amount = amount
+        self.currencyCode = currencyCode
+        self.date = date
+        self.rawDateText = rawDateText
+        self.categoryRaw = categoryRaw
+        self.lineItems = lineItems
+        self.source = source
+        self.pinnedFields = pinnedFields
+        self.acknowledgedGaps = acknowledgedGaps
+    }
+
+    /// Sum of line-item amounts, or `nil` when there are no line items to reconcile.
+    var lineItemTotal: Decimal? {
+        guard !lineItems.isEmpty else { return nil }
+        return lineItems.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+}
+
+/// A single line on a receipt. Value type so drafts stay `Sendable` and copyable.
+struct DraftLineItem: Sendable, Equatable {
+    var label: String
+    var amount: Decimal
+
+    init(label: String, amount: Decimal) {
+        self.label = label
+        self.amount = amount
+    }
+}
+
+/// How a draft entered the pipeline. Drives provenance on the recorded bill.
+enum DraftSource: String, Sendable, Equatable, CaseIterable {
+    case photo
+    case voice
+    case text
+    case manual
+}
+
+/// The editable fields a clarification can target. Simple enum so it is `Hashable`
+/// (usable in `Set`) and `Sendable` automatically.
+enum BillField: String, Sendable, Equatable, CaseIterable {
+    case amount
+    case date
+    case category
+    case currency
+    case merchant
+}
