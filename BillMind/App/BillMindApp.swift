@@ -34,6 +34,14 @@ final class AuthSession: ObservableObject {
 
     /// Resolve the launch gate from persisted tokens (no network).
     func bootstrap() {
+        #if DEBUG
+        // UI tests + local visual checks can't complete Sign in with Apple on the
+        // simulator, so this bypass enters the signed-in shell directly. DEBUG-only.
+        if CommandLine.arguments.contains("--uitesting-signedin") {
+            state = .signedIn(UUID(uuidString: "00000000-0000-0000-0000-000000000001")!)
+            return
+        }
+        #endif
         if let uid = vault.userID() { state = .signedIn(uid) } else { state = .signedOut }
     }
 
