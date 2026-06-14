@@ -643,7 +643,7 @@ protocol TokenStore: Sendable {
 /// and the single-flight refresh stay serialized: when several requests 401 at
 /// once, exactly one refresh runs and the rest await it, then each retries once.
 actor APIClient {
-    static let defaultBaseURL = URL(string: "https://api.billmind.app")!
+    static let defaultBaseURL = URL(string: "https://billmind.daichenlab.com")!
 
     private let baseURL: URL
     private let session: URLSession
