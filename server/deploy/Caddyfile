@@ -1,0 +1,17 @@
+# Automatic TLS (Let's Encrypt) + the security headers from the Tech Doc.
+# {$DOMAIN} comes from the environment; falls back to localhost for local runs.
+{$DOMAIN:localhost} {
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# API → the Vapor app. (The web SPA bundle gets served/proxied here later.)
+	reverse_proxy app:8080
+}
