@@ -31,4 +31,7 @@ public func configure(_ app: Application) async throws {
     try routes(app)
     try app.register(collection: AuthController(oidc: LiveOIDCVerifier()))
     try app.register(collection: AccountController())
+    try app.register(collection: TripController())
+    try app.register(collection: BillController())
+    try app.register(collection: StatsController())
 }
