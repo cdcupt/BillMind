@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BillMind 2.0 — iOS Re-point Plan</title>
+<style>
+  :root{
+    --paper:#f5efe2;--card:#fbf7ee;--ink:#221d16;--soft:#5c5346;--faint:#8a7f6f;
+    --stamp:#c0492f;--teal:#2f6f64;--gold:#c79a3b;--line:#d8cdb8;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+    line-height:1.55;padding:clamp(1.5rem,4vw,4rem)}
+  main{max-width:60rem;margin:0 auto}
+  h1{font-size:clamp(1.9rem,1.4rem+2vw,2.8rem);margin:0 0 .2em}
+  h2{font-size:1.4rem;margin:2.4rem 0 .6rem;border-bottom:2px solid var(--line);padding-bottom:.3rem}
+  .lede{color:var(--soft);font-size:1.1rem;max-width:46rem}
+  .tag{display:inline-block;background:var(--stamp);color:#fff;font-family:var(--mono);
+    font-size:.72rem;padding:.15em .6em;border-radius:3px;letter-spacing:.04em;vertical-align:middle}
+  .decisions{display:grid;gap:.7rem;margin:1rem 0}
+  .d{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--teal);
+    border-radius:8px;padding:.8rem 1rem}
+  .d q{display:block;font-weight:bold;color:var(--ink);font-style:normal}
+  .d p{margin:.35rem 0 0;color:var(--soft)}
+  .slice{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:1rem 1.2rem;margin:.8rem 0;box-shadow:0 8px 18px -16px rgba(0,0,0,.5)}
+  .slice h3{margin:0;font-size:1.15rem;display:flex;align-items:baseline;gap:.6rem}
+  .n{font-family:var(--mono);background:var(--ink);color:var(--paper);border-radius:50%;
+    width:1.7em;height:1.7em;display:inline-flex;align-items:center;justify-content:center;
+    font-size:.8rem;flex:none}
+  .slice .intent{margin:.5rem 0 .6rem;color:var(--soft)}
+  .files{font-family:var(--mono);font-size:.78rem;color:var(--faint);
+    background:var(--paper);border-radius:6px;padding:.5rem .7rem;border:1px dashed var(--line)}
+  .verify{margin:.55rem 0 0;font-size:.86rem;color:var(--teal)}
+  .verify b{color:var(--ink)}
+  .risks li{margin:.4rem 0;color:var(--soft)}
+  .risks{background:#fbf2ee;border:1px solid #e6c9bf;border-radius:10px;padding:1rem 1.2rem 1rem 2.4rem}
+  footer{margin-top:3rem;color:var(--faint);font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>BillMind 2.0 — iOS Re-point Plan <span class="tag">PIPELINE · BUILD</span></h1>
+  <p class="lede">Synthesized from the approved DESIGN + TECH specs, the existing iOS codebase, and
+  the locked <code>contract/openapi.yaml</code>. Client-only work, sequenced so the app stays green
+  at every step. Anchored to the real contract: capture is <b>stateless</b> (recognition → Card,
+  confirm is the only write).</p>
+
+  <h2>Approach</h2>
+  <p>Server becomes the single source of truth; SwiftData drops to a disposable offline cache.
+  The verified <code>shared/BillMindCore</code> agent core is adopted (the iOS <code>Agent/</code> fork is
+  deleted) so the validator can never drift from the server. The kept
+  <code>RecordingSession</code>/<code>BillValidator</code> clarify-loop is re-seeded from server cards.</p>
+
+  <h2>Key decisions</h2>
+  <div class="decisions">
+    <div class="d"><q>Local-first or server source of truth?</q><p>Server is the source of truth; SwiftData = disposable cache. Journal/BillRecord @Models kept, extended with serverID/rowVersion/updatedAt/isDeleted/syncState.</p></div>
+    <div class="d"><q>Re-implement the capture state machine, or render server state?</q><p>Stateless: POST /v1/recognition → Card{draft,gaps,canSave}; clarify locally via the kept RecordingSession/BillValidator; POST /v1/bills/confirm is the only write (422 when amount null). Client never computes figures or recomputes canSave.</p></div>
+    <div class="d"><q>Where does the agent core live on iOS?</q><p>Depend on shared/BillMindCore (already used by the server); delete BillMind/Agent/* to stop iOS/server validator drift.</p></div>
+    <div class="d"><q>Token storage &amp; refresh?</q><p>KeychainStore as a typed vault (access JWT + opaque refresh, AfterFirstUnlockThisDeviceOnly); migrate plaintext AppSettings.apiKey out of SwiftData; single-flight 401 refresh in the APIClient actor, retry once, sign out on failure.</p></div>
+    <div class="d"><q>Where does new networking code land?</q><p>APIClient actor + DTOs → Services/AIService.swift; helpers → Utils/Extensions.swift; accounts → Utils/KeychainStore.swift; V2 schema → Models/BillMindSchema.swift. SyncEngine actor is the one justified new file.</p></div>
+    <div class="d"><q>Tab structure target?</q><p>5 tabs → 4 (Record/Stats/Minds/Settings). Journals removed; its browse folds into Record as the ledger layer. Journal→Trip is a copy rename. Sequenced last.</p></div>
+  </div>
+
+  <h2>Slices</h2>
+
+  <div class="slice"><h3><span class="n">1</span> Networking + DTO foundation</h3>
+    <p class="intent">A single APIClient actor + Codable DTOs matching openapi.yaml; money as Decimal-from-String; 404 tenant handling. No call sites change.</p>
+    <p class="files">BillMind/Services/AIService.swift · Utils/Extensions.swift · Tests/BillMindTests.swift</p>
+    <p class="verify"><b>Verify:</b> build green; tests decode contract examples into DTOs (money stays Decimal, dates parse).</p></div>
+
+  <div class="slice"><h3><span class="n">2</span> Auth + Keychain token vault</h3>
+    <p class="intent">KeychainStore as token vault; AuthService for Apple/Google OIDC → /v1/auth/*; single-flight 401 refresh; signed-in/out state.</p>
+    <p class="files">Utils/KeychainStore.swift · Services/AIService.swift · Models/AppSettings.swift · App/BillMindApp.swift · App/ContentView.swift</p>
+    <p class="verify"><b>Verify:</b> concurrent 401s → one refresh; refresh-fail → signedOut + Keychain cleared; no tokens in UserDefaults/SwiftData.</p></div>
+
+  <div class="slice"><h3><span class="n">3</span> Adopt shared BillMindCore; delete Agent fork</h3>
+    <p class="intent">Depend on shared/BillMindCore, remove BillMind/Agent/*. Pure refactor — eliminates validator drift.</p>
+    <p class="files">project.yml · BillMind/Agent/* (deleted) · Views/Record/RecordCoordinator.swift · Tests/RecordingAgentTests.swift</p>
+    <p class="verify"><b>Verify:</b> build green; RecordingAgentTests pass against module types; core swift test still green.</p></div>
+
+  <div class="slice"><h3><span class="n">4</span> SwiftData cache schema V2 + cursor</h3>
+    <p class="intent">Additive BillMindSchemaV2 + migration adding sync metadata to Journal/BillRecord; sync cursor in UserDefaults. Still local-only.</p>
+    <p class="files">Models/BillMindSchema.swift · Models/Journal.swift · Models/BillRecord.swift · Utils/Extensions.swift</p>
+    <p class="verify"><b>Verify:</b> populated V1 store lightweight-migrates to V2 with defaults, no data loss; move-aside recovery intact.</p></div>
+
+  <div class="slice"><h3><span class="n">5</span> SyncEngine actor — delta pull/push + PendingQueue</h3>
+    <p class="intent">Reconcile cache with /v1/sync: pull by rowVersion LWW honoring tombstones; push drains a durable queue; conflicts overwrite local with a note. Triggered on foreground / post-confirm / pull-to-refresh.</p>
+    <p class="files">Services/SyncEngine.swift (new) · Services/AIService.swift · Models/BillMindSchema.swift · App/BillMindApp.swift · Views/Journal/JournalDetailView.swift</p>
+    <p class="verify"><b>Verify:</b> mock-APIClient tests — full pull hydrates, tombstone deletes, disjoint edits never conflict, stale rowVersion → conflicts[] + overwrite local.</p></div>
+
+  <div class="slice"><h3><span class="n">6</span> Trips/bills served from server</h3>
+    <p class="intent">Browse/detail read from the synced cache; create-trip and manual-bill route through /v1/trips and /v1/bills optimistically.</p>
+    <p class="files">Views/Main/JournalsListView.swift · Views/Journal/NewJournalView.swift · Views/Bill/AddBillManualView.swift · Views/Bill/BillDetailView.swift · Services/AIService.swift</p>
+    <p class="verify"><b>Verify:</b> sim — create trip appears on server; add bill offline shows instantly, syncs on reconnect; cross-tenant id → 404 as gone.</p></div>
+
+  <div class="slice"><h3><span class="n">7</span> Capture re-point via /v1/recognition + confirm</h3>
+    <p class="intent">Replace provider-direct call with stateless server capture: recognition seeds the local RecordingSession from Card; clarify locally; confirm via /v1/bills/confirm. Offline text still works via DraftExtractor.</p>
+    <p class="files">Views/Record/RecordCoordinator.swift · Services/AIService.swift · Views/Record/AgentCardView.swift · Views/Main/MindsView.swift</p>
+    <p class="verify"><b>Verify:</b> 'ramen 2840' confirms a Bill; 'dinner in kyoto' → amount gap, Save disabled, no 0-default; null-amount confirm → 422 as amount-needed; declined → calm decline.</p></div>
+
+  <div class="slice"><h3><span class="n">8</span> Agent chat (SSE) + Stats + moderation report</h3>
+    <p class="intent">SSE chat over URLSession.bytes (tool_result→message→done, decline first); figures only in ToolResult/Card; Stats from /v1/stats; Report-this-reply on every agent surface + Settings → /v1/moderation/report.</p>
+    <p class="files">Services/AIService.swift · Views/Record/RecordView.swift · Views/Record/AgentCardView.swift · Views/Main/StatsPageView.swift · Views/Settings/SettingsView.swift</p>
+    <p class="verify"><b>Verify:</b> SSE frame parse + lone declined frame; no figure from prose; 429 → calm quota card; report reachable from every surface (build-blocking).</p></div>
+
+  <div class="slice"><h3><span class="n">9</span> Voyage 4-tab restructure</h3>
+    <p class="intent">Collapse to 4 tabs; remove Journals; fold browse into Record as the ledger layer (sticky header + day-grouped ledger + conversation + pinned capture); trip switcher sheet; Journal→Trip copy.</p>
+    <p class="files">App/ContentView.swift · Views/Record/RecordView.swift · Views/Main/JournalsListView.swift · UITests/*</p>
+    <p class="verify"><b>Verify:</b> build green; UITests for 4 tabs; 320/390 screenshots show ledger+capture+conversation, no overflow.</p></div>
+
+  <div class="slice"><h3><span class="n">10</span> Voyage theme + compliance polish</h3>
+    <p class="intent">Voyage tokens/type (tabular-nums, count-up respecting reduced-motion), retire wobbly shapes, fix false "no servers" privacy copy, onboarding, two-step in-app Delete account via DELETE /v1/account.</p>
+    <p class="files">Theme/SketchTheme.swift · Theme/SketchShapes.swift · Views/Onboarding/WelcomeNoticeView.swift · Views/Settings/SettingsView.swift · Services/AIService.swift</p>
+    <p class="verify"><b>Verify:</b> reduced-motion test; Delete account calls DELETE /v1/account then wipes cache+queue+cursor+Keychain+images → Auth; Voyage palette screenshots; no "no servers" copy.</p></div>
+
+  <h2>Risks &amp; watch-items</h2>
+  <ul class="risks">
+    <li><b>Capture is stateless.</b> An earlier integration map cited card-intent routes (/agent/cards/…) that do <b>not</b> exist in openapi.yaml or the server. Plan is anchored to the contract: recognition → Card, then confirm.</li>
+    <li><b>Voice/STT undecided</b> (on-device Apple Speech vs server STT). Treated as server-dependent in slices 7/8; flag for PM.</li>
+    <li><b>Settings not synced</b> — the sync contract defines only trip + bill. Keep AppSettings device-local; move secrets to Keychain.</li>
+    <li><b>SwiftData V2 migration</b> on a populated V1 store must be tested — a mishandled migration can mask data loss as an empty cache.</li>
+    <li><b>Decimal money discipline</b> — any Double decode of amount/total breaks NUMERIC(16,2) + never-guess. Slice-1 DTO tests are the guardrail.</li>
+    <li><b>Apple compliance is load-bearing</b> — Report-this-reply on every agent surface (build-blocking) and Delete account must call DELETE /v1/account (not sign-out). Last two slices; must not be dropped.</li>
+  </ul>
+
+  <footer>Generated by the ios-repoint-understand workflow (5 agents) · anchored to contract/openapi.yaml · part of the BillMind 2.0 pipeline paper trail.</footer>
+</main>
+</body>
+</html>
