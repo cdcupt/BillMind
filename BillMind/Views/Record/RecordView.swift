@@ -147,9 +147,9 @@ struct RecordView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            EmptyStateView(animal: .cat, title: "No journals yet!", subtitle: "Create a journal first,\nthen record bills into it")
+            EmptyStateView(animal: .cat, title: "No trips yet!", subtitle: "Create a trip first,\nthen record bills into it")
             Button { showNewJournal = true } label: {
-                HandDrawnButton(title: "Create a Journal", icon: "plus", style: .primary)
+                HandDrawnButton(title: "Create a Trip", icon: "plus", style: .primary)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("record-create-journal")

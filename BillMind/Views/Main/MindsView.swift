@@ -118,12 +118,12 @@ struct MindsView: View {
 
     private var journalPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Select a Journal")
+            Text("Select a Trip")
                 .font(SketchTheme.captionFont())
                 .foregroundStyle(SketchTheme.lightBrown)
 
             if journals.isEmpty {
-                Text("No journals yet")
+                Text("No trips yet")
                     .font(SketchTheme.bodyFont(14))
                     .foregroundStyle(SketchTheme.lightBrown)
             } else {

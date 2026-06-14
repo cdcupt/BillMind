@@ -22,7 +22,7 @@ struct WelcomeNoticeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 point("🔒", "Your journals and bills stay on this device. No servers, no account.")
                 point("✨", "AI recognition sends a photo to your chosen provider — only after you agree, the first time.")
-                point("🗂", "Delete a journal anytime — it removes its bills too.")
+                point("🗂", "Delete a trip anytime — it removes its bills too.")
             }
             .padding(.horizontal, 4)
 

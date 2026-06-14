@@ -24,8 +24,8 @@ struct JournalsListView: View {
                     if journals.isEmpty {
                         EmptyStateView(
                             animal: .cat,
-                            title: "No journals yet!",
-                            subtitle: "Create your first journal to start tracking bills"
+                            title: "No trips yet!",
+                            subtitle: "Create your first trip to start tracking bills"
                         )
                     } else {
                         LazyVStack(spacing: 12) {
@@ -39,7 +39,7 @@ struct JournalsListView: View {
                                         journalToDelete = journal
                                         showDeleteAlert = true
                                     } label: {
-                                        Label("Delete Journal", systemImage: "trash")
+                                        Label("Delete Trip", systemImage: "trash")
                                     }
                                 }
                             }
@@ -86,7 +86,7 @@ struct JournalsListView: View {
                 }
                 .environmentObject(sync)   // sheets don't always inherit environmentObjects
             }
-            .alert("Delete Journal?", isPresented: $showDeleteAlert) {
+            .alert("Delete Trip?", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { journalToDelete = nil }
                 Button("Delete", role: .destructive) {
                     if let journal = journalToDelete {
@@ -108,7 +108,7 @@ struct JournalsListView: View {
 
     private var sectionHeader: some View {
         HStack {
-            Text("My Journals")
+            Text("My Trips")
                 .font(SketchTheme.captionFont())
                 .foregroundStyle(SketchTheme.lightBrown)
             Rectangle()
@@ -127,7 +127,7 @@ struct JournalsListView: View {
                 VStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: 24))
-                    Text("New Journal")
+                    Text("New Trip")
                         .font(SketchTheme.captionFont())
                 }
                 .foregroundStyle(SketchTheme.lightBrown)

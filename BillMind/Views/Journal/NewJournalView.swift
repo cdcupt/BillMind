@@ -64,7 +64,7 @@ struct NewJournalView: View {
 
                     // Name field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Journal Name")
+                        Text("Trip Name")
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
                         TextField("e.g., Tokyo Trip 2026", text: $name)
@@ -149,7 +149,7 @@ struct NewJournalView: View {
                     Button {
                         createJournal()
                     } label: {
-                        HandDrawnButton(title: "Create Journal", icon: nil, style: .primary)
+                        HandDrawnButton(title: "Create Trip", icon: nil, style: .primary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("createJournalButton")
@@ -162,7 +162,7 @@ struct NewJournalView: View {
             .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("New Journal")
+                    Text("New Trip")
                         .font(SketchTheme.headlineFont(20))
                         .foregroundStyle(SketchTheme.softBrown)
                 }

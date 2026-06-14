@@ -156,7 +156,7 @@ struct AgentCardView: View {
 
     @ViewBuilder private var actions: some View {
         if card.state == .recorded {
-            Label("In the journal", systemImage: "checkmark.seal.fill")
+            Label("In the trip", systemImage: "checkmark.seal.fill")
                 .font(SketchTheme.captionFont(13))
                 .foregroundStyle(SketchTheme.sageGreen)
         } else if card.state == .failed {
@@ -182,7 +182,7 @@ struct AgentCardView: View {
     private var saveLabel: String {
         if amountMissing { return "Enter amount to save" }
         if !card.carriedGaps.isEmpty { return ackArmed ? "Save anyway" : "Save with gaps" }
-        return "Save to journal"
+        return "Save to trip"
     }
 
     private func save() {

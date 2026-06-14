@@ -32,7 +32,7 @@ struct MainTabView: View {
             JournalsListView()
                 .tabItem {
                     Image(systemName: "book.closed.fill")
-                    Text("Journals")
+                    Text("Trips")
                 }
                 .tag(0)
 
