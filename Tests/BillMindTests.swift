@@ -721,3 +721,137 @@ final class SchemaV2Tests: XCTestCase {
         XCTAssertEqual(SyncCursor.value, 0)
     }
 }
+
+// MARK: - SyncEngine (delta pull/push + conflicts)
+
+actor MockSyncAPI: SyncAPI {
+    private let delta: APISyncDelta
+    private let pushResult: APISyncPushResult
+    private(set) var pushedBills: [APIBillUpsert] = []
+    private(set) var pullCount = 0
+    private(set) var pushCount = 0
+
+    init(delta: APISyncDelta,
+         pushResult: APISyncPushResult = APISyncPushResult(appliedBills: 0, conflicts: [])) {
+        self.delta = delta
+        self.pushResult = pushResult
+    }
+
+    func syncPull(since cursor: Double) async throws -> APISyncDelta { pullCount += 1; return delta }
+    func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult {
+        pushCount += 1
+        pushedBills = push.bills ?? []
+        return pushResult
+    }
+}
+
+final class SyncEngineTests: XCTestCase {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema(BillMindSchemaV2.models)
+        return try ModelContainer(for: schema,
+                                  configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    }
+
+    private func tripSync(_ id: UUID, name: String = "Osaka", deleted: Bool = false) -> APITripSync {
+        APITripSync(id: id, name: name, currencyCode: "JPY", exchangeRate: 1, mascot: nil,
+                    rowVersion: 1, updatedAt: Date(timeIntervalSince1970: 1_700_000_000), deleted: deleted)
+    }
+
+    private func billSync(_ id: UUID, trip: UUID, merchant: String?, amount: Decimal,
+                          rowVersion: Int = 1, deleted: Bool = false) -> APIBillSync {
+        APIBillSync(id: id, tripID: trip, merchant: merchant, amount: amount, currencyCode: "JPY",
+                    date: Date(timeIntervalSince1970: 1_700_000_000), categoryRaw: "food", source: "text",
+                    notes: nil, rowVersion: rowVersion, updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                    deleted: deleted)
+    }
+
+    override func tearDown() { SyncCursor.reset(); super.tearDown() }
+
+    func testFullPullHydratesFromEmpty() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let tripID = UUID(), billID = UUID()
+        let delta = APISyncDelta(trips: [tripSync(tripID)],
+                                 bills: [billSync(billID, trip: tripID, merchant: "Ichiran", amount: Decimal(string: "2840")!)],
+                                 cursor: 100)
+        let outcome = try await SyncEngine(container: container, api: MockSyncAPI(delta: delta)).sync()
+        XCTAssertEqual(outcome.pulledTrips, 1)
+        XCTAssertEqual(outcome.pulledBills, 1)
+
+        let ctx = ModelContext(container)
+        let journals = try ctx.fetch(FetchDescriptor<Journal>())
+        let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(journals.first?.serverID, tripID)
+        XCTAssertEqual(journals.first?.syncState, .synced)
+        XCTAssertEqual(bills.first?.serverID, billID)
+        XCTAssertEqual(bills.first?.journal?.serverID, tripID)   // linked to its trip
+        XCTAssertEqual(SyncCursor.value, 100)
+    }
+
+    func testTombstoneDeletesLocalRow() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let tripID = UUID(), billID = UUID()
+        let seed = ModelContext(container)
+        let j = Journal(name: "Osaka", currency: "JPY"); j.serverID = tripID; j.syncState = .synced
+        let b = BillRecord(amount: 100, category: .food); b.serverID = billID; b.journal = j; b.syncState = .synced
+        seed.insert(j); seed.insert(b); try seed.save()
+
+        let delta = APISyncDelta(trips: [], bills: [billSync(billID, trip: tripID, merchant: nil, amount: 100, rowVersion: 2, deleted: true)], cursor: 200)
+        try await SyncEngine(container: container, api: MockSyncAPI(delta: delta)).sync()
+
+        let ctx = ModelContext(container)
+        XCTAssertEqual(try ctx.fetch(FetchDescriptor<BillRecord>()).count, 0)   // tombstone removed it
+    }
+
+    func testPushUploadsDirtyBillsAndMarksSynced() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let tripID = UUID()
+        let seed = ModelContext(container)
+        let j = Journal(name: "Osaka", currency: "JPY"); j.serverID = tripID; j.syncState = .synced
+        let b = BillRecord(amount: 50, category: .food, merchant: "Konbini"); b.journal = j; b.syncState = .local
+        seed.insert(j); seed.insert(b); try seed.save()
+        let localBillID = b.id
+
+        let mock = MockSyncAPI(delta: APISyncDelta(trips: [], bills: [], cursor: 10),
+                               pushResult: APISyncPushResult(appliedBills: 1, conflicts: []))
+        let outcome = try await SyncEngine(container: container, api: mock).sync()
+        XCTAssertEqual(outcome.pushedBills, 1)
+
+        let pushed = await mock.pushedBills
+        XCTAssertEqual(pushed.count, 1)
+        XCTAssertEqual(pushed.first?.id, localBillID)             // local id is the upsert id
+        XCTAssertEqual(pushed.first?.tripID, tripID)
+
+        let ctx = ModelContext(container)
+        let bill = try ctx.fetch(FetchDescriptor<BillRecord>()).first
+        XCTAssertEqual(bill?.serverID, localBillID)
+        XCTAssertEqual(bill?.syncState, .synced)
+    }
+
+    func testConflictOverwritesLocalFromPull() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let tripID = UUID(), billID = UUID()
+        let seed = ModelContext(container)
+        let j = Journal(name: "Osaka", currency: "JPY"); j.serverID = tripID; j.syncState = .synced
+        let b = BillRecord(amount: 50, category: .food, merchant: "LocalMerchant")
+        b.serverID = billID; b.rowVersion = 1; b.journal = j; b.syncState = .local
+        seed.insert(j); seed.insert(b); try seed.save()
+
+        // Push reports a conflict for this bill; the pull carries the server's newer version.
+        let delta = APISyncDelta(trips: [],
+                                 bills: [billSync(billID, trip: tripID, merchant: "ServerMerchant", amount: 99, rowVersion: 5)],
+                                 cursor: 300)
+        let mock = MockSyncAPI(delta: delta, pushResult: APISyncPushResult(appliedBills: 0, conflicts: [billID]))
+        let outcome = try await SyncEngine(container: container, api: mock).sync()
+        XCTAssertEqual(outcome.conflicts, 1)
+
+        let ctx = ModelContext(container)
+        let bill = try ctx.fetch(FetchDescriptor<BillRecord>()).first
+        XCTAssertEqual(bill?.merchant, "ServerMerchant")         // local overwritten by server
+        XCTAssertEqual(bill?.rowVersion, 5)
+        XCTAssertEqual(bill?.syncState, .synced)
+    }
+}

@@ -595,6 +595,17 @@ enum APIError: LocalizedError, Equatable {
     }
 }
 
+// MARK: - Sync API seam
+
+/// The two sync calls the SyncEngine needs, abstracted so it can be tested with
+/// a mock. APIClient conforms via its existing syncPull/syncPush.
+protocol SyncAPI: Sendable {
+    func syncPull(since cursor: Double) async throws -> APISyncDelta
+    func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult
+}
+
+extension APIClient: SyncAPI {}
+
 // MARK: - BillMind API — client
 
 /// Reads/writes the session token pair. Abstracted so the production Keychain

@@ -14,6 +14,7 @@
 		11D525E0799066A8A7E72C99 /* RecordCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266C448AE735C842A3A4D576 /* RecordCoordinator.swift */; };
 		19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26146454BEE1E65D41784BE /* BillImportFlowView.swift */; };
 		1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */; };
+		2562E411BDB4D6F142AF91A2 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D426D4BB5B1FB9005D2170 /* SyncEngine.swift */; };
 		287A6C49F56CBF95BC0EA2EF /* BillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D43D8B9368A0828C39DE04 /* BillDraft.swift */; };
 		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
 		3B7BC72D4A529B4C46E02507 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F053CD704FCBA523E27F24D9 /* Validation.swift */; };
@@ -86,6 +87,7 @@
 		24AAC212C7733F0A28486977 /* WelcomeNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeNoticeView.swift; sourceTree = "<group>"; };
 		266C448AE735C842A3A4D576 /* RecordCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordCoordinator.swift; sourceTree = "<group>"; };
 		3F627B2C431A4DEF5C0281FD /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
+		40D426D4BB5B1FB9005D2170 /* SyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncEngine.swift; sourceTree = "<group>"; };
 		412B83CE985985B1EA8A1BDC /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		443C8F7845EF11A4A72C8D5C /* RecordingAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingAgentTests.swift; sourceTree = "<group>"; };
 		4D022264B53C134EA879EFEE /* StatsPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsPageView.swift; sourceTree = "<group>"; };
@@ -221,6 +223,7 @@
 			children = (
 				412B83CE985985B1EA8A1BDC /* AIService.swift */,
 				CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */,
+				40D426D4BB5B1FB9005D2170 /* SyncEngine.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -481,6 +484,7 @@
 				0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */,
 				AE000D2A254838379C517EA5 /* StatsDashboardView.swift in Sources */,
 				AF44AE3B8EAF0C6D5D76A883 /* StatsPageView.swift in Sources */,
+				2562E411BDB4D6F142AF91A2 /* SyncEngine.swift in Sources */,
 				3B7BC72D4A529B4C46E02507 /* Validation.swift in Sources */,
 				DE302D71769636EE90AACC46 /* WelcomeNoticeView.swift in Sources */,
 			);
