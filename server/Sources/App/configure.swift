@@ -34,5 +34,9 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: TripController())
     try app.register(collection: BillController())
     try app.register(collection: StatsController())
-    try app.register(collection: CaptureController(moderation: ModerationService(client: OpenAIModerationClient())))
+    let moderationService = ModerationService(client: OpenAIModerationClient())
+    try app.register(collection: CaptureController(moderation: moderationService))
+    try app.register(collection: AgentController(agent: AgentService(
+        llm: UnconfiguredLLMClient(), moderation: moderationService, quota: QuotaService()
+    )))
 }
