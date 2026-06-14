@@ -370,3 +370,403 @@ enum DemoData {
         }
     }
 }
+
+// MARK: - BillMind API — wire DTOs
+//
+// These mirror contract/openapi.yaml exactly. Money is a decimal string
+// (@DecimalString), dates are ISO-8601 (APICoders). The `API` prefix keeps them
+// distinct from the app's on-device models (Journal/BillRecord/AIRecognitionResult).
+
+struct APIErrorBody: Decodable { let error: Bool; let reason: String }
+
+struct APIAuthTokens: Codable, Sendable {
+    let accessToken: String
+    let refreshToken: String
+    let userID: UUID
+}
+
+struct APIUser: Codable, Sendable {
+    let id: UUID
+    let displayName: String?
+    let email: String?
+    let aiQuotaTier: String
+}
+
+struct APITrip: Codable, Sendable, Identifiable {
+    let id: UUID
+    let name: String
+    let currencyCode: String
+    @DecimalString var exchangeRate: Decimal
+    let mascot: String?
+    let rowVersion: Int
+}
+
+struct APICreateTripRequest: Encodable, Sendable {
+    let name: String
+    let currencyCode: String
+    let mascot: String?
+}
+
+struct APIBill: Codable, Sendable, Identifiable {
+    let id: UUID
+    let tripID: UUID
+    let merchant: String?
+    @DecimalString var amount: Decimal
+    let currencyCode: String
+    let date: Date
+    let categoryRaw: String?
+    let source: String
+    let notes: String?
+    let rowVersion: Int
+}
+
+struct APICreateBillRequest: Encodable, Sendable {
+    let tripID: UUID
+    let merchant: String?
+    @DecimalString var amount: Decimal
+    let currencyCode: String?
+    let date: Date
+    let categoryRaw: String?
+    let source: String?
+    let notes: String?
+}
+
+struct APIConfirmRequest: Encodable, Sendable {
+    let tripID: UUID
+    let merchant: String?
+    @OptionalDecimalString var amount: Decimal?
+    let currencyCode: String?
+    let date: Date?
+    let categoryRaw: String?
+    let source: String?
+}
+
+// Capture (text or photo) → a card to confirm, or a calm decline.
+struct APICaptureRequest: Encodable, Sendable {
+    let text: String?
+    let tripID: UUID
+    let imageBase64: String?
+    let mimeType: String?
+}
+
+struct APIBillDraft: Codable, Sendable {
+    let merchant: String?
+    @OptionalDecimalString var amount: Decimal?
+    let currencyCode: String
+    let categoryRaw: String?
+    let date: Date?
+    let source: String
+}
+
+struct APIGap: Codable, Sendable {
+    let field: String
+    let reason: String
+    let prompt: String
+    let options: [String]
+}
+
+struct APICard: Codable, Sendable {
+    let tripID: UUID
+    let draft: APIBillDraft
+    let gaps: [APIGap]
+    let canSave: Bool
+}
+
+struct APICaptureResponse: Codable, Sendable {
+    let declined: Bool
+    let message: String?
+    let card: APICard?
+}
+
+// Stats
+struct APICategoryTotal: Codable, Sendable {
+    let category: String
+    @DecimalString var amount: Decimal
+}
+
+struct APIStats: Codable, Sendable {
+    let scope: String
+    @DecimalString var total: Decimal
+    let billCount: Int
+    let byCategory: [APICategoryTotal]
+}
+
+// Agent chat
+struct APIChatRequest: Encodable, Sendable { let message: String }
+
+struct APIToolResult: Codable, Sendable {
+    let name: String
+    let resultJSON: String
+}
+
+struct APIAgentTurn: Codable, Sendable {
+    let declined: Bool
+    let text: String
+    let toolResults: [APIToolResult]
+    let conversationID: UUID?
+}
+
+// Sync
+struct APITripSync: Codable, Sendable, Identifiable {
+    let id: UUID
+    let name: String
+    let currencyCode: String
+    @DecimalString var exchangeRate: Decimal
+    let mascot: String?
+    let rowVersion: Int
+    let updatedAt: Date?
+    let deleted: Bool
+}
+
+struct APIBillSync: Codable, Sendable, Identifiable {
+    let id: UUID
+    let tripID: UUID
+    let merchant: String?
+    @DecimalString var amount: Decimal
+    let currencyCode: String
+    let date: Date
+    let categoryRaw: String?
+    let source: String
+    let notes: String?
+    let rowVersion: Int
+    let updatedAt: Date?
+    let deleted: Bool
+}
+
+struct APISyncDelta: Codable, Sendable {
+    let trips: [APITripSync]
+    let bills: [APIBillSync]
+    let cursor: Double
+}
+
+struct APIBillUpsert: Codable, Sendable {
+    let id: UUID
+    let tripID: UUID
+    let merchant: String?
+    @DecimalString var amount: Decimal
+    let currencyCode: String?
+    let date: Date
+    let categoryRaw: String?
+    let source: String?
+    let notes: String?
+    let rowVersion: Int
+    let deleted: Bool?
+}
+
+struct APISyncPush: Encodable, Sendable { let bills: [APIBillUpsert]? }
+
+struct APISyncPushResult: Codable, Sendable {
+    let appliedBills: Int
+    let conflicts: [UUID]
+}
+
+// Moderation report
+struct APIReportRequest: Encodable, Sendable {
+    let messageID: UUID?
+    let sessionID: UUID?
+    let tripID: UUID?
+    let reason: String
+    let note: String?
+}
+
+struct APIReportResponse: Codable, Sendable { let reportID: UUID }
+
+// MARK: - BillMind API — client errors
+
+enum APIError: LocalizedError, Equatable {
+    case notConfigured
+    case unauthorized
+    case notFound                 // also returned for cross-tenant access (by design)
+    case unprocessable(String)    // 422 — e.g. confirm without an amount
+    case http(Int, String)
+    case decoding(String)
+    case transport(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notConfigured: return "The app isn't configured to reach the server."
+        case .unauthorized: return "Your session has expired. Please sign in again."
+        case .notFound: return "That item couldn't be found."
+        case .unprocessable(let reason): return reason
+        case .http(let code, let reason): return "Server error (\(code)): \(reason)"
+        case .decoding(let detail): return "Couldn't read the server response. \(detail)"
+        case .transport(let detail): return "Network problem. \(detail)"
+        }
+    }
+}
+
+// MARK: - BillMind API — client
+
+/// The single typed entry point to the BillMind server. An actor so token reads
+/// and refresh stay serialized. Token wiring (Keychain + 401 refresh) lands in
+/// the auth slice; for now `accessTokenProvider` defaults to none and no app
+/// code calls this yet — it is the foundation the next slices build on.
+actor APIClient {
+    static let defaultBaseURL = URL(string: "https://api.billmind.app")!
+
+    private let baseURL: URL
+    private let session: URLSession
+    private let tokenProvider: @Sendable () async -> String?
+
+    init(baseURL: URL = APIClient.defaultBaseURL,
+         session: URLSession = .shared,
+         accessTokenProvider: @escaping @Sendable () async -> String? = { nil }) {
+        self.baseURL = baseURL
+        self.session = session
+        self.tokenProvider = accessTokenProvider
+    }
+
+    // MARK: Endpoints (auth)
+
+    func signIn(provider: String, idToken: String, nonce: String? = nil) async throws -> APIAuthTokens {
+        struct Body: Encodable { let idToken: String; let nonce: String? }
+        return try await post("v1/auth/\(provider)", body: Body(idToken: idToken, nonce: nonce), authed: false)
+    }
+
+    func refresh(refreshToken: String) async throws -> APIAuthTokens {
+        struct Body: Encodable { let refreshToken: String }
+        return try await post("v1/auth/refresh", body: Body(refreshToken: refreshToken), authed: false)
+    }
+
+    func logout(refreshToken: String) async throws {
+        struct Body: Encodable { let refreshToken: String }
+        try await postNoContent("v1/auth/logout", body: Body(refreshToken: refreshToken), authed: false)
+    }
+
+    // MARK: Endpoints (account + ledger)
+
+    func me() async throws -> APIUser { try await get("v1/account/me") }
+    func deleteAccount() async throws { try await delete("v1/account") }
+
+    func trips() async throws -> [APITrip] { try await get("v1/trips") }
+
+    func createTrip(_ req: APICreateTripRequest) async throws -> APITrip {
+        try await post("v1/trips", body: req)
+    }
+
+    func bills(tripID: UUID) async throws -> [APIBill] {
+        try await get("v1/trips/\(tripID.uuidString)/bills")
+    }
+
+    func createBill(_ req: APICreateBillRequest) async throws -> APIBill {
+        try await post("v1/bills", body: req)
+    }
+
+    func confirm(_ req: APIConfirmRequest) async throws -> APIBill {
+        try await post("v1/bills/confirm", body: req)
+    }
+
+    // MARK: Endpoints (capture + agent + stats)
+
+    func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse {
+        try await post("v1/recognition", body: req)
+    }
+
+    func chat(message: String) async throws -> APIAgentTurn {
+        try await post("v1/agent/chat", body: APIChatRequest(message: message))
+    }
+
+    func stats(tripID: UUID? = nil, scope: String? = nil) async throws -> APIStats {
+        var items: [URLQueryItem] = []
+        if let tripID { items.append(.init(name: "tripId", value: tripID.uuidString)) }
+        if let scope { items.append(.init(name: "scope", value: scope)) }
+        return try await get("v1/stats", query: items)
+    }
+
+    // MARK: Endpoints (sync + moderation)
+
+    func syncPull(since cursor: Double) async throws -> APISyncDelta {
+        try await get("v1/sync", query: [.init(name: "since", value: String(cursor))])
+    }
+
+    func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult {
+        try await post("v1/sync", body: push)
+    }
+
+    func report(_ req: APIReportRequest) async throws -> APIReportResponse {
+        try await post("v1/moderation/report", body: req)
+    }
+
+    // MARK: Request engine
+
+    private func get<R: Decodable>(_ path: String, query: [URLQueryItem] = [], authed: Bool = true) async throws -> R {
+        let request = try await makeRequest("GET", path, query: query, body: Optional<Int>.none, authed: authed)
+        return try await perform(request)
+    }
+
+    private func post<B: Encodable, R: Decodable>(_ path: String, body: B, authed: Bool = true) async throws -> R {
+        let request = try await makeRequest("POST", path, body: body, authed: authed)
+        return try await perform(request)
+    }
+
+    private func postNoContent<B: Encodable>(_ path: String, body: B, authed: Bool = true) async throws {
+        let request = try await makeRequest("POST", path, body: body, authed: authed)
+        try await performNoContent(request)
+    }
+
+    private func delete(_ path: String, authed: Bool = true) async throws {
+        let request = try await makeRequest("DELETE", path, body: Optional<Int>.none, authed: authed)
+        try await performNoContent(request)
+    }
+
+    private func makeRequest<B: Encodable>(
+        _ method: String, _ path: String, query: [URLQueryItem] = [], body: B?, authed: Bool
+    ) async throws -> URLRequest {
+        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+            throw APIError.notConfigured
+        }
+        if !query.isEmpty { components.queryItems = query }
+        guard let url = components.url else { throw APIError.notConfigured }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            do { request.httpBody = try APICoders.encoder.encode(body) }
+            catch { throw APIError.decoding("encode failed: \(error.localizedDescription)") }
+        }
+        if authed, let token = await tokenProvider() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return request
+    }
+
+    private func perform<R: Decodable>(_ request: URLRequest) async throws -> R {
+        let data = try await validatedData(request)
+        do { return try APICoders.decoder.decode(R.self, from: data) }
+        catch { throw APIError.decoding(error.localizedDescription) }
+    }
+
+    private func performNoContent(_ request: URLRequest) async throws {
+        _ = try await validatedData(request)
+    }
+
+    /// Transport + status mapping. Returns the body data on 2xx; throws a typed
+    /// APIError (decoding the {error,reason} envelope) otherwise.
+    private func validatedData(_ request: URLRequest) async throws -> Data {
+        let data: Data
+        let response: URLResponse
+        do { (data, response) = try await session.data(for: request) }
+        catch { throw APIError.transport(error.localizedDescription) }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.transport("no HTTP response")
+        }
+        switch http.statusCode {
+        case 200...299:
+            return data
+        case 401:
+            throw APIError.unauthorized
+        case 404:
+            throw APIError.notFound
+        case 422:
+            throw APIError.unprocessable(reason(from: data) ?? "Unprocessable request")
+        default:
+            throw APIError.http(http.statusCode, reason(from: data) ?? "Unexpected error")
+        }
+    }
+
+    private func reason(from data: Data) -> String? {
+        (try? JSONDecoder().decode(APIErrorBody.self, from: data))?.reason
+    }
+}

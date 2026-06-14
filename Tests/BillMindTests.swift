@@ -334,3 +334,160 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.selectedProvider, .gemini)
     }
 }
+
+// MARK: - Wire DTO Decoding (contract conformance)
+
+private let kUUID = "26E80ECF-41F2-44B3-A096-D7ABCE096A3A"
+
+final class WireDTODecodeTests: XCTestCase {
+    func testBillDecodesMoneyAsStringExactly() throws {
+        let json = """
+        {"id":"\(kUUID)","tripID":"\(kUUID)","merchant":"Ichiran","amount":"19.99",
+         "currencyCode":"JPY","date":"2026-04-03T10:00:00Z","categoryRaw":"food",
+         "source":"text","notes":null,"rowVersion":3}
+        """
+        let bill = try APICoders.decoder.decode(APIBill.self, from: Data(json.utf8))
+        XCTAssertEqual(bill.amount, Decimal(string: "19.99"))   // exact — no float drift
+        XCTAssertEqual(bill.merchant, "Ichiran")
+        XCTAssertEqual(bill.rowVersion, 3)
+        let expectedDate = ISO8601DateFormatter().date(from: "2026-04-03T10:00:00Z")
+        XCTAssertEqual(bill.date, expectedDate)                 // ISO-8601 parsed
+    }
+
+    func testTripDecodesExchangeRateString() throws {
+        let json = """
+        {"id":"\(kUUID)","name":"Osaka","currencyCode":"JPY","exchangeRate":"1.5",
+         "mascot":null,"rowVersion":1}
+        """
+        let trip = try APICoders.decoder.decode(APITrip.self, from: Data(json.utf8))
+        XCTAssertEqual(trip.exchangeRate, Decimal(string: "1.5"))
+    }
+
+    func testCaptureResponseNullAmountDraft() throws {
+        let json = """
+        {"declined":false,"message":null,"card":{"tripID":"\(kUUID)",
+         "draft":{"merchant":"Konbini","amount":null,"currencyCode":"JPY",
+                  "categoryRaw":null,"date":null,"source":"photo"},
+         "gaps":[{"field":"amount","reason":"unreadable","prompt":"How much?","options":[]}],
+         "canSave":false}}
+        """
+        let res = try APICoders.decoder.decode(APICaptureResponse.self, from: Data(json.utf8))
+        XCTAssertFalse(res.declined)
+        XCTAssertNil(res.card?.draft.amount)            // never guessed
+        XCTAssertEqual(res.card?.canSave, false)
+        XCTAssertEqual(res.card?.gaps.first?.field, "amount")
+    }
+
+    func testStatsDecodesDecimalTotals() throws {
+        let json = """
+        {"scope":"all","total":"48230.50","billCount":17,
+         "byCategory":[{"category":"food","amount":"12840.00"}]}
+        """
+        let stats = try APICoders.decoder.decode(APIStats.self, from: Data(json.utf8))
+        XCTAssertEqual(stats.total, Decimal(string: "48230.50"))
+        XCTAssertEqual(stats.byCategory.first?.amount, Decimal(string: "12840.00"))
+    }
+
+    func testConfirmRequestEncodesNilAmountAsNull() throws {
+        let req = APIConfirmRequest(tripID: UUID(uuidString: kUUID)!, merchant: "X", amount: nil,
+                                    currencyCode: "JPY", date: nil, categoryRaw: nil, source: "text")
+        let data = try APICoders.encoder.encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertTrue(obj?.keys.contains("amount") ?? false)        // key present
+        XCTAssertTrue(obj?["amount"] is NSNull)                     // ...as null
+    }
+
+    func testConfirmRequestEncodesAmountAsString() throws {
+        let req = APIConfirmRequest(tripID: UUID(uuidString: kUUID)!, merchant: "X",
+                                    amount: Decimal(string: "2840.50"), currencyCode: "JPY",
+                                    date: nil, categoryRaw: "food", source: "text")
+        let data = try APICoders.encoder.encode(req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(obj?["amount"] as? String, "2840.5")        // decimal STRING on the wire
+    }
+}
+
+// MARK: - APIClient request engine (stubbed transport)
+
+final class StubURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var handler: ((URLRequest) -> (Int, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        guard let handler = Self.handler else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse)); return
+        }
+        let (status, data) = handler(request)
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: data)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
+final class APIClientEngineTests: XCTestCase {
+    private func makeClient() -> APIClient {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+        return APIClient(baseURL: URL(string: "https://test.local")!, session: session,
+                         accessTokenProvider: { "stub-token" })
+    }
+
+    override func tearDown() { StubURLProtocol.handler = nil; super.tearDown() }
+
+    func testDecodesTripsOn200() async throws {
+        StubURLProtocol.handler = { _ in
+            let body = #"[{"id":"\#(kUUID)","name":"Osaka","currencyCode":"JPY","exchangeRate":"1","mascot":null,"rowVersion":1}]"#
+            return (200, Data(body.utf8))
+        }
+        let trips = try await makeClient().trips()
+        XCTAssertEqual(trips.count, 1)
+        XCTAssertEqual(trips.first?.currencyCode, "JPY")
+        XCTAssertEqual(trips.first?.exchangeRate, Decimal(1))
+    }
+
+    func testMaps404ToNotFound() async {
+        StubURLProtocol.handler = { _ in (404, Data(#"{"error":true,"reason":"trip not found"}"#.utf8)) }
+        do {
+            _ = try await makeClient().bills(tripID: UUID(uuidString: kUUID)!)
+            XCTFail("expected notFound")
+        } catch {
+            XCTAssertEqual(error as? APIError, .notFound)
+        }
+    }
+
+    func testMaps422ToUnprocessableWithReason() async {
+        StubURLProtocol.handler = { _ in (422, Data(#"{"error":true,"reason":"amount required"}"#.utf8)) }
+        let req = APIConfirmRequest(tripID: UUID(uuidString: kUUID)!, merchant: nil, amount: nil,
+                                    currencyCode: "JPY", date: nil, categoryRaw: nil, source: "text")
+        do {
+            _ = try await makeClient().confirm(req)
+            XCTFail("expected unprocessable")
+        } catch {
+            XCTAssertEqual(error as? APIError, .unprocessable("amount required"))
+        }
+    }
+
+    func testMaps401ToUnauthorized() async {
+        StubURLProtocol.handler = { _ in (401, Data(#"{"error":true,"reason":"expired"}"#.utf8)) }
+        do {
+            _ = try await makeClient().me()
+            XCTFail("expected unauthorized")
+        } catch {
+            XCTAssertEqual(error as? APIError, .unauthorized)
+        }
+    }
+
+    func testSendsBearerToken() async throws {
+        nonisolated(unsafe) var seenAuth: String?
+        StubURLProtocol.handler = { req in
+            seenAuth = req.value(forHTTPHeaderField: "Authorization")
+            return (200, Data(#"{"id":"\#(kUUID)","displayName":null,"email":null,"aiQuotaTier":"free"}"#.utf8))
+        }
+        _ = try await makeClient().me()
+        XCTAssertEqual(seenAuth, "Bearer stub-token")
+    }
+}
