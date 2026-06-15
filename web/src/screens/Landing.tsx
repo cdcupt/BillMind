@@ -8,8 +8,8 @@ import "./landing.css";
  * Voyage landing — the unauthenticated front door. The hero states the one
  * promise ("talk to record"), the pillars echo the app's surfaces, and sign-in
  * exchanges a Google ID token for a session (setSession flips the app into the
- * authed shell). Apple web sign-in needs a Services ID + domain verification,
- * so it stays a documented placeholder for now.
+ * authed shell). Web sign-in is Google-only by design; Apple sign-in lives in
+ * the iOS app (native flow), not the web.
  */
 export function Landing() {
   const [error, setError] = useState<string | null>(null);
@@ -50,14 +50,6 @@ export function Landing() {
 
         <div className="landing__actions">
           <GoogleSignIn onCredential={handleGoogle} />
-          <button
-            className="stamp-button stamp-button--ghost"
-            type="button"
-            disabled
-            title="Apple web sign-in is configured at deploy"
-          >
-            Continue with Apple
-          </button>
         </div>
         {error && <p className="landing__error">{error}</p>}
       </section>
