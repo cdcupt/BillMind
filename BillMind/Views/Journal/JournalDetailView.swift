@@ -46,7 +46,7 @@ struct JournalDetailView: View {
                 currencyWidget
 
                 // Bills grouped by date
-                if journal.bills.isEmpty {
+                if journal.liveBills.isEmpty {
                     EmptyStateView(
                         animal: .cat,
                         title: "No bills yet!",
