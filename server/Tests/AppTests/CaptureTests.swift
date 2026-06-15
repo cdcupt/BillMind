@@ -19,8 +19,14 @@ private struct StubRecognizer: Recognizer {
     func recognize(imageBase64: String, mimeType: String, on req: Request) async throws -> AIRecognitionResult { result }
 }
 
+private struct StubTextRecognizer: TextRecognizer {
+    let draft: BillDraft
+    func recognize(text: String, currencyCode: String, on req: Request) async -> BillDraft { draft }
+}
+
 final class CaptureTests: XCTestCase {
-    private func makeApp(modScores: [String: Double] = [:]) async throws -> Application {
+    private func makeApp(modScores: [String: Double] = [:],
+                         textRecognizer: TextRecognizer = LocalTextRecognizer()) async throws -> Application {
         let app = try await Application.make(.testing)
         app.databases.use(.sqlite(.memory), as: .sqlite)
         app.migrations.add(CreateInitialSchema())
@@ -32,7 +38,8 @@ final class CaptureTests: XCTestCase {
         try app.register(collection: BillController())
         try app.register(collection: CaptureController(
             moderation: ModerationService(client: StubMod(scores: modScores)),
-            recognizer: StubRecognizer()))
+            recognizer: StubRecognizer(),
+            textRecognizer: textRecognizer))
         return app
     }
 
@@ -75,6 +82,39 @@ final class CaptureTests: XCTestCase {
                 XCTAssertNil(r.card?.draft.amount)
                 XCTAssertEqual(r.card?.canSave, false)        // never guess money
                 XCTAssertTrue(r.card?.gaps.contains { $0.field == "amount" } ?? false)
+            })
+        try await app.asyncShutdown()
+    }
+
+    /// Text capture routes through the injected `TextRecognizer` (the AI path) —
+    /// here a stub returns a draft the local parser couldn't get from the words.
+    func testTextCaptureUsesTheTextRecognizer() async throws {
+        let aiDraft = BillDraft(merchant: "Airport Taxi", amount: Decimal(3000), currencyCode: "JPY",
+                                date: nil, categoryRaw: "transport", source: .text)
+        let app = try await makeApp(textRecognizer: StubTextRecognizer(draft: aiDraft))
+        let (t, trip) = try await signInAndTrip(app)
+        try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: { try $0.content.encode(CaptureRequest(text: "cab from the airport, about 3000", tripID: trip.id)) },
+            afterResponse: { res async throws in
+                let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertEqual(r.card?.draft.merchant, "Airport Taxi")
+                XCTAssertEqual(r.card?.draft.amount, Decimal(3000))
+                XCTAssertEqual(r.card?.draft.categoryRaw, "transport")
+            })
+        try await app.asyncShutdown()
+    }
+
+    /// The live Gemini text recognizer degrades gracefully: with no GEMINI_API_KEY
+    /// it falls back to the deterministic DraftExtractor (offline/E2E still works).
+    func testGeminiTextRecognizerFallsBackToLocalWithoutKey() async throws {
+        let app = try await makeApp(textRecognizer: GeminiTextRecognizer())
+        let (t, trip) = try await signInAndTrip(app)
+        try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: { try $0.content.encode(CaptureRequest(text: "ramen 2840", tripID: trip.id)) },
+            afterResponse: { res async throws in
+                let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertEqual(r.card?.draft.amount, Decimal(2840))   // parsed locally
+                XCTAssertEqual(r.card?.draft.categoryRaw, "food")
             })
         try await app.asyncShutdown()
     }

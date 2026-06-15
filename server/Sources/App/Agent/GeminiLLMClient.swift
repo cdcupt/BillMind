@@ -11,7 +11,7 @@ import Vapor
 struct GeminiLLMClient: LLMClient {
     let model: String
 
-    init(model: String = "gemini-2.0-flash") { self.model = model }
+    init(model: String = "gemini-2.5-flash") { self.model = model }
 
     func next(messages: [LLMMessage], tools: [ToolSpec], on req: Request) async throws -> LLMResponse {
         guard let key = Environment.get("GEMINI_API_KEY"), !key.isEmpty else {
@@ -43,7 +43,9 @@ struct GeminiLLMClient: LLMClient {
             }
         }
         let decls = tools.map { GReqFn(name: $0.name, description: $0.description, parameters: GReqSchema()) }
-        return GReq(contents: contents, tools: decls.isEmpty ? nil : [GReqTool(functionDeclarations: decls)])
+        return GReq(contents: contents,
+                    tools: decls.isEmpty ? nil : [GReqTool(functionDeclarations: decls)],
+                    generationConfig: .fastStructured)
     }
 
     /// Parsed with JSONSerialization (Gemini's `args` is arbitrary JSON) → a
@@ -65,7 +67,11 @@ struct GeminiLLMClient: LLMClient {
 }
 
 // Request shapes (encode-only — we send text parts; responses are parsed loosely).
-struct GReq: Content { let contents: [GReqContent]; let tools: [GReqTool]? }
+struct GReq: Content {
+    let contents: [GReqContent]
+    let tools: [GReqTool]?
+    var generationConfig: GGenConfig? = nil
+}
 struct GReqContent: Content { let role: String; let parts: [GReqPart] }
 struct GReqPart: Content { let text: String }
 struct GReqTool: Content { let functionDeclarations: [GReqFn] }

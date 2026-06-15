@@ -7,7 +7,8 @@ import Foundation
 /// is flagged by the validator), and routes an unparseable date string into
 /// `rawDateText` so the "date hard to read" clarify path is exercised.
 public enum AIRecognitionMapper {
-    public static func draft(from result: AIRecognitionResult, currencyCode: String) -> BillDraft {
+    public static func draft(from result: AIRecognitionResult, currencyCode: String,
+                             source: DraftSource = .photo) -> BillDraft {
         let parsedDate = result.parsedDate
         // Keep the raw date string when it couldn't be parsed, so the agent asks.
         let rawDateText: String? = (parsedDate == nil) ? result.date : nil
@@ -26,7 +27,7 @@ public enum AIRecognitionMapper {
             rawDateText: rawDateText,
             categoryRaw: result.category?.lowercased(),   // raw kept verbatim; validator flags unknowns
             lineItems: lineItems,
-            source: .photo
+            source: source
         )
     }
 }

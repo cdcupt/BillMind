@@ -9,6 +9,14 @@ import BillMindCore
 struct CaptureController: RouteCollection {
     let moderation: ModerationService
     let recognizer: Recognizer
+    let textRecognizer: TextRecognizer
+
+    init(moderation: ModerationService, recognizer: Recognizer,
+         textRecognizer: TextRecognizer = LocalTextRecognizer()) {
+        self.moderation = moderation
+        self.recognizer = recognizer
+        self.textRecognizer = textRecognizer
+    }
 
     func boot(routes: RoutesBuilder) throws {
         let group = routes.grouped("v1").grouped(UserAuthMiddleware())
@@ -37,12 +45,14 @@ struct CaptureController: RouteCollection {
             draft = AIRecognitionMapper.draft(from: result, currencyCode: trip.currencyCode)
 
         } else if let text = body.text, !text.isEmpty {
-            // Text path — local, deterministic.
+            // Text path — AI (Gemini) with a deterministic local fallback. Moderate
+            // first (untrusted input), then recognize; the validator still guards
+            // money downstream (a missing amount blocks Save, never guessed).
             if let declined = try await guardModeration(text, uid: uid, req: req,
                                                         expenseShaped: DraftExtractor.firstAmount(in: text) != nil) {
                 return declined
             }
-            draft = DraftExtractor.parse(text, currencyCode: trip.currencyCode)
+            draft = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, on: req)
 
         } else {
             throw Abort(.badRequest, reason: "provide text or imageBase64")
