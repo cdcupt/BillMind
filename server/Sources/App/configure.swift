@@ -34,15 +34,16 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: TripController())
     try app.register(collection: BillController())
     try app.register(collection: StatsController())
-    let geminiModel = Environment.get("GEMINI_MODEL") ?? "gemini-2.5-flash"
-    let moderationService = ModerationService(client: OpenAIModerationClient())
+    let models = ModelConfig.fromEnvironment()
+    app.logger.info("AI models — gemini=\(models.gemini), moderation=\(models.moderation)")
+    let moderationService = ModerationService(client: OpenAIModerationClient(model: models.moderation))
     try app.register(collection: CaptureController(
         moderation: moderationService,
-        recognizer: GeminiRecognizer(model: geminiModel),
-        textRecognizer: GeminiTextRecognizer(model: geminiModel)
+        recognizer: GeminiRecognizer(model: models.gemini),
+        textRecognizer: GeminiTextRecognizer(model: models.gemini)
     ))
     try app.register(collection: AgentController(agent: AgentService(
-        llm: GeminiLLMClient(model: geminiModel), moderation: moderationService, quota: QuotaService()
+        llm: GeminiLLMClient(model: models.gemini), moderation: moderationService, quota: QuotaService()
     )))
     try app.register(collection: SyncController())
     try app.register(collection: ReportController())

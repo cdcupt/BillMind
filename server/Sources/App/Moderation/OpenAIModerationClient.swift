@@ -1,8 +1,13 @@
 import Vapor
 
-/// The live primary classifier: OpenAI's free `omni-moderation-latest` endpoint.
-/// Returns per-category continuous scores; not metered into the AI quota.
+/// The live primary classifier: OpenAI's `omni-moderation` endpoint. Returns
+/// per-category continuous scores; not metered into the AI quota. The model is
+/// configurable (`OPENAI_MODERATION_MODEL`) via `ModelConfig`.
 struct OpenAIModerationClient: ModerationClient {
+    let model: String
+
+    init(model: String = "omni-moderation-latest") { self.model = model }
+
     func score(_ text: String, on req: Request) async throws -> ModerationScores {
         guard let key = Environment.get("OPENAI_MODERATION_KEY"), !key.isEmpty else {
             throw Abort(.internalServerError, reason: "OPENAI_MODERATION_KEY not configured")
@@ -10,7 +15,7 @@ struct OpenAIModerationClient: ModerationClient {
         let uri = URI(string: "https://api.openai.com/v1/moderations")
         let response = try await req.client.post(uri) { out in
             out.headers.bearerAuthorization = .init(token: key)
-            try out.content.encode(Request_(model: "omni-moderation-latest", input: text))
+            try out.content.encode(Request_(model: model, input: text))
         }
         guard response.status == .ok else {
             throw Abort(.badGateway, reason: "moderation API returned \(response.status.code)")
