@@ -20,8 +20,8 @@ private struct StubRecognizer: Recognizer {
 }
 
 private struct StubTextRecognizer: TextRecognizer {
-    let draft: BillDraft
-    func recognize(text: String, currencyCode: String, on req: Request) async -> BillDraft { draft }
+    let drafts: [BillDraft]
+    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] { drafts }
 }
 
 final class CaptureTests: XCTestCase {
@@ -91,15 +91,38 @@ final class CaptureTests: XCTestCase {
     func testTextCaptureUsesTheTextRecognizer() async throws {
         let aiDraft = BillDraft(merchant: "Airport Taxi", amount: Decimal(3000), currencyCode: "JPY",
                                 date: nil, categoryRaw: "transport", source: .text)
-        let app = try await makeApp(textRecognizer: StubTextRecognizer(draft: aiDraft))
+        let app = try await makeApp(textRecognizer: StubTextRecognizer(drafts: [aiDraft]))
         let (t, trip) = try await signInAndTrip(app)
         try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
             beforeRequest: { try $0.content.encode(CaptureRequest(text: "cab from the airport, about 3000", tripID: trip.id)) },
             afterResponse: { res async throws in
                 let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertEqual(r.cards.count, 1)
                 XCTAssertEqual(r.card?.draft.merchant, "Airport Taxi")
                 XCTAssertEqual(r.card?.draft.amount, Decimal(3000))
                 XCTAssertEqual(r.card?.draft.categoryRaw, "transport")
+            })
+        try await app.asyncShutdown()
+    }
+
+    /// One sentence → several bills: the text recognizer returns multiple drafts and
+    /// the response carries one card per bill (with `card` = the first, for compat).
+    func testTextCaptureProducesMultipleCards() async throws {
+        let drafts = [
+            BillDraft(merchant: "Lunch", amount: Decimal(500), currencyCode: "JPY", date: nil, categoryRaw: "food", source: .text),
+            BillDraft(merchant: "Taxi", amount: Decimal(200), currencyCode: "JPY", date: nil, categoryRaw: "transport", source: .text),
+            BillDraft(merchant: "Coffee", amount: Decimal(80), currencyCode: "JPY", date: nil, categoryRaw: "food", source: .text),
+        ]
+        let app = try await makeApp(textRecognizer: StubTextRecognizer(drafts: drafts))
+        let (t, trip) = try await signInAndTrip(app)
+        try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: { try $0.content.encode(CaptureRequest(text: "lunch 500, taxi 200, coffee 80", tripID: trip.id)) },
+            afterResponse: { res async throws in
+                let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertEqual(r.cards.count, 3)
+                XCTAssertEqual(r.cards.map { $0.draft.merchant }, ["Lunch", "Taxi", "Coffee"])
+                XCTAssertEqual(r.cards.map { $0.draft.amount }, [Decimal(500), Decimal(200), Decimal(80)])
+                XCTAssertEqual(r.card?.draft.merchant, "Lunch")   // compat: first card
             })
         try await app.asyncShutdown()
     }

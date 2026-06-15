@@ -32,33 +32,36 @@ struct CaptureController: RouteCollection {
             .filter(\.$id == body.tripID).filter(\.$owner.$id == uid).first()
         else { throw Abort(.notFound, reason: "trip not found") }
 
-        let draft: BillDraft
+        let drafts: [BillDraft]
 
         if let imageBase64 = body.imageBase64, !imageBase64.isEmpty {
-            // Photo path — server-side recognition.
+            // Photo path — server-side recognition (one bill per receipt).
             let result = try await recognizer.recognize(imageBase64: imageBase64,
                                                          mimeType: body.mimeType ?? "image/jpeg", on: req)
             // Moderate the recognized text (treated as untrusted), catastrophic-only.
             let recognizedText = [result.merchant, result.notes].compactMap { $0 }.joined(separator: " ")
             if let declined = try await guardModeration(recognizedText.isEmpty ? "receipt" : recognizedText,
                                                         uid: uid, req: req) { return declined }
-            draft = AIRecognitionMapper.draft(from: result, currencyCode: trip.currencyCode)
+            drafts = [AIRecognitionMapper.draft(from: result, currencyCode: trip.currencyCode)]
 
         } else if let text = body.text, !text.isEmpty {
-            // Text path — AI (Gemini) with a deterministic local fallback. Moderate
-            // first (untrusted input), then recognize; the validator still guards
-            // money downstream (a missing amount blocks Save, never guessed).
+            // Text path — AI (Gemini) with a deterministic local fallback. One
+            // sentence can yield SEVERAL bills. Moderate first (untrusted input),
+            // then recognize; the validator still guards money downstream (a missing
+            // amount blocks Save, never guessed).
             if let declined = try await guardModeration(text, uid: uid, req: req,
                                                         expenseShaped: DraftExtractor.firstAmount(in: text) != nil) {
                 return declined
             }
-            draft = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, on: req)
+            drafts = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, on: req)
 
         } else {
             throw Abort(.badRequest, reason: "provide text or imageBase64")
         }
 
-        return makeCard(draft, tripID: try trip.requireID(), currencyCode: trip.currencyCode)
+        let tripID = try trip.requireID()
+        let cards = drafts.map { makeCardDTO($0, tripID: tripID, currencyCode: trip.currencyCode) }
+        return .cardsResponse(cards)
     }
 
     /// Runs the gate; returns a decline response if blocked, else nil (proceed).
@@ -68,12 +71,10 @@ struct CaptureController: RouteCollection {
         try await moderation.logEvent(verdict, raw: text, surface: .recognition, userID: uid,
                                       requestID: req.id, on: req.db)
         guard verdict.decision == .block else { return nil }
-        return CaptureResponse(declined: true,
-                               message: "I can't help with that one — I'm your travel-and-money agent.",
-                               card: nil)
+        return .declinedResponse("I can't help with that one — I'm your travel-and-money agent.")
     }
 
-    private func makeCard(_ draft: BillDraft, tripID: UUID, currencyCode: String) -> CaptureResponse {
+    private func makeCardDTO(_ draft: BillDraft, tripID: UUID, currencyCode: String) -> CardDTO {
         let validator = BillValidator(
             knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
             journalCurrencyCode: currencyCode, today: Date()
@@ -82,7 +83,6 @@ struct CaptureController: RouteCollection {
             GapDTO(field: $0.field.rawValue, reason: $0.reason,
                    prompt: $0.question.prompt, options: $0.question.options.map(\.label))
         }
-        let card = CardDTO(tripID: tripID, draft: BillDraftDTO(draft), gaps: gaps, canSave: draft.amount != nil)
-        return CaptureResponse(declined: false, message: nil, card: card)
+        return CardDTO(tripID: tripID, draft: BillDraftDTO(draft), gaps: gaps, canSave: draft.amount != nil)
     }
 }

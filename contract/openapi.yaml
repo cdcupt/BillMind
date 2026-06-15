@@ -634,7 +634,11 @@ components:
         declined: { type: boolean }
         message: { type: string, nullable: true }
         card: { oneOf: [{ $ref: "#/components/schemas/Card" }, { type: "null" }] }
-      required: [declined]
+        cards:
+          type: array
+          description: One card per recognized bill (a sentence can yield several). `card` is the first, kept for backward-compat.
+          items: { $ref: "#/components/schemas/Card" }
+      required: [declined, cards]
 
     ChatRequest:
       type: object

@@ -71,12 +71,20 @@ final class RecordCoordinator {
                 declineMessage = response.message ?? "I can only help with travel and money."
                 return
             }
-            guard let card = response.card else {
+            let cards = response.allCards
+            guard let first = cards.first else {
                 completeLocally(text: text, cardID: cardID)   // unexpected empty → fallback
                 return
             }
-            let draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
-            _ = session.completeExtraction(cardID: cardID, draft: draft)
+            // First bill fills the card we already enqueued; each additional bill
+            // (one sentence → several bills) gets its own new card.
+            _ = session.completeExtraction(cardID: cardID,
+                draft: BillDraft(serverDraft: first.draft, fallbackCurrency: journal.currency))
+            for extra in cards.dropFirst() {
+                let extraID = session.enqueue(source: .text)
+                _ = session.completeExtraction(cardID: extraID,
+                    draft: BillDraft(serverDraft: extra.draft, fallbackCurrency: journal.currency))
+            }
         } catch {
             // Offline / server error → graceful local fallback so capture never breaks.
             completeLocally(text: text, cardID: cardID)

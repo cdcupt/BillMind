@@ -476,6 +476,10 @@ struct APICaptureResponse: Codable, Sendable {
     let declined: Bool
     let message: String?
     let card: APICard?
+    /// One card per recognized bill (a sentence can yield several). Falls back to
+    /// `[card]` for older servers that don't send `cards`.
+    let cards: [APICard]?
+    var allCards: [APICard] { cards ?? card.map { [$0] } ?? [] }
 }
 
 // Stats

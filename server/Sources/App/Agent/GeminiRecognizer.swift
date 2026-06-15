@@ -51,6 +51,22 @@ struct GeminiRecognizer: Recognizer {
         let jsonText = String(text[start...end])
         return try JSONDecoder().decode(AIRecognitionResult.self, from: Data(jsonText.utf8))
     }
+
+    /// Like `parse`, but for the text path where the model returns a JSON ARRAY of
+    /// expenses (one sentence → several bills). Falls back to a single object if the
+    /// model returned one. Tolerates ``` fences / prose around the JSON.
+    static func parseMany(_ data: Data) throws -> [AIRecognitionResult] {
+        let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        let parts = (((obj?["candidates"] as? [[String: Any]])?.first?["content"] as? [String: Any])?["parts"] as? [[String: Any]]) ?? []
+        let text = parts.compactMap { $0["text"] as? String }.joined()
+        if let s = text.firstIndex(of: "["), let e = text.lastIndex(of: "]"), s < e {
+            return try JSONDecoder().decode([AIRecognitionResult].self, from: Data(text[s...e].utf8))
+        }
+        if let s = text.firstIndex(of: "{"), let e = text.lastIndex(of: "}"), s <= e {
+            return [try JSONDecoder().decode(AIRecognitionResult.self, from: Data(text[s...e].utf8))]
+        }
+        throw Abort(.badGateway, reason: "recognition returned no JSON")
+    }
 }
 
 // Gemini vision request (encode-only; nil parts are omitted by synthesized Codable).
@@ -84,18 +100,19 @@ struct GThinking: Content {
 
 // MARK: - Text recognition (the typed-capture "AI" path)
 
-/// Turns a typed expense note into a `BillDraft`. Always yields a draft (never
-/// throws) so capture stays responsive; an implementation may use AI or a local
-/// parser. The "never guess money" rule is preserved downstream by the validator.
+/// Turns a typed expense note into one OR MORE `BillDraft`s — one sentence can
+/// describe several bills ("lunch 500, taxi 200"). Always yields at least one draft
+/// (never throws) so capture stays responsive. The "never guess money" rule is
+/// preserved downstream by the validator.
 protocol TextRecognizer: Sendable {
-    func recognize(text: String, currencyCode: String, on req: Request) async -> BillDraft
+    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft]
 }
 
-/// Deterministic, offline fallback — the local `DraftExtractor`. Used in tests and
-/// whenever AI is unavailable.
+/// Deterministic, offline fallback — the local `DraftExtractor` (one bill only).
+/// Used in tests and whenever AI is unavailable.
 struct LocalTextRecognizer: TextRecognizer {
-    func recognize(text: String, currencyCode: String, on req: Request) async -> BillDraft {
-        DraftExtractor.parse(text, currencyCode: currencyCode)
+    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] {
+        [DraftExtractor.parse(text, currencyCode: currencyCode)]
     }
 }
 
@@ -109,27 +126,30 @@ struct GeminiTextRecognizer: TextRecognizer {
 
     static func prompt(today: String) -> String {
         """
-        You convert a short typed expense note into STRICT JSON (no prose, no markdown) \
-        with keys: merchant (string), date (yyyy-MM-dd), totalAmount (number), \
-        currency (ISO 4217), category (one of: food, transport, accommodation, shopping, \
-        entertainment, utilities, medical, education, subscription, misc), \
+        You convert a typed expense note into STRICT JSON: a JSON ARRAY where each \
+        element is ONE distinct expense. If the note mentions several expenses \
+        ("lunch 500, taxi 200, coffee 80"), return one array element PER expense; if \
+        it's a single expense, return an array with one element. Each element has keys: \
+        merchant (string), date (yyyy-MM-dd), totalAmount (number), currency (ISO 4217), \
+        category (one of: food, transport, accommodation, shopping, entertainment, \
+        utilities, medical, education, subscription, misc), \
         lineItems (array of {description, amount}), notes (string). \
         Resolve relative dates (today, yesterday, last friday) against today=\(today). \
         Infer currency only when a symbol or code is present ($→USD, ¥→JPY, €→EUR). \
         Always include a best-fit category (use "misc" if unsure). Omit any other field \
-        not stated. NEVER invent the total — omit totalAmount if no amount is stated. \
-        Output only the JSON object.
+        not stated for that expense. NEVER invent a total — omit totalAmount if no \
+        amount is stated. Output ONLY the JSON array.
         """
     }
 
-    func recognize(text: String, currencyCode: String, on req: Request) async -> BillDraft {
-        if let result = try? await callGemini(text, on: req) {
-            return AIRecognitionMapper.draft(from: result, currencyCode: currencyCode, source: .text)
+    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] {
+        if let results = try? await callGemini(text, on: req), !results.isEmpty {
+            return results.map { AIRecognitionMapper.draft(from: $0, currencyCode: currencyCode, source: .text) }
         }
-        return DraftExtractor.parse(text, currencyCode: currencyCode)   // graceful fallback
+        return [DraftExtractor.parse(text, currencyCode: currencyCode)]   // graceful fallback (one bill)
     }
 
-    private func callGemini(_ text: String, on req: Request) async throws -> AIRecognitionResult {
+    private func callGemini(_ text: String, on req: Request) async throws -> [AIRecognitionResult] {
         guard let key = Environment.get("GEMINI_API_KEY"), !key.isEmpty else {
             throw Abort(.serviceUnavailable, reason: "GEMINI_API_KEY not configured")
         }
@@ -143,7 +163,7 @@ struct GeminiTextRecognizer: TextRecognizer {
             throw Abort(.badGateway, reason: "Gemini text returned \(response.status.code)")
         }
         let data = response.body.map { Data(buffer: $0) } ?? Data()
-        return try GeminiRecognizer.parse(data)
+        return try GeminiRecognizer.parseMany(data)
     }
 
     private static func todayString() -> String {

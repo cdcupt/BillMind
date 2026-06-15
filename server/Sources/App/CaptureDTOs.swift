@@ -36,11 +36,23 @@ struct CardDTO: Content {
     let canSave: Bool
 }
 
-/// Recognition result: either a card to confirm, or a calm decline.
+/// Recognition result: a list of cards to confirm (one per recognized bill — a
+/// single sentence can yield several), or a calm decline. `card` is kept as the
+/// first card for backward-compatibility with older clients; new clients use
+/// `cards`.
 struct CaptureResponse: Content {
     let declined: Bool
     let message: String?
     let card: CardDTO?
+    let cards: [CardDTO]
+
+    static func declinedResponse(_ message: String) -> CaptureResponse {
+        CaptureResponse(declined: true, message: message, card: nil, cards: [])
+    }
+
+    static func cardsResponse(_ cards: [CardDTO]) -> CaptureResponse {
+        CaptureResponse(declined: false, message: nil, card: cards.first, cards: cards)
+    }
 }
 
 struct CaptureRequest: Content {

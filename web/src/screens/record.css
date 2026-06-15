@@ -82,3 +82,10 @@
   gap: var(--space-3);
   max-width: 26rem;
 }
+
+/* One CaptureCard per recognized bill (a sentence can yield several). */
+.record__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

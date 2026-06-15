@@ -27,6 +27,8 @@ export function RecordScreen() {
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [ledgerVersion, setLedgerVersion] = useState(0);
+  // Indices of cards (in the current result) already saved — they drop from view.
+  const [savedCards, setSavedCards] = useState<Set<number>>(() => new Set());
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Default the trip selection once trips arrive.
@@ -40,6 +42,7 @@ export function RecordScreen() {
     setPhase({ kind: "recognizing" });
     try {
       const response = await api.recognize({ tripID, ...payload });
+      setSavedCards(new Set());
       setPhase({ kind: "result", response });
     } catch (e) {
       setError(e instanceof ApiError ? e.reason : "Recognition failed — try again.");
@@ -63,6 +66,7 @@ export function RecordScreen() {
 
   function reset() {
     setText("");
+    setSavedCards(new Set());
     setPhase({ kind: "idle" });
   }
 
@@ -160,20 +164,31 @@ export function RecordScreen() {
         </div>
       )}
 
-      {result?.card && (
-        <CaptureCard
-          card={result.card}
-          onSaved={() => {
-            setPhase({ kind: "saved" });
-            setText("");
-            setLedgerVersion((v) => v + 1);
-          }}
-        />
+      {result && result.cards.length > 0 && (
+        <div className="record__cards">
+          {result.cards.map((card, i) =>
+            savedCards.has(i) ? null : (
+              <CaptureCard
+                key={i}
+                card={card}
+                onSaved={() => {
+                  setSavedCards((prev) => new Set(prev).add(i));
+                  setLedgerVersion((v) => v + 1);
+                  setText("");
+                }}
+              />
+            ),
+          )}
+        </div>
       )}
 
-      {phase.kind === "saved" && (
+      {result && result.cards.length > 0 && savedCards.size === result.cards.length && (
         <div className="note-card record__saved">
-          <p>Saved to your ledger. ✶</p>
+          <p>
+            {result.cards.length > 1
+              ? `Saved ${result.cards.length} bills to your ledger. ✶`
+              : "Saved to your ledger. ✶"}
+          </p>
           <button className="stamp-button stamp-button--ghost" type="button" onClick={reset}>
             Record another
           </button>

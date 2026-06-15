@@ -1000,6 +1000,8 @@ export interface components {
             declined: boolean;
             message?: string | null;
             card?: components["schemas"]["Card"] | null;
+            /** @description One card per recognized bill (a sentence can yield several). `card` is the first, kept for backward-compat. */
+            cards: components["schemas"]["Card"][];
         };
         ChatRequest: {
             message: string;
