@@ -16,11 +16,29 @@ struct AgentCardView: View {
     let onEditField: (BillField) -> Void
 
     @State private var ackArmed = false
+    @State private var pulse = false
+    @State private var shimmer: CGFloat = -1
 
     private var draft: BillDraft { card.draft }
     private var amountMissing: Bool { draft.amount == nil }
 
     var body: some View {
+        ZStack {
+            if card.state == .extracting {
+                thinkingView.transition(.opacity)
+            } else {
+                cardContent.transition(.opacity)
+            }
+        }
+        .sketchCard(cornerRadius: 18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(borderColor, lineWidth: 2)
+        )
+        .animation(.easeInOut(duration: 0.4), value: card.state)
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
             mainRow
@@ -28,11 +46,63 @@ struct AgentCardView: View {
             if card.state == .clarifying { clarify }
             actions
         }
-        .sketchCard(cornerRadius: 18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(borderColor, lineWidth: 2)
-        )
+    }
+
+    // MARK: - Thinking state (extraction in progress)
+
+    /// A calm "agent is reading" state: a shimmering skeleton of the card-to-come
+    /// with a pulsing sparkle, instead of an empty placeholder card. Cross-fades
+    /// into the real card when the AI returns.
+    private var thinkingView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 7) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(SketchTheme.warmOrange)
+                    .scaleEffect(pulse ? 1.2 : 0.8)
+                    .opacity(pulse ? 1 : 0.5)
+                Text("Reading…")
+                    .font(SketchTheme.captionFont(13))
+                    .foregroundStyle(SketchTheme.softBlue)
+                    .opacity(pulse ? 1 : 0.6)
+                Spacer()
+                Text(sourceLabel)
+                    .font(.system(size: 10))
+                    .foregroundStyle(SketchTheme.lightBrown)
+            }
+            HStack(spacing: 12) {
+                skeleton(RoundedRectangle(cornerRadius: 10), width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 7) {
+                    skeleton(Capsule(), width: 130, height: 14)
+                    HStack(spacing: 6) {
+                        skeleton(Capsule(), width: 56, height: 12)
+                        skeleton(Capsule(), width: 42, height: 12)
+                    }
+                }
+                Spacer()
+                skeleton(Capsule(), width: 58, height: 18)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) { pulse = true }
+            withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) { shimmer = 1 }
+        }
+    }
+
+    /// A skeleton placeholder with a left-to-right shimmer sweep.
+    private func skeleton(_ shape: some Shape, width: CGFloat, height: CGFloat) -> some View {
+        shape
+            .fill(SketchTheme.lightBrown.opacity(0.16))
+            .frame(width: width, height: height)
+            .overlay(
+                shape
+                    .fill(LinearGradient(
+                        colors: [.clear, SketchTheme.cream.opacity(0.95), .clear],
+                        startPoint: .leading, endPoint: .trailing))
+                    .frame(width: width, height: height)
+                    .offset(x: shimmer * (width + 50))
+            )
+            .clipShape(shape)
     }
 
     // MARK: - Header (status badge)
