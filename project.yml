@@ -6,14 +6,23 @@ options:
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
 
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 7.0.0
+
 targets:
   BillMind:
     type: application
     platform: iOS
     sources:
       - BillMind
+    dependencies:
+      - package: GoogleSignIn
+        product: GoogleSignIn
     settings:
       base:
+        INFOPLIST_FILE: BillMind/Info.plist
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES

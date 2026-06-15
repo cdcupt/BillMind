@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 import CryptoKit
+import GoogleSignIn
 
 /// Launch gate: a brief splash while tokens resolve, the sign-in screen when
 /// signed out, the main tabs when signed in.
@@ -133,16 +134,18 @@ struct SignInView: View {
                 .frame(height: 50)
                 .padding(.horizontal, 32)
 
-                // Google sign-in on iOS needs the GoogleSignIn SDK + URL scheme;
-                // wired in a later slice. The server already supports /v1/auth/google.
+                // Google sign-in via the GoogleSignIn SDK. The ID token's audience
+                // is the web client (GIDServerClientID in Info.plist), which the
+                // server validates at /v1/auth/google.
                 Button {
+                    handleGoogle()
                 } label: {
                     Text("Continue with Google")
                         .frame(maxWidth: .infinity, minHeight: 50)
                 }
                 .buttonStyle(.bordered)
-                .tint(SketchTheme.softBrown.opacity(0.4))
-                .disabled(true)
+                .tint(SketchTheme.softBrown)
+                .accessibilityIdentifier("signin-google")
                 .padding(.horizontal, 32)
 
                 if auth.isWorking {
@@ -173,6 +176,26 @@ struct SignInView: View {
         }
         let nonce = currentNonce
         Task { await auth.signIn(provider: "apple", idToken: idToken, nonce: nonce) }
+    }
+
+    /// Google sign-in via the GoogleSignIn SDK. `GIDClientID`/`GIDServerClientID`
+    /// are read from Info.plist, so the ID token is minted for the web client the
+    /// server validates; we then exchange it at /v1/auth/google.
+    private func handleGoogle() {
+        guard let presenter = Self.topViewController() else { return }
+        GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, _ in
+            guard let idToken = result?.user.idToken?.tokenString else { return }
+            Task { await auth.signIn(provider: "google", idToken: idToken) }
+        }
+    }
+
+    /// The frontmost view controller to present the Google sheet from.
+    private static func topViewController() -> UIViewController? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        var top = scene?.keyWindow?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        return top
     }
 
     // Apple-recommended nonce: random raw value sent to the server, SHA-256 set

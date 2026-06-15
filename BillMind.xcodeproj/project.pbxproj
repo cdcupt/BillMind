@@ -24,6 +24,7 @@
 		4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756A864413BC8D9BB24656BB /* BillMindApp.swift */; };
 		4EA06032421200FC49E1A810 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */; };
 		521CF057CC63E35FE5891597 /* BillMindSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA204CD0D1DB86DB5AB862EB /* BillMindSchema.swift */; };
+		58F37BC1AAE4FDD844C30952 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C48382B4B19962D9F972DEB4 /* GoogleSignIn */; };
 		5AC3B4D9B628FF07A061DB21 /* JournalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7357226A0B23BDA5F752CE61 /* JournalDetailView.swift */; };
 		6B092F011A8C5598B03358ED /* NewJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CBDC721C842EBDE71F3DE63 /* NewJournalView.swift */; };
 		6EDF5F8616782B04D2FD9D06 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F627B2C431A4DEF5C0281FD /* Journal.swift */; };
@@ -108,6 +109,7 @@
 		94B2A264893EE938283B7450 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9838FDF10EDA7D8E0A909B4F /* SketchShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchShapes.swift; sourceTree = "<group>"; };
 		AA204CD0D1DB86DB5AB862EB /* BillMindSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindSchema.swift; sourceTree = "<group>"; };
+		AABE92B8953FECBA3750EF2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B07DB150C234A230A577B903 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindTests.swift; sourceTree = "<group>"; };
 		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
@@ -121,6 +123,17 @@
 		FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDetailView.swift; sourceTree = "<group>"; };
 		FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionResult.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B4A816527F969406C0F45926 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58F37BC1AAE4FDD844C30952 /* GoogleSignIn in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		02FD356573AD6E57B2BD7F9C /* Journal */ = {
@@ -136,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */,
+				AABE92B8953FECBA3750EF2A /* Info.plist */,
 				2C9BD4948C95BDE3953838CC /* Agent */,
 				2F697C3129FC289BB29304B4 /* App */,
 				CDAC660854BA7F94AF8FF06A /* Models */,
@@ -330,6 +344,7 @@
 			buildPhases = (
 				A0F445FA695CA2D4A005EBFC /* Sources */,
 				97BD777D35A91F210198CB55 /* Resources */,
+				B4A816527F969406C0F45926 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -337,6 +352,7 @@
 			);
 			name = BillMind;
 			packageProductDependencies = (
+				C48382B4B19962D9F972DEB4 /* GoogleSignIn */,
 			);
 			productName = BillMind;
 			productReference = 13241D7F1AD186DBBDAC600E /* BillMind.app */;
@@ -401,6 +417,9 @@
 			);
 			mainGroup = 734FD2CC5B3993830901B215;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AB2A946CF0EB16E2088936F5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A5FF3BE7520DAF6190C6B73 /* Products */;
 			projectDirPath = "";
@@ -633,6 +652,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "BillMind needs camera access to scan bills and invoices";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BillMind needs photo library access to import bill images";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -735,6 +755,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "BillMind needs camera access to scan bills and invoices";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BillMind needs photo library access to import bill images";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -797,6 +818,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AB2A946CF0EB16E2088936F5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C48382B4B19962D9F972DEB4 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB2A946CF0EB16E2088936F5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5B88951733D73AD73F1CDA4A /* Project object */;
 }

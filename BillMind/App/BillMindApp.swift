@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import os
+import GoogleSignIn
 
 /// Authentication state for the whole app. Owns the shared APIClient (already
 /// wired with the Keychain TokenVault + single-flight refresh) and drives the
@@ -253,6 +254,10 @@ struct BillMindApp: App {
                     if phase == .active, case .signedIn = auth.state {
                         Task { await sync.sync() }
                     }
+                }
+                // Complete the Google sign-in OAuth callback.
+                .onOpenURL { url in
+                    _ = GIDSignIn.sharedInstance.handle(url)
                 }
         }
         .modelContainer(container)
