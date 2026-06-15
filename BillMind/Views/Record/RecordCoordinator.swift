@@ -42,13 +42,51 @@ final class RecordCoordinator {
 
     // MARK: - Capture
 
-    /// Text path — local, deterministic parse. No network, no API key.
+    /// Text path — **AI-first**: server-side recognition (Gemini) when the trip is
+    /// synced + online, with the local `DraftExtractor` as a fallback only (offline,
+    /// pre-sync, or on error). The AI is the product; the local parser is never the
+    /// primary path — it just keeps capture working when the AI is unreachable.
     func submitText(_ raw: String) {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let id = session.enqueue(source: .text)
-        let draft = DraftExtractor.parse(trimmed, currencyCode: journal.currency)
-        _ = session.completeExtraction(cardID: id, draft: draft)
+        // No synced trip → can't reach the server; deterministic local fallback.
+        guard let tripID = journal.serverID else {
+            completeLocally(text: trimmed, cardID: id)
+            return
+        }
+        guard session.beginExtraction(cardID: id) else {
+            errorMessage = "Session limit reached — start a new session."
+            return
+        }
+        Task { await extractText(trimmed, cardID: id, tripID: tripID) }
+    }
+
+    private func extractText(_ text: String, cardID: UUID, tripID: UUID) async {
+        do {
+            let response = try await recognizer.recognize(APICaptureRequest(
+                text: text, tripID: tripID, imageBase64: nil, mimeType: nil))
+            if response.declined {
+                _ = session.failExtraction(cardID: cardID)
+                declineMessage = response.message ?? "I can only help with travel and money."
+                return
+            }
+            guard let card = response.card else {
+                completeLocally(text: text, cardID: cardID)   // unexpected empty → fallback
+                return
+            }
+            let draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
+            _ = session.completeExtraction(cardID: cardID, draft: draft)
+        } catch {
+            // Offline / server error → graceful local fallback so capture never breaks.
+            completeLocally(text: text, cardID: cardID)
+        }
+    }
+
+    /// Deterministic local fallback (offline / pre-sync / AI error).
+    private func completeLocally(text: String, cardID: UUID) {
+        let draft = DraftExtractor.parse(text, currencyCode: journal.currency)
+        _ = session.completeExtraction(cardID: cardID, draft: draft)
     }
 
     /// Photo path — server-side recognition (Gemini vision + moderation). The
