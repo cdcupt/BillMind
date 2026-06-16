@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type CaptureResponse } from "../api/client";
 import { useTrips } from "../hooks/useTrips";
+import { useVoiceCapture } from "../hooks/useVoiceCapture";
 import { CaptureCard } from "../components/CaptureCard";
 import { BillsList } from "../components/BillsList";
 import "./screen.css";
@@ -30,24 +31,48 @@ export function RecordScreen() {
   // Indices of cards (in the current result) already saved — they drop from view.
   const [savedCards, setSavedCards] = useState<Set<number>>(() => new Set());
   const fileRef = useRef<HTMLInputElement>(null);
+  const voice = useVoiceCapture();
 
   // Default the trip selection once trips arrive.
   useEffect(() => {
     if (!tripID && trips.length) setTripID(trips[0].id);
   }, [trips, tripID]);
 
-  async function recognize(payload: { text?: string; imageBase64?: string; mimeType?: string }) {
-    if (!tripID) return;
-    setError(null);
-    setPhase({ kind: "recognizing" });
-    try {
-      const response = await api.recognize({ tripID, ...payload });
-      setSavedCards(new Set());
-      setPhase({ kind: "result", response });
-    } catch (e) {
-      setError(e instanceof ApiError ? e.reason : "Recognition failed — try again.");
-      setPhase({ kind: "idle" });
+  const recognize = useCallback(
+    async (payload: { text?: string; imageBase64?: string; mimeType?: string }) => {
+      if (!tripID) return;
+      setError(null);
+      setPhase({ kind: "recognizing" });
+      try {
+        const response = await api.recognize({ tripID, ...payload });
+        setSavedCards(new Set());
+        setPhase({ kind: "result", response });
+      } catch (e) {
+        setError(e instanceof ApiError ? e.reason : "Recognition failed — try again.");
+        setPhase({ kind: "idle" });
+      }
+    },
+    [tripID],
+  );
+
+  // Mirror the live transcription into the textarea while the user speaks.
+  useEffect(() => {
+    if (voice.isRecording) setText(voice.transcript);
+  }, [voice.transcript, voice.isRecording]);
+
+  // Tap to dictate, tap again to stop — the final transcript flows through the
+  // same AI pipeline as typed text (multi-bill, every field).
+  function toggleVoice() {
+    if (voice.isRecording) {
+      voice.stop();
+      return;
     }
+    setText("");
+    voice.start((finalText) => {
+      const t = finalText.trim();
+      setText("");
+      if (t) void recognize({ text: t });
+    });
   }
 
   async function onText(e: React.FormEvent) {
@@ -126,23 +151,34 @@ export function RecordScreen() {
         <textarea
           className="record__text"
           rows={2}
-          placeholder="e.g. ramen 2840, taxi to hotel 1200…"
+          placeholder={voice.isRecording ? "Listening…" : "e.g. ramen 2840, taxi to hotel 1200…"}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          readOnly={voice.isRecording}
         />
         <div className="record__actions">
           <button
             className="stamp-button"
             type="submit"
-            disabled={phase.kind === "recognizing" || !text.trim()}
+            disabled={phase.kind === "recognizing" || voice.isRecording || !text.trim()}
           >
             {phase.kind === "recognizing" ? "Reading…" : "Record"}
           </button>
+          {voice.supported && (
+            <button
+              type="button"
+              className={`stamp-button stamp-button--ghost${voice.isRecording ? " record__mic--live" : ""}`}
+              onClick={toggleVoice}
+              disabled={phase.kind === "recognizing"}
+            >
+              {voice.isRecording ? "⏹ Stop" : "🎙 Speak"}
+            </button>
+          )}
           <button
             type="button"
             className="stamp-button stamp-button--ghost"
             onClick={() => fileRef.current?.click()}
-            disabled={phase.kind === "recognizing"}
+            disabled={phase.kind === "recognizing" || voice.isRecording}
           >
             📷 Receipt
           </button>
@@ -157,6 +193,7 @@ export function RecordScreen() {
       </form>
 
       {error && <p className="record__error">{error}</p>}
+      {voice.error && <p className="record__error">{voice.error}</p>}
 
       {result?.declined && (
         <div className="note-card record__declined">
