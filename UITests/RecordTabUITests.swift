@@ -118,6 +118,41 @@ final class RecordTabUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["In the trip"].exists, "A discarded card must not persist")
     }
 
+    // MARK: - 3b. Voice mic toggle must not crash (regression)
+
+    /// Tapping the mic used to trap on a background queue: a @MainActor closure
+    /// passed to the Speech/AVFoundation permission callbacks inherited MainActor
+    /// isolation but was invoked off-main (EXC_BREAKPOINT in the TCC callback).
+    /// This taps the mic, auto-allows the permission alerts so the completion
+    /// callbacks actually fire, and asserts the app is still alive.
+    @MainActor
+    func testVoiceMicButtonDoesNotCrash() throws {
+        let app = launchedApp()
+        createTrip(app, named: "Voice Trip")
+
+        addUIInterruptionMonitor(withDescription: "speech + mic permission") { alert in
+            for label in ["Allow", "OK", "Allow While Using App"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+
+        let mic = app.buttons["record-mic"]
+        XCTAssertTrue(mic.waitForExistence(timeout: 10))
+        mic.tap()
+
+        // Nudge the run loop so the interruption monitor can dismiss any alert,
+        // which is what fires the permission completion callbacks.
+        app.tap()
+        sleep(2)
+
+        XCTAssertEqual(app.state, .runningForeground,
+                       "Tapping the mic must not crash the app")
+        XCTAssertTrue(app.textFields["record-input"].waitForExistence(timeout: 5),
+                      "The Record input bar should still be present after toggling voice")
+    }
+
     // MARK: - 4. First-launch notice shows once
 
     @MainActor

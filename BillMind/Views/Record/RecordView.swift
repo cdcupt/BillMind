@@ -3,6 +3,7 @@ import SwiftData
 import PhotosUI
 import Speech
 import AVFoundation
+import os
 
 /// The Record tab: pick a journal, then type a phrase (or pick photos) and the
 /// agent turns each into an editable bill card you confirm. Text capture needs no
@@ -187,6 +188,7 @@ struct RecordView: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 26)).foregroundStyle(SketchTheme.dustyRose)
             }
+            .disabled(voice.isRecording)   // avoid submitting partial text mid-dictation
             .accessibilityIdentifier("record-send")
         }
         .padding(10)
@@ -309,88 +311,173 @@ final class VoiceCapture: ObservableObject {
     private var task: SFSpeechRecognitionTask?
     private var onFinish: ((String) -> Void)?
 
+    // Re-entrancy + lifecycle guards. `startEpoch` invalidates an in-flight
+    // permission request when a newer start() or a stop() arrives (otherwise a
+    // double-tap during the permission window would install two taps and crash).
+    // `tapInstalled`/`sessionActive` make teardown exact regardless of how far
+    // setup got. `sessionID` lets the recognition handler ignore stale callbacks.
+    // `isFinishing` makes finish() idempotent.
+    private var startEpoch = 0
+    private var sessionID = 0
+    private var tapInstalled = false
+    private var sessionActive = false
+    private var isFinishing = false
+
+    private static let log = Logger(subsystem: "com.billmind.app", category: "VoiceCapture")
+
     /// Ask for permission, then begin listening. `onFinish` fires once with the
     /// final transcript when recording stops (or the recognizer finalizes).
     func start(onFinish: @escaping (String) -> Void) {
+        guard !isRecording else { return }
+        startEpoch &+= 1
+        let epoch = startEpoch
         self.onFinish = onFinish
         transcript = ""
         errorMessage = nil
 
-        SFSpeechRecognizer.requestAuthorization { speechAuth in
-            AVAudioApplication.requestRecordPermission { micGranted in
-                DispatchQueue.main.async {
-                    guard speechAuth == .authorized else {
-                        self.fail("Allow Speech Recognition in Settings to add bills by voice.")
-                        return
-                    }
-                    guard micGranted else {
-                        self.fail("Allow Microphone access in Settings to add bills by voice.")
-                        return
-                    }
-                    self.beginSession()
-                }
+        // The permission callbacks fire on a background queue. We MUST NOT touch
+        // this @MainActor instance from there, so we bridge them through async
+        // helpers that capture no isolated state, then resume here on the
+        // MainActor (this Task inherits MainActor isolation from `start`).
+        Task { [weak self] in
+            let speechGranted = await Self.requestSpeechAuthorization()
+            let micGranted = await Self.requestMicPermission()
+            // A newer start() or a stop() bumped the epoch → this attempt is stale.
+            guard let self, self.startEpoch == epoch, !self.isRecording else { return }
+            guard speechGranted else {
+                self.fail("Allow Speech Recognition in Settings to add bills by voice.")
+                return
             }
+            guard micGranted else {
+                self.fail("Allow Microphone access in Settings to add bills by voice.")
+                return
+            }
+            self.beginSession()
         }
     }
 
     /// Stop listening and submit whatever was heard so far.
     func stop() {
+        startEpoch &+= 1   // invalidate any permission request still in flight
         finish(submit: true)
     }
 
-    // MARK: - Private
+    // MARK: - Permissions
+    //
+    // `nonisolated static` so the completion closures capture only the
+    // continuation (Sendable) — never `self` — which keeps them off the
+    // MainActor and avoids the executor-isolation trap the SDK triggers by
+    // calling them on a background queue.
+
+    private nonisolated static func requestSpeechAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status == .authorized)
+            }
+        }
+    }
+
+    private nonisolated static func requestMicPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
+    }
+
+    // MARK: - Session
 
     private func beginSession() {
+        // The Simulator has no audio-input HAL: merely touching `audioEngine.inputNode`
+        // spins up AURemoteIO, whose RPC times out and calls abort() (SIGABRT, deep in
+        // AudioToolbox — uncatchable). Voice capture only works on a real device.
+        #if targetEnvironment(simulator)
+        fail("Voice input needs a real device — the Simulator has no microphone.")
+        return
+        #else
         guard let recognizer, recognizer.isAvailable else {
             fail("Speech recognition isn't available right now.")
             return
         }
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setCategory(.record, mode: .measurement)   // .duckOthers is invalid with .record
             try session.setActive(true, options: .notifyOthersOnDeactivation)
+            sessionActive = true
+
+            // Bail before touching the engine if this device has no input.
+            guard session.isInputAvailable else {
+                fail("No microphone input is available on this device.")
+                return
+            }
+
+            let input = audioEngine.inputNode
+            let format = input.outputFormat(forBus: 0)
+            // Defensive: an invalid (0 Hz / 0-channel) format would make installTap throw.
+            guard format.sampleRate > 0, format.channelCount > 0 else {
+                fail("No microphone input is available on this device.")
+                return
+            }
 
             let request = SFSpeechAudioBufferRecognitionRequest()
             request.shouldReportPartialResults = true
             self.request = request
 
-            let input = audioEngine.inputNode
-            let format = input.outputFormat(forBus: 0)
-            input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-                self?.request?.append(buffer)
+            // The tap runs on the realtime audio thread. Capture `request`
+            // directly (not `self`) so we never read MainActor state off-main.
+            input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in
+                request.append(buffer)
             }
+            tapInstalled = true
+
             audioEngine.prepare()
             try audioEngine.start()
             isRecording = true
 
-            task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                guard let self else { return }
-                DispatchQueue.main.async {
-                    if let result {
-                        self.transcript = result.bestTranscription.formattedString
-                        if result.isFinal { self.finish(submit: true) }
-                    } else if error != nil {
-                        // endAudio() during stop() surfaces here — submit what we have.
-                        self.finish(submit: true)
-                    }
+            // Tag this session; the handler ignores callbacks from a finished one.
+            sessionID &+= 1
+            let generation = sessionID
+            // The recognition handler is also invoked off-main. Pull plain values
+            // out first, then hop to the MainActor to mutate state.
+            task = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
+                let text = result?.bestTranscription.formattedString
+                let isFinal = result?.isFinal ?? false
+                let failed = error != nil
+                Task { @MainActor in
+                    guard let self, self.sessionID == generation else { return }
+                    if let text { self.transcript = text }
+                    if isFinal || failed { self.finish(submit: true) }
                 }
             }
         } catch {
+            Self.log.error("beginSession failed: \(error.localizedDescription, privacy: .public)")
             fail("Couldn't start recording — try again.")
         }
+        #endif
     }
 
+    /// Tear down exactly what was set up — driven by explicit flags, not a guess —
+    /// and deliver the transcript at most once. Idempotent and re-entrancy-safe.
     private func finish(submit: Bool) {
-        let wasActive = isRecording || task != nil
-        if wasActive {
-            audioEngine.stop()
+        guard !isFinishing else { return }
+        isFinishing = true
+        defer { isFinishing = false }
+
+        sessionID &+= 1   // invalidate any in-flight recognition callbacks
+        if tapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
-            request?.endAudio()
-            task?.cancel()
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            tapInstalled = false
         }
+        if audioEngine.isRunning { audioEngine.stop() }
+        request?.endAudio()
+        let endingTask = task
+        task = nil          // nil before cancel so a late callback sees no work
+        endingTask?.cancel()
         request = nil
-        task = nil
+        if sessionActive {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            sessionActive = false
+        }
         isRecording = false
 
         let finalText = transcript
