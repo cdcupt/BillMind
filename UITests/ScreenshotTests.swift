@@ -43,4 +43,30 @@ final class ScreenshotTests: XCTestCase {
         _ = app.buttons["clarify-Today"].waitForExistence(timeout: 10)
         grab(app, "03-card")
     }
+
+    /// Capture the redesigned Minds + trimmed Settings tabs for visual review.
+    @MainActor
+    func testMindsAndSettingsScreens() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitesting-reset", "--uitesting-signedin"]
+        app.launch()
+
+        // Create a trip so the tabs are usable.
+        let create = app.buttons["record-create-journal"]
+        XCTAssertTrue(create.waitForExistence(timeout: 10))
+        create.tap()
+        let nameField = app.textFields["journalNameField"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5))
+        nameField.tap(); nameField.typeText("Osaka Trip")
+        app.buttons["createJournalButton"].tap()
+        XCTAssertTrue(app.textFields["record-input"].waitForExistence(timeout: 15))
+
+        app.tabBars.buttons["Minds"].tap()
+        XCTAssertTrue(app.staticTexts["Select a Trip"].waitForExistence(timeout: 10))
+        grab(app, "04-minds")
+
+        app.tabBars.buttons["Settings"].tap()
+        XCTAssertTrue(app.buttons["delete-account"].waitForExistence(timeout: 10))
+        grab(app, "05-settings")
+    }
 }
