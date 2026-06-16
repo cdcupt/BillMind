@@ -16,6 +16,9 @@ struct ModelConfig {
     /// Gemini powers all live AI in the app — typed capture, photo recognition,
     /// and the conversational agent.
     let gemini: String
+    /// Gemini image generation — the Minds infographic (server-side, the app's
+    /// own key). `gemini-3.1-flash-image` is GA; image gen can take 60–120s.
+    let geminiImage: String
     /// OpenAI's dedicated safety classifier; guards every user input before it
     /// reaches Gemini.
     let moderation: String
@@ -23,6 +26,7 @@ struct ModelConfig {
     static func fromEnvironment() -> ModelConfig {
         ModelConfig(
             gemini: Environment.get("GEMINI_MODEL") ?? "gemini-3-flash-preview",
+            geminiImage: Environment.get("GEMINI_IMAGE_MODEL") ?? "gemini-3.1-flash-image",
             moderation: Environment.get("OPENAI_MODERATION_MODEL") ?? "omni-moderation-latest"
         )
     }

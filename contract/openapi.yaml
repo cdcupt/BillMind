@@ -311,6 +311,33 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /v1/minds:
+    post:
+      tags: [Capture]
+      summary: Generate a Mind — a sketch infographic of a trip's expense timeline
+      description: >
+        Server-side image generation via Gemini (the app's own key — no client
+        API key). Builds the trip's expense timeline and returns a generated
+        image. Can take 60–120s. The trip is scoped to the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MindRequest" }
+      responses:
+        "200":
+          description: The generated image (base64) and its mime type.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MindResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: The trip has no bills to visualize.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /v1/agent/chat:
     post:
       tags: [Agent]
@@ -593,6 +620,19 @@ components:
         imageBase64: { type: string, nullable: true, description: Base64-encoded receipt image. }
         mimeType: { type: string, nullable: true, example: image/jpeg }
       required: [tripID]
+
+    MindRequest:
+      type: object
+      properties:
+        tripID: { type: string, format: uuid }
+      required: [tripID]
+
+    MindResponse:
+      type: object
+      properties:
+        imageBase64: { type: string, description: Base64-encoded generated image. }
+        mimeType: { type: string, example: image/png }
+      required: [imageBase64, mimeType]
 
     BillDraft:
       type: object

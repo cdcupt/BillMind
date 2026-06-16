@@ -449,6 +449,15 @@ struct APICaptureRequest: Encodable, Sendable {
     let mimeType: String?
 }
 
+struct APIMindRequest: Encodable, Sendable {
+    let tripID: UUID
+}
+
+struct APIMindResponse: Decodable, Sendable {
+    let imageBase64: String
+    let mimeType: String
+}
+
 struct APIBillDraft: Codable, Sendable {
     let merchant: String?
     @OptionalDecimalString var amount: Decimal?
@@ -711,6 +720,17 @@ actor APIClient {
         try await post("v1/recognition", body: req)
     }
 
+    /// Server-side Mind generation (Gemini image gen with the app's own key).
+    /// Slow — image generation can take 60–120s — so this uses a long timeout.
+    func generateMind(tripID: UUID) async throws -> APIMindResponse {
+        let data = try await dataWithRetry(authed: true) {
+            try await self.makeRequest("POST", "v1/minds",
+                                       body: APIMindRequest(tripID: tripID),
+                                       authed: true, timeout: 200)
+        }
+        return try decode(data)
+    }
+
     func chat(message: String) async throws -> APIAgentTurn {
         try await post("v1/agent/chat", body: APIChatRequest(message: message))
     }
@@ -889,7 +909,8 @@ actor APIClient {
     }
 
     private func makeRequest<B: Encodable>(
-        _ method: String, _ path: String, query: [URLQueryItem] = [], body: B?, authed: Bool
+        _ method: String, _ path: String, query: [URLQueryItem] = [], body: B?, authed: Bool,
+        timeout: TimeInterval? = nil
     ) async throws -> URLRequest {
         guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
             throw APIError.notConfigured
@@ -899,6 +920,7 @@ actor APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
+        if let timeout { request.timeoutInterval = timeout }
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             do { request.httpBody = try APICoders.encoder.encode(body) }
