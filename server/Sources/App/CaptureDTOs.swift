@@ -60,12 +60,17 @@ struct CaptureRequest: Content {
     let tripID: UUID
     let imageBase64: String?
     let mimeType: String?
+    /// The device's local date (yyyy-MM-dd) so relative dates ("today", "yesterday")
+    /// resolve against the user's calendar, not the server's UTC clock.
+    let clientDate: String?
 
-    init(text: String? = nil, tripID: UUID, imageBase64: String? = nil, mimeType: String? = nil) {
+    init(text: String? = nil, tripID: UUID, imageBase64: String? = nil, mimeType: String? = nil,
+         clientDate: String? = nil) {
         self.text = text
         self.tripID = tripID
         self.imageBase64 = imageBase64
         self.mimeType = mimeType
+        self.clientDate = clientDate
     }
 }
 

@@ -21,7 +21,7 @@ private struct StubRecognizer: Recognizer {
 
 private struct StubTextRecognizer: TextRecognizer {
     let drafts: [BillDraft]
-    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] { drafts }
+    func recognize(text: String, currencyCode: String, today: String, on req: Request) async -> [BillDraft] { drafts }
 }
 
 final class CaptureTests: XCTestCase {
@@ -140,6 +140,25 @@ final class CaptureTests: XCTestCase {
                 XCTAssertEqual(r.card?.draft.categoryRaw, "food")
             })
         try await app.asyncShutdown()
+    }
+
+    /// The client's local date is accepted only when it's a strict, near-now
+    /// yyyy-MM-dd — otherwise we fall back to UTC today (and never inject junk).
+    func testValidClientDateGuard() {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        let today = f.string(from: Date())
+
+        XCTAssertEqual(CaptureController.validClientDate(today), today)        // accepted
+        XCTAssertNil(CaptureController.validClientDate("2020-01-01"))          // too far in the past
+        XCTAssertNil(CaptureController.validClientDate("2099-12-31"))          // too far in the future
+        XCTAssertNil(CaptureController.validClientDate("not-a-date"))          // garbage
+        XCTAssertNil(CaptureController.validClientDate("2026-13-40"))          // impossible
+        XCTAssertNil(CaptureController.validClientDate("\(today)'; DROP"))     // injection attempt
+        XCTAssertNil(CaptureController.validClientDate(nil))                   // absent
     }
 
     func testConfirmWritesBill() async throws {

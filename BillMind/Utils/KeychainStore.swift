@@ -123,3 +123,13 @@ struct TokenVault: TokenStore {
         try? KeychainStore.delete(account: KeychainStore.userIDAccount)
     }
 }
+
+/// A no-op token store: never reads or writes the Keychain and holds no token.
+/// Used in UI-test mode so the app can NEVER authenticate against a real account
+/// — sync 401s and pushes nothing, keeping tests fully isolated from the server.
+struct EphemeralTokenStore: TokenStore {
+    func accessToken() async -> String? { nil }
+    func refreshToken() async -> String? { nil }
+    func update(_ tokens: APIAuthTokens) async {}
+    func clear() async {}
+}

@@ -105,14 +105,38 @@ struct GThinking: Content {
 /// (never throws) so capture stays responsive. The "never guess money" rule is
 /// preserved downstream by the validator.
 protocol TextRecognizer: Sendable {
-    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft]
+    /// `today` is the reference date (yyyy-MM-dd) for resolving relative dates —
+    /// the device's local today when supplied, else the server's UTC today.
+    func recognize(text: String, currencyCode: String, today: String, on req: Request) async -> [BillDraft]
+}
+
+extension TextRecognizer {
+    /// The server's UTC today — the fallback reference when the client sends none.
+    static func utcTodayString() -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
+    }
+
+    /// Parse a yyyy-MM-dd reference (anchored to noon UTC to dodge DST/offset edges).
+    static func referenceDate(from today: String) -> Date {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        return f.date(from: today + "T12:00") ?? Date()
+    }
 }
 
 /// Deterministic, offline fallback — the local `DraftExtractor` (one bill only).
 /// Used in tests and whenever AI is unavailable.
 struct LocalTextRecognizer: TextRecognizer {
-    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] {
-        [DraftExtractor.parse(text, currencyCode: currencyCode)]
+    func recognize(text: String, currencyCode: String, today: String, on req: Request) async -> [BillDraft] {
+        [DraftExtractor.parse(text, currencyCode: currencyCode, reference: Self.referenceDate(from: today))]
     }
 }
 
@@ -142,18 +166,18 @@ struct GeminiTextRecognizer: TextRecognizer {
         """
     }
 
-    func recognize(text: String, currencyCode: String, on req: Request) async -> [BillDraft] {
-        if let results = try? await callGemini(text, on: req), !results.isEmpty {
+    func recognize(text: String, currencyCode: String, today: String, on req: Request) async -> [BillDraft] {
+        if let results = try? await callGemini(text, today: today, on: req), !results.isEmpty {
             return results.map { AIRecognitionMapper.draft(from: $0, currencyCode: currencyCode, source: .text) }
         }
-        return [DraftExtractor.parse(text, currencyCode: currencyCode)]   // graceful fallback (one bill)
+        // graceful fallback (one bill), still anchored to the user's local today
+        return [DraftExtractor.parse(text, currencyCode: currencyCode, reference: Self.referenceDate(from: today))]
     }
 
-    private func callGemini(_ text: String, on req: Request) async throws -> [AIRecognitionResult] {
+    private func callGemini(_ text: String, today: String, on req: Request) async throws -> [AIRecognitionResult] {
         guard let key = Environment.get("GEMINI_API_KEY"), !key.isEmpty else {
             throw Abort(.serviceUnavailable, reason: "GEMINI_API_KEY not configured")
         }
-        let today = Self.todayString()
         let uri = URI(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(key)")
         let body = GVReq(contents: [GVContent(role: "user", parts: [
             GVPart(text: Self.prompt(today: today) + "\nNote: \"\(text)\"", inlineData: nil),
@@ -164,13 +188,5 @@ struct GeminiTextRecognizer: TextRecognizer {
         }
         let data = response.body.map { Data(buffer: $0) } ?? Data()
         return try GeminiRecognizer.parseMany(data)
-    }
-
-    private static func todayString() -> String {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .gregorian)
-        f.timeZone = TimeZone(identifier: "UTC")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: Date())
     }
 }

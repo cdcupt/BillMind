@@ -195,8 +195,19 @@ struct BillMindApp: App {
         // Sync runs against the server using the shared Keychain token vault.
         // Bind to a local so the StateObject autoclosure doesn't capture self.
         let modelContainer = container
+        // In UI-test mode use an ephemeral (token-less) store so the app can NEVER
+        // reach a real account: sync 401s and pushes nothing, so test-created trips
+        // never get a serverID and capture stays on the local path. This prevents
+        // test runs from polluting a signed-in user's real server data.
+        let syncTokenStore: TokenStore
+        #if DEBUG
+        syncTokenStore = CommandLine.arguments.contains("--uitesting-signedin")
+            ? EphemeralTokenStore() : TokenVault()
+        #else
+        syncTokenStore = TokenVault()
+        #endif
         _sync = StateObject(wrappedValue: SyncCoordinator(
-            container: modelContainer, api: APIClient(tokenStore: TokenVault())))
+            container: modelContainer, api: APIClient(tokenStore: syncTokenStore)))
     }
 
     /// Delete the legacy unversioned cache (`default.store` + sidecars). Safe:

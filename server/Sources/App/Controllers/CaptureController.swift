@@ -53,7 +53,8 @@ struct CaptureController: RouteCollection {
                                                         expenseShaped: DraftExtractor.firstAmount(in: text) != nil) {
                 return declined
             }
-            drafts = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, on: req)
+            let today = Self.validClientDate(body.clientDate) ?? LocalTextRecognizer.utcTodayString()
+            drafts = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, today: today, on: req)
 
         } else {
             throw Abort(.badRequest, reason: "provide text or imageBase64")
@@ -62,6 +63,23 @@ struct CaptureController: RouteCollection {
         let tripID = try trip.requireID()
         let cards = drafts.map { makeCardDTO($0, tripID: tripID, currencyCode: trip.currencyCode) }
         return .cardsResponse(cards)
+    }
+
+    /// Accept the client's date only if it's a strict yyyy-MM-dd in a sane range —
+    /// it's interpolated into the prompt, so an unvalidated value is an injection
+    /// surface. Returns the validated string, or nil to fall back to UTC today.
+    static func validClientDate(_ raw: String?) -> String? {
+        guard let raw, raw.count == 10 else { return nil }
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        f.isLenient = false
+        guard let date = f.date(from: raw), f.string(from: date) == raw else { return nil }
+        // Reject absurd dates (clock-skew / tampering): within ~2 days of UTC now.
+        let drift = abs(date.timeIntervalSince(Date()))
+        return drift < 60 * 60 * 24 * 2 ? raw : nil
     }
 
     /// Runs the gate; returns a decline response if blocked, else nil (proceed).
