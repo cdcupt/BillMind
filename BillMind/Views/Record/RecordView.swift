@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import Speech
+import AVFoundation
 
 /// The Record tab: pick a journal, then type a phrase (or pick photos) and the
 /// agent turns each into an editable bill card you confirm. Text capture needs no
@@ -18,6 +20,7 @@ struct RecordView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showNewJournal = false
     @State private var showTrips = false
+    @StateObject private var voice = VoiceCapture()
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -170,10 +173,13 @@ struct RecordView: View {
             }
             .accessibilityIdentifier("record-photos")
 
-            TextField("Tell Mochi about a bill…", text: $inputText)
+            micButton(coordinator)
+
+            TextField(voice.isRecording ? "Listening…" : "Tell Mochi about a bill…", text: $inputText)
                 .textFieldStyle(.plain)
                 .submitLabel(.send)
                 .focused($inputFocused)
+                .disabled(voice.isRecording)
                 .onSubmit { send(coordinator) }
                 .accessibilityIdentifier("record-input")
 
@@ -186,8 +192,33 @@ struct RecordView: View {
         .padding(10)
         .background(SketchTheme.warmWhite)
         .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(SketchTheme.lightBrown, lineWidth: 1.8))
+        .overlay(RoundedRectangle(cornerRadius: 18)
+            .stroke(voice.isRecording ? SketchTheme.mutedRed : SketchTheme.lightBrown, lineWidth: 1.8))
         .padding(.horizontal).padding(.bottom, 8)
+        // Mirror the live transcription into the field as the user speaks.
+        .onChange(of: voice.transcript) { _, text in
+            if voice.isRecording { inputText = text }
+        }
+        .onChange(of: voice.errorMessage) { _, message in
+            if let message { coordinator.errorMessage = message; voice.errorMessage = nil }
+        }
+        .animation(.easeInOut(duration: 0.2), value: voice.isRecording)
+    }
+
+    /// Tap to start dictation, tap again to stop — the final transcript is
+    /// submitted through the same AI pipeline as typed text.
+    private func micButton(_ coordinator: RecordCoordinator) -> some View {
+        Button { toggleVoice(coordinator) } label: {
+            Image(systemName: voice.isRecording ? "stop.fill" : "mic.fill")
+                .font(.system(size: 15))
+                .foregroundStyle(voice.isRecording ? .white : SketchTheme.softBrown)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(voice.isRecording ? SketchTheme.mutedRed : Color.clear))
+                .overlay(Circle().stroke(voice.isRecording ? SketchTheme.mutedRed : SketchTheme.lightBrown, lineWidth: 1.5))
+                .scaleEffect(voice.isRecording ? 1.08 : 1)
+        }
+        .accessibilityIdentifier("record-mic")
+        .accessibilityLabel(voice.isRecording ? "Stop listening" : "Record by voice")
     }
 
     private var emptyState: some View {
@@ -210,6 +241,22 @@ struct RecordView: View {
         inputText = ""
         inputFocused = false        // dismiss the keyboard so the new card (and tab bar) are reachable
         coordinator.submitText(text)
+    }
+
+    /// Start dictation, or stop it and hand the final transcript to the AI.
+    private func toggleVoice(_ coordinator: RecordCoordinator) {
+        if voice.isRecording {
+            voice.stop()
+            return
+        }
+        inputFocused = false
+        inputText = ""
+        voice.start { transcript in
+            let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            inputText = ""
+            guard !text.isEmpty else { return }
+            coordinator.submitText(text)
+        }
     }
 
     private func setup() {
@@ -240,5 +287,120 @@ struct RecordView: View {
                 photoItems = []
             }
         }
+    }
+}
+
+// MARK: - Voice capture
+
+/// Streams microphone audio through Apple's Speech framework to dictate an
+/// expense. Voice is just another way *in*: the final transcript is handed to
+/// the same Gemini capture pipeline as typed text, so dictation gets multi-bill
+/// extraction and every field for free. Speech-to-text runs on-device when the
+/// model is available, otherwise Apple's server recognition.
+@MainActor
+final class VoiceCapture: ObservableObject {
+    @Published var isRecording = false
+    @Published var transcript = ""
+    @Published var errorMessage: String?
+
+    private let recognizer = SFSpeechRecognizer()
+    private let audioEngine = AVAudioEngine()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var onFinish: ((String) -> Void)?
+
+    /// Ask for permission, then begin listening. `onFinish` fires once with the
+    /// final transcript when recording stops (or the recognizer finalizes).
+    func start(onFinish: @escaping (String) -> Void) {
+        self.onFinish = onFinish
+        transcript = ""
+        errorMessage = nil
+
+        SFSpeechRecognizer.requestAuthorization { speechAuth in
+            AVAudioApplication.requestRecordPermission { micGranted in
+                DispatchQueue.main.async {
+                    guard speechAuth == .authorized else {
+                        self.fail("Allow Speech Recognition in Settings to add bills by voice.")
+                        return
+                    }
+                    guard micGranted else {
+                        self.fail("Allow Microphone access in Settings to add bills by voice.")
+                        return
+                    }
+                    self.beginSession()
+                }
+            }
+        }
+    }
+
+    /// Stop listening and submit whatever was heard so far.
+    func stop() {
+        finish(submit: true)
+    }
+
+    // MARK: - Private
+
+    private func beginSession() {
+        guard let recognizer, recognizer.isAvailable else {
+            fail("Speech recognition isn't available right now.")
+            return
+        }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+
+            let request = SFSpeechAudioBufferRecognitionRequest()
+            request.shouldReportPartialResults = true
+            self.request = request
+
+            let input = audioEngine.inputNode
+            let format = input.outputFormat(forBus: 0)
+            input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                self?.request?.append(buffer)
+            }
+            audioEngine.prepare()
+            try audioEngine.start()
+            isRecording = true
+
+            task = recognizer.recognitionTask(with: request) { [weak self] result, error in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    if let result {
+                        self.transcript = result.bestTranscription.formattedString
+                        if result.isFinal { self.finish(submit: true) }
+                    } else if error != nil {
+                        // endAudio() during stop() surfaces here — submit what we have.
+                        self.finish(submit: true)
+                    }
+                }
+            }
+        } catch {
+            fail("Couldn't start recording — try again.")
+        }
+    }
+
+    private func finish(submit: Bool) {
+        let wasActive = isRecording || task != nil
+        if wasActive {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+            request?.endAudio()
+            task?.cancel()
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+        request = nil
+        task = nil
+        isRecording = false
+
+        let finalText = transcript
+        let callback = onFinish
+        onFinish = nil
+        if submit { callback?(finalText) }
+    }
+
+    private func fail(_ message: String) {
+        errorMessage = message
+        finish(submit: false)
     }
 }
