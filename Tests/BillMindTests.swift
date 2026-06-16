@@ -325,11 +325,6 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(settings.hasConsentedToAIDataSharing)
     }
 
-    func testDefaultDemoModeIsFalse() {
-        let settings = AppSettings()
-        XCTAssertFalse(settings.demoMode)
-    }
-
     func testDefaultProvider() {
         let settings = AppSettings()
         XCTAssertEqual(settings.selectedProvider, .gemini)

@@ -152,8 +152,7 @@ struct BillImportFlowView: View {
 
                     // Start recognition button
                     Button {
-                        let isDemoMode = settings?.demoMode ?? false
-                        if !isDemoMode && settings?.hasConsentedToAIDataSharing != true {
+                        if settings?.hasConsentedToAIDataSharing != true {
                             showConsentSheet = true
                         } else {
                             startRecognition()
@@ -348,15 +347,13 @@ struct BillImportFlowView: View {
             for (index, image) in selectedImages.enumerated() {
                 processingIndex = index
                 do {
-                    let isDemoMode = settings?.demoMode ?? false
                     let key = await getAPIKey()
-                    guard isDemoMode || !key.isEmpty else { throw AIError.noAPIKey }
+                    guard !key.isEmpty else { throw AIError.noAPIKey }
                     let result = try await service.recognizeBill(
                         images: [image],
                         provider: provider,
                         model: model,
-                        apiKey: key,
-                        demoMode: isDemoMode
+                        apiKey: key
                     )
                     let draft = DraftBill(
                         sourceImage: image,
@@ -410,13 +407,11 @@ struct BillImportFlowView: View {
             let service = AIService()
             let key = await getAPIKey()
             do {
-                let isDemoMode = settings?.demoMode ?? false
                 let result = try await service.recognizeBill(
                     images: [image],
                     provider: provider,
                     model: model,
-                    apiKey: key,
-                    demoMode: isDemoMode
+                    apiKey: key
                 )
                 await MainActor.run {
                     draftBills[index].merchant = result.merchant ?? ""
