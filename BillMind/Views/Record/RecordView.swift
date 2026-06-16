@@ -12,7 +12,8 @@ struct RecordView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var auth: AuthSession
     @EnvironmentObject private var sync: SyncCoordinator
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
 
     @State private var coordinator: RecordCoordinator?
     @State private var selectedJournalID: UUID?

@@ -4,7 +4,8 @@ import SwiftData
 struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var sync: SyncCoordinator
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
     @State private var navigationPath = NavigationPath()
     @State private var journalToDelete: Journal?
@@ -94,10 +95,15 @@ struct JournalsListView: View {
                         // removes the bills, then clean up files after the DB delete.
                         let billImagePaths = journal.bills.flatMap { $0.imagePaths }
                         let journalID = journal.id
-                        modelContext.delete(journal)
+                        // Tombstone locally (hidden by the isDeleted query filter) and let
+                        // sync DELETE it on the server — a plain local delete would let the
+                        // next pull bring the trip right back.
+                        journal.isDeleted = true
+                        journal.syncState = .local
                         try? modelContext.save()
                         BillFileCleanup.cleanUp(billImagePaths: billImagePaths, journalID: journalID)
                         journalToDelete = nil
+                        Task { await sync.sync() }
                     }
                 }
             } message: {

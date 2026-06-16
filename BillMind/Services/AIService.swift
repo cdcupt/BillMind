@@ -253,6 +253,17 @@ struct APICaptureRequest: Encodable, Sendable {
     let tripID: UUID
     let imageBase64: String?
     let mimeType: String?
+    /// The device's local date (yyyy-MM-dd) so the server resolves "today"/"yesterday"
+    /// against the user's calendar, not its own UTC clock.
+    var clientDate: String? = APICaptureRequest.localDateString()
+
+    static func localDateString() -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"   // f.timeZone defaults to the device's local zone
+        return f.string(from: Date())
+    }
 }
 
 struct APIMindRequest: Encodable, Sendable {
@@ -432,6 +443,7 @@ enum APIError: LocalizedError, Equatable {
 /// pushes bills only), so trips can be made offline and created on reconnect.
 protocol SyncAPI: Sendable {
     func createTrip(_ req: APICreateTripRequest) async throws -> APITrip
+    func deleteTrip(_ id: UUID) async throws
     func syncPull(since cursor: Double) async throws -> APISyncDelta
     func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult
 }
@@ -506,6 +518,11 @@ actor APIClient {
 
     func createTrip(_ req: APICreateTripRequest) async throws -> APITrip {
         try await post("v1/trips", body: req)
+    }
+
+    /// Soft-delete a trip and its bills on the server (tombstones propagate on sync).
+    func deleteTrip(_ id: UUID) async throws {
+        try await delete("v1/trips/\(id.uuidString)")
     }
 
     func bills(tripID: UUID) async throws -> [APIBill] {

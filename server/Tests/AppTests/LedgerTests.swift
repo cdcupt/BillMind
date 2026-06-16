@@ -273,6 +273,52 @@ final class LedgerTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    /// Deleting a trip tombstones the trip AND cascades to its bills, so every
+    /// device drops them on the next sync.
+    func testDeleteTripTombstonesTripAndItsBills() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t)
+        let bill = try await addBillReturning(app, t, trip: trip, merchant: "Lawson", amount: 680, category: "food")
+
+        try await app.test(.DELETE, "v1/trips/\(trip.id)", headers: bearer(t),
+            afterResponse: { res async in XCTAssertEqual(res.status, .noContent) })
+
+        // Gone from the list…
+        try await app.test(.GET, "v1/trips", headers: bearer(t),
+            afterResponse: { res async throws in
+                let trips = try res.content.decode([TripDTO].self)
+                XCTAssertFalse(trips.contains { $0.id == trip.id })
+            })
+
+        // …and both the trip and its bill come back as tombstones in the delta.
+        try await app.test(.GET, "v1/sync?since=0", headers: bearer(t),
+            afterResponse: { res async throws in
+                let delta = try res.content.decode(SyncDelta.self)
+                XCTAssertEqual(delta.trips.first { $0.id == trip.id }?.deleted, true)
+                XCTAssertEqual(delta.bills.first { $0.id == bill.id }?.deleted, true)
+            })
+        try await app.asyncShutdown()
+    }
+
+    /// IDOR guard: user B cannot delete user A's trip (404), and A's trip stays.
+    func testCannotDeleteAnothersTrip() async throws {
+        let app = try await makeApp(subject: "u1")
+        let a = try await signIn(app)
+        let tripA = try await createTrip(app, a)
+        let b = try await signInSecondUser(app)
+
+        try await app.test(.DELETE, "v1/trips/\(tripA.id)", headers: bearer(b),
+            afterResponse: { res async in XCTAssertEqual(res.status, .notFound) })
+
+        try await app.test(.GET, "v1/trips", headers: bearer(a),
+            afterResponse: { res async throws in
+                let trips = try res.content.decode([TripDTO].self)
+                XCTAssertTrue(trips.contains { $0.id == tripA.id })
+            })
+        try await app.asyncShutdown()
+    }
+
     /// IDOR guard: user B can neither edit nor delete user A's bill (404), and A's
     /// bill stays intact.
     func testCannotEditOrDeleteAnothersBill() async throws {

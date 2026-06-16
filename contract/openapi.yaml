@@ -180,6 +180,20 @@ paths:
                 items: { $ref: "#/components/schemas/Trip" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
+  /v1/trips/{tripID}:
+    delete:
+      tags: [Trips]
+      summary: Delete a trip (and all its bills)
+      description: >
+        Soft-deletes the trip and cascade soft-deletes its bills (tombstones), so
+        every device drops them on the next sync. Scoped to the owner.
+      parameters:
+        - $ref: "#/components/parameters/TripIDPath"
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /v1/trips/{tripID}/bills:
     get:
       tags: [Trips]

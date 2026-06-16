@@ -9,6 +9,32 @@ struct TripController: RouteCollection {
         trips.post(use: create)
         trips.get(use: list)
         trips.get(":tripID", "bills", use: bills)
+        trips.delete(":tripID", use: delete)
+    }
+
+    /// DELETE /v1/trips/:tripID — soft-delete the trip AND all its bills (tombstones),
+    /// bumping each row_version so every device drops them on the next sync. Scoped
+    /// to the owner; another user's id returns 404, never their data.
+    func delete(_ req: Request) async throws -> HTTPStatus {
+        let user = try req.auth.require(User.self)
+        let uid = try user.requireID()
+        guard let tripID = req.parameters.get("tripID", as: UUID.self) else { throw Abort(.badRequest) }
+        guard let trip = try await Trip.query(on: req.db)
+            .filter(\.$id == tripID).filter(\.$owner.$id == uid).first()
+        else { throw Abort(.notFound) }
+
+        try await req.db.transaction { db in
+            let bills = try await Bill.query(on: db).filter(\.$trip.$id == tripID).all()
+            for bill in bills {
+                bill.rowVersion += 1
+                try await bill.save(on: db)        // persist the bump before tombstoning
+                try await bill.delete(on: db)      // soft-delete (tombstone)
+            }
+            trip.rowVersion += 1
+            try await trip.save(on: db)
+            try await trip.delete(on: db)
+        }
+        return .noContent
     }
 
     func create(_ req: Request) async throws -> TripDTO {

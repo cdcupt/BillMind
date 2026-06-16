@@ -3,7 +3,8 @@ import SwiftData
 
 struct MindsView: View {
     @EnvironmentObject private var auth: AuthSession
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
 
     @State private var selectedJournalId: UUID?
 

@@ -33,12 +33,30 @@ actor SyncEngine {
     @discardableResult
     func sync() async throws -> SyncOutcome {
         let context = ModelContext(container)
+        try await pushDeletedTrips(context)                     // remove trips the user deleted
         let createdTrips = try await pushPendingTrips(context)   // trips must exist before their bills
         let pushed = try await pushPendingBills(context)
         let pulled = try await pullDeltas(context)
         return SyncOutcome(createdTrips: createdTrips,
                            pushedBills: pushed.applied, conflicts: pushed.conflicts,
                            pulledTrips: pulled.trips, pulledBills: pulled.bills)
+    }
+
+    // MARK: - Push trip deletions (DELETE /v1/trips/:id tombstones the trip + its bills)
+
+    private func pushDeletedTrips(_ context: ModelContext) async throws {
+        let pending = try context.fetch(FetchDescriptor<Journal>(
+            predicate: #Predicate { $0.isDeleted == true }))
+        guard !pending.isEmpty else { return }
+        for journal in pending {
+            // Tombstone on the server when it exists there; a local-only trip just
+            // disappears. The local @Relationship(.cascade) removes its bills too.
+            if let serverID = journal.serverID {
+                try await api.deleteTrip(serverID)
+            }
+            context.delete(journal)
+        }
+        try context.save()
     }
 
     // MARK: - Push trips (created via /v1/trips; the sync contract pushes bills only)

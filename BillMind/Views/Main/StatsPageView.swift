@@ -3,7 +3,8 @@ import SwiftData
 import Charts
 
 struct StatsPageView: View {
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var selectedJournalId: UUID?
 
     private var selectedJournal: Journal? {
