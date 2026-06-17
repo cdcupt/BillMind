@@ -82,7 +82,7 @@ struct SettingsView: View {
 
                     // About
                     VStack(spacing: 4) {
-                        Text("BillOwl v1.0.0")
+                        Text("BillOwl v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.1")")
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
                         Text("Smart bills, wise owl")
