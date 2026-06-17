@@ -37,14 +37,14 @@
 <h1>BillMind</h1>
 <h2 class="en">Privacy Policy</h2>
 <h2 class="zh">隐私政策</h2>
-<p class="date en">Last Updated: 2026-04-12</p>
-<p class="date zh">最后更新：2026-04-12</p>
+<p class="date en">Effective date: June 17, 2026</p>
+<p class="date zh">生效日期：2026 年 6 月 17 日</p>
 
 <div class="section">
 <h2 class="en">1. Overview</h2>
 <h2 class="zh">一、概述</h2>
-<p class="en">BillMind ("the App") is a travel bill tracking application with AI-powered invoice recognition. We take your privacy seriously. This Privacy Policy explains how the App collects, uses, and protects your information.</p>
-<p class="zh">BillMind（以下简称"本应用"）是一款支持 AI 发票识别的旅行账单追踪应用。我们非常重视您的隐私保护。本隐私政策说明了本应用如何收集、使用和保护您的信息。</p>
+<p class="en">BillMind ("the App") is a travel bill tracking application with AI-powered invoice recognition. The App is operated by Daichen Chai, an individual developer, who is the data controller. We take your privacy seriously. This Privacy Policy explains how the App and its backend service collect, use, and protect your information. For any privacy questions or requests, contact us at <a href="mailto:cdcupt@gmail.com">cdcupt@gmail.com</a>.</p>
+<p class="zh">BillMind（以下简称"本应用"）是一款支持 AI 发票识别的旅行账单追踪应用。本应用由个人开发者 Daichen Chai 运营，其为数据控制者。我们非常重视您的隐私保护。本隐私政策说明了本应用及其后端服务如何收集、使用和保护您的信息。如对隐私有任何疑问或请求，请通过 <a href="mailto:cdcupt@gmail.com">cdcupt@gmail.com</a> 联系我们。</p>
 </div>
 
 <div class="section">
@@ -52,94 +52,92 @@
 <h2 class="zh">二、数据收集与存储</h2>
 
 <div class="en">
-<h3>Local Storage</h3>
-<p>All user data — including journals, bill records, receipt images, and settings — is stored locally on your device using Apple's SwiftData framework. We do not operate any servers and do not collect or upload your personal data.</p>
+<h3>Our Backend Service</h3>
+<p>BillMind operates a backend service, hosted in the United States, that stores your account and travel expense data so it is available across your sessions and devices. All data is encrypted in transit using HTTPS/TLS.</p>
 
-<h3>Receipt Images</h3>
-<p>Photos of receipts and invoices are stored locally on your device. When you use AI recognition, images are sent directly to your chosen AI provider for processing. They are never sent to our servers.</p>
+<h3>Data We Store</h3>
+<p>On our servers we store:</p>
+<ul>
+    <li>Your trips (journals)</li>
+    <li>Your bills — merchant name, amount, date, category, and notes</li>
+    <li>Receipt photos you choose to submit</li>
+    <li>From sign-in: your email address and a stable provider user identifier used to create and identify your account</li>
+</ul>
+<p>If you sign in with Apple and use "Hide My Email," the private relay address is not stored as your identity.</p>
 
-<h3>API Keys</h3>
-<p>To use AI features, you provide your own third-party AI service API keys (e.g., Gemini, OpenAI, Doubao). These keys are stored only on your device and are never sent anywhere other than the AI provider you selected.</p>
+<h3>Sign-In</h3>
+<p>You sign in with Google or Apple using OAuth / OpenID Connect. We receive a stable user identifier and an email address from your chosen provider in order to create and access your account.</p>
+
+<h3>No User-Provided API Keys</h3>
+<p>You do not provide your own AI API keys. AI features are powered by our backend using our own credentials.</p>
 </div>
 
 <div class="zh">
-<h3>本地存储</h3>
-<p>本应用的所有用户数据（包括旅行日记、账单记录、发票照片和设置）均存储在您的设备本地，使用 Apple SwiftData 框架。我们不运营任何服务器，不会收集或上传您的个人数据。</p>
+<h3>我们的后端服务</h3>
+<p>BillMind 运营一项托管于美国的后端服务，用于存储您的账户和旅行消费数据，以便在您的不同会话和设备之间使用。所有数据在传输过程中均通过 HTTPS/TLS 加密。</p>
 
-<h3>发票照片</h3>
-<p>收据和发票照片存储在您的设备本地。使用 AI 识别功能时，图片会直接发送至您选择的 AI 服务商进行处理，绝不会发送至我们的服务器。</p>
+<h3>我们存储的数据</h3>
+<p>我们在服务器上存储：</p>
+<ul>
+    <li>您的旅行日记</li>
+    <li>您的账单——商户名称、金额、日期、类别和备注</li>
+    <li>您选择提交的收据照片</li>
+    <li>来自登录：您的电子邮件地址和一个稳定的服务商用户标识符，用于创建和识别您的账户</li>
+</ul>
+<p>如果您使用 Apple 登录并启用"隐藏我的邮箱"，该私密转发地址不会被作为您的身份进行存储。</p>
 
-<h3>API 密钥</h3>
-<p>为使用 AI 功能，您需要自行提供第三方 AI 服务的 API 密钥（如 Gemini、OpenAI、豆包）。这些密钥仅存储在您的设备本地，不会发送到除您选择的 AI 服务商以外的任何地方。</p>
+<h3>登录</h3>
+<p>您可以通过 Google 或 Apple 使用 OAuth / OpenID Connect 登录。我们会从您选择的服务商处获得一个稳定的用户标识符和电子邮件地址，用于创建和访问您的账户。</p>
+
+<h3>无需用户自带 API 密钥</h3>
+<p>您无需提供自己的 AI API 密钥。AI 功能由我们的后端使用我们自己的凭据提供支持。</p>
 </div>
 </div>
 
 <div class="section">
-<h2 class="en">3. Third-Party AI Services — Data Sent and Recipients</h2>
-<h2 class="zh">三、第三方 AI 服务 — 发送的数据与接收方</h2>
+<h2 class="en">3. AI Features — Data Sent and Recipients</h2>
+<h2 class="zh">三、AI 功能 — 发送的数据与接收方</h2>
 
 <div class="en">
-<p>The App integrates with third-party AI services to provide bill recognition and timeline image generation. <strong>No data is sent to any AI service until you explicitly consent through the in-app consent prompt.</strong></p>
+<p>AI is the core of BillMind. Our backend service uses third-party AI providers to power bill recognition and timeline image generation. We call these providers with our own API credentials — you do not provide your own keys.</p>
 
-<h3>Supported AI Providers</h3>
-<p>You choose which provider processes your data. The supported providers are:</p>
+<h3>AI Providers We Use</h3>
 <ul>
-    <li><strong>Google Gemini</strong> (Google LLC) — <a href="https://policies.google.com/privacy">Privacy Policy</a></li>
-    <li><strong>OpenAI</strong> (OpenAI, Inc.) — <a href="https://openai.com/privacy">Privacy Policy</a></li>
-    <li><strong>Doubao</strong> (ByteDance Ltd.) — <a href="https://www.volcengine.com/docs/82379/1399942">Privacy Policy</a></li>
+    <li><strong>Google Gemini</strong> (Google LLC) — bill recognition and Minds timeline image generation. <a href="https://policies.google.com/privacy">Privacy Policy</a></li>
+    <li><strong>OpenAI</strong> (OpenAI, Inc.) — content moderation that screens your input for safety. <a href="https://openai.com/privacy">Privacy Policy</a></li>
 </ul>
+
+<h3>How AI Requests Flow</h3>
+<p>When you use an AI feature, your input is first screened by OpenAI's moderation API for safety. If it passes, the relevant data is sent to Google's Gemini API for processing. These requests are made by our backend using our own credentials.</p>
 
 <h3>What Data Is Sent</h3>
-<p><strong>Bill Recognition:</strong> When you use AI to recognize a bill, the following data is sent to your chosen AI provider:</p>
-<ul>
-    <li>Photos of receipts or invoices that you select (converted to JPEG format)</li>
-    <li>A text prompt instructing the AI to extract merchant name, date, amount, currency, category, line items, and notes</li>
-</ul>
-<p><strong>Timeline Generation (Minds):</strong> When you generate a Mind timeline image, the following data is sent to Google Gemini:</p>
-<ul>
-    <li>Journal name and currency</li>
-    <li>Bill timeline summary: merchant names, dates, amounts, and categories</li>
-    <li>A text prompt requesting an artistic infographic</li>
-</ul>
-<p><strong>Not sent:</strong> Your API key is used only for authentication with the provider. Your full financial history, other journals, device identifiers, or any other personal data is never sent.</p>
-
-<h3>How Data Is Sent</h3>
-<p>All requests are sent directly from your device to the AI provider's API over HTTPS. Data does not pass through any BillMind servers. We do not operate any servers.</p>
+<p><strong>Bill Recognition:</strong> The typed text or receipt photo you submit, plus the relevant bill data, is sent to Google Gemini to extract merchant name, date, amount, currency, category, line items, and notes.</p>
+<p><strong>Timeline Generation (Minds):</strong> When you generate a Minds timeline image, your trip data — journal name, currency, and a bill timeline summary (merchant names, dates, amounts, and categories) — is sent to Google Gemini along with a prompt requesting an artistic infographic.</p>
+<p><strong>Moderation:</strong> Each user input is sent to OpenAI's moderation API to screen it for safety before it reaches Gemini.</p>
 
 <h3>How AI Providers Use Your Data</h3>
-<p>Each AI provider processes your data according to their own privacy policy (linked above). BillMind requires that the AI providers you connect to provide protection of your data. We recommend reviewing your chosen provider's privacy policy and API data usage terms before using AI features.</p>
+<p>Each AI provider processes your data according to its own privacy policy (linked above). We recommend reviewing those policies. We use these providers only to deliver the App's features.</p>
 </div>
 
 <div class="zh">
-<p>本应用集成了第三方 AI 服务，用于账单识别和时间线图片生成。<strong>在您通过应用内同意提示明确授权之前，不会向任何 AI 服务发送数据。</strong></p>
+<p>AI 是 BillMind 的核心。我们的后端服务使用第三方 AI 服务商来实现账单识别和时间线图片生成。我们使用自己的 API 凭据调用这些服务商——您无需提供自己的密钥。</p>
 
-<h3>支持的 AI 服务商</h3>
-<p>您可以选择由哪个服务商处理您的数据，目前支持：</p>
+<h3>我们使用的 AI 服务商</h3>
 <ul>
-    <li><strong>Google Gemini</strong>（Google LLC）— <a href="https://policies.google.com/privacy">隐私政策</a></li>
-    <li><strong>OpenAI</strong>（OpenAI, Inc.）— <a href="https://openai.com/privacy">隐私政策</a></li>
-    <li><strong>豆包</strong>（字节跳动）— <a href="https://www.volcengine.com/docs/82379/1399942">隐私政策</a></li>
+    <li><strong>Google Gemini</strong>（Google LLC）— 账单识别和 Minds 时间线图片生成。<a href="https://policies.google.com/privacy">隐私政策</a></li>
+    <li><strong>OpenAI</strong>（OpenAI, Inc.）— 对您的输入进行安全审核。<a href="https://openai.com/privacy">隐私政策</a></li>
 </ul>
+
+<h3>AI 请求的流程</h3>
+<p>当您使用 AI 功能时，您的输入会首先经过 OpenAI 的审核 API 进行安全筛查。通过后，相关数据会被发送至 Google 的 Gemini API 进行处理。这些请求均由我们的后端使用我们自己的凭据发起。</p>
 
 <h3>发送哪些数据</h3>
-<p><strong>账单识别：</strong>当您使用 AI 识别账单时，以下数据将发送至您选择的 AI 服务商：</p>
-<ul>
-    <li>您选择的收据或发票照片（转换为 JPEG 格式）</li>
-    <li>指示 AI 提取商户名称、日期、金额、币种、分类、明细和备注的文本提示</li>
-</ul>
-<p><strong>时间线生成（Minds）：</strong>当您生成 Mind 时间线图片时，以下数据将发送至 Google Gemini：</p>
-<ul>
-    <li>旅行日记名称和币种</li>
-    <li>账单时间线摘要：商户名称、日期、金额和分类</li>
-    <li>请求生成艺术信息图的文本提示</li>
-</ul>
-<p><strong>不会发送的内容：</strong>您的 API 密钥仅用于与服务商的身份验证。您的完整财务记录、其他日记本、设备标识符或任何其他个人数据绝不会被发送。</p>
-
-<h3>数据如何发送</h3>
-<p>所有请求通过 HTTPS 直接从您的设备发送至 AI 服务商的 API。数据不经过任何 BillMind 服务器。我们不运营任何服务器。</p>
+<p><strong>账单识别：</strong>您提交的文本或收据照片，以及相关账单数据，将发送至 Google Gemini，用于提取商户名称、日期、金额、币种、分类、明细和备注。</p>
+<p><strong>时间线生成（Minds）：</strong>当您生成 Minds 时间线图片时，您的旅行数据——日记名称、币种以及账单时间线摘要（商户名称、日期、金额和分类）——将连同请求生成艺术信息图的提示一并发送至 Google Gemini。</p>
+<p><strong>内容审核：</strong>每条用户输入在到达 Gemini 之前，都会发送至 OpenAI 的审核 API 进行安全筛查。</p>
 
 <h3>AI 服务商如何使用您的数据</h3>
-<p>每个 AI 服务商根据其自身的隐私政策（上方已附链接）处理您的数据。BillMind 要求您连接的 AI 服务商为您的数据提供保护。我们建议您在使用 AI 功能前查阅所选服务商的隐私政策和 API 数据使用条款。</p>
+<p>每个 AI 服务商根据其自身的隐私政策（上方已附链接）处理您的数据。我们建议您查阅这些政策。我们仅使用这些服务商来提供本应用的功能。</p>
 </div>
 </div>
 
@@ -149,76 +147,93 @@
 <ul class="en">
     <li><strong>Camera</strong> — For photographing receipts and invoices</li>
     <li><strong>Photo Library</strong> — For selecting existing receipt images</li>
-    <li><strong>Network Access</strong> — For sending requests to AI providers</li>
+    <li><strong>Network Access</strong> — For syncing your data with our backend service and using AI features</li>
 </ul>
 <ul class="zh">
     <li><strong>相机</strong> — 用于拍摄收据和发票</li>
     <li><strong>相册</strong> — 用于选择已有的发票图片</li>
-    <li><strong>网络访问</strong> — 用于向 AI 服务商发送请求</li>
+    <li><strong>网络访问</strong> — 用于与我们的后端服务同步数据以及使用 AI 功能</li>
 </ul>
 </div>
 
 <div class="section">
-<h2 class="en">5. User Consent and Control</h2>
-<h2 class="zh">五、用户同意与控制</h2>
+<h2 class="en">5. How We Use Your Data & Your Control</h2>
+<h2 class="zh">五、我们如何使用您的数据与您的控制</h2>
 
 <div class="en">
-<p>The App requires your explicit consent before sharing any data with third-party AI services. Specifically:</p>
+<p>We use your data only to provide the App — to capture, organize, analyze, and generate insights about your travel expenses. We do <strong>not</strong> sell your data, show ads, or use it for cross-app tracking or advertising.</p>
 <ul>
-    <li><strong>In-App Consent:</strong> The first time you use an AI feature, the App presents a consent screen that discloses what data will be sent, identifies the AI provider, and requires you to agree before proceeding.</li>
-    <li><strong>Revoke Anytime:</strong> You can revoke your consent at any time in Settings > Privacy. Once revoked, no further data will be sent to AI services.</li>
-    <li><strong>Use Without AI:</strong> You can use the App entirely without AI — bills can be entered manually, and Demo Mode lets you explore all features using sample data with no network requests.</li>
-    <li><strong>Choose Your Provider:</strong> You decide which AI provider processes your data by selecting it in Settings.</li>
-    <li><strong>Delete Your Data:</strong> All data is stored locally. Deleting the App removes all data from your device. You can also delete individual journals or bills at any time.</li>
+    <li><strong>Retention:</strong> Your data is kept while your account is active.</li>
+    <li><strong>Delete Your Account:</strong> You can delete your account anytime in the app (Settings &gt; Delete Account). This permanently removes your trips and bills from our servers.</li>
+    <li><strong>Delete Individual Items:</strong> You can also delete individual trips and bills at any time.</li>
+    <li><strong>Your Rights:</strong> Depending on where you live, you may have rights to access or delete your data — for example, users in the EU, UK, and California. To make a request, email us at <a href="mailto:cdcupt@gmail.com">cdcupt@gmail.com</a>.</li>
 </ul>
 </div>
 
 <div class="zh">
-<p>本应用在向第三方 AI 服务分享任何数据之前，需要您的明确同意。具体如下：</p>
+<p>我们使用您的数据仅用于提供本应用——记录、整理、分析并生成有关您旅行消费的洞察。我们<strong>不会</strong>出售您的数据、展示广告，也不会将其用于跨应用追踪或广告。</p>
 <ul>
-    <li><strong>应用内同意：</strong>当您首次使用 AI 功能时，应用会显示同意界面，披露将发送哪些数据、标识 AI 服务商，并要求您同意后才能继续。</li>
-    <li><strong>随时撤回：</strong>您可以随时在设置 > 隐私中撤回同意。撤回后，不会再向 AI 服务发送任何数据。</li>
-    <li><strong>无需 AI 即可使用：</strong>您可以完全不使用 AI 功能 — 可以手动输入账单，演示模式也可以使用示例数据体验所有功能，无需任何网络请求。</li>
-    <li><strong>选择服务商：</strong>您可以在设置中选择由哪个 AI 服务商处理您的数据。</li>
-    <li><strong>删除数据：</strong>所有数据均存储在本地。删除应用即可从设备中移除所有数据。您也可以随时删除单个日记本或账单。</li>
+    <li><strong>保留期限：</strong>在您的账户处于活动状态期间，我们会保留您的数据。</li>
+    <li><strong>删除账户：</strong>您可以随时在应用内删除账户（设置 &gt; 删除账户）。此操作将从我们的服务器中永久删除您的旅行日记和账单。</li>
+    <li><strong>删除单项数据：</strong>您也可以随时删除单个旅行日记和账单。</li>
+    <li><strong>您的权利：</strong>根据您所在的地区，您可能拥有访问或删除自己数据的权利——例如欧盟、英国和加利福尼亚州的用户。如需提出请求，请发送电子邮件至 <a href="mailto:cdcupt@gmail.com">cdcupt@gmail.com</a>。</li>
 </ul>
 </div>
 </div>
 
 <div class="section">
-<h2 class="en">6. Data Sharing</h2>
-<h2 class="zh">六、数据分享</h2>
-<p class="en">The App offers config import/export. In "Share" mode, API keys and sensitive credentials are automatically removed. In "Backup" mode, the file contains the full configuration. Please keep your backup files secure.</p>
-<p class="zh">本应用提供配置导入/导出功能。在"分享"模式下，API 密钥和敏感凭据会被自动移除。在"备份"模式下，文件包含完整配置。请妥善保管您的备份文件。</p>
+<h2 class="en">6. Third-Party Sub-Processors</h2>
+<h2 class="zh">六、第三方子处理方</h2>
+<p class="en">We rely on the following third parties to operate the App. They process data only to provide their services to us:</p>
+<ul class="en">
+    <li><strong>Google</strong> — Gemini AI processing and Google Sign-In</li>
+    <li><strong>Apple</strong> — Sign in with Apple</li>
+    <li><strong>OpenAI</strong> — content moderation</li>
+    <li><strong>A US-based cloud hosting provider</strong> — hosting our backend service</li>
+</ul>
+<p class="zh">我们依靠以下第三方来运营本应用。它们处理数据仅为向我们提供其服务：</p>
+<ul class="zh">
+    <li><strong>Google</strong> — Gemini AI 处理与 Google 登录</li>
+    <li><strong>Apple</strong> — 通过 Apple 登录</li>
+    <li><strong>OpenAI</strong> — 内容审核</li>
+    <li><strong>位于美国的云托管服务商</strong> — 托管我们的后端服务</li>
+</ul>
 </div>
 
 <div class="section">
 <h2 class="en">7. Financial Data</h2>
 <h2 class="zh">七、财务数据</h2>
-<p class="en">Bill amounts, categories, and other financial information are stored exclusively on your device. We have no access to your financial data. The App does not connect to any bank, payment processor, or financial institution.</p>
-<p class="zh">账单金额、分类及其他财务信息仅存储在您的设备上。我们无法访问您的财务数据。本应用不连接任何银行、支付处理商或金融机构。</p>
+<p class="en">Bill amounts, categories, and other financial information you enter are stored on our backend service so they are available across your devices. The App does not connect to any bank, payment processor, or financial institution, and we never access your bank or payment accounts.</p>
+<p class="zh">您输入的账单金额、分类及其他财务信息存储在我们的后端服务上，以便在您的多台设备之间使用。本应用不连接任何银行、支付处理商或金融机构，我们也绝不访问您的银行或支付账户。</p>
 </div>
 
 <div class="section">
 <h2 class="en">8. Children's Privacy</h2>
 <h2 class="zh">八、儿童隐私</h2>
 <p class="en">The App is not specifically directed at children under 13 and does not knowingly collect personal information from children.</p>
-<p class="zh">���应用不专门面向 13 岁以下儿童，也不会故意收集儿童的个人信息。</p>
+<p class="zh">本应用不专门面向 13 岁以下儿童，也不会故意收集儿童的个人信息。</p>
 </div>
 
 <div class="section">
-<h2 class="en">9. Changes to This Policy</h2>
-<h2 class="zh">九、隐私政策更新</h2>
-<p class="en">We may update this Privacy Policy from time to time. The updated policy will be posted on this page with a revised "Last Updated" date.</p>
-<p class="zh">我们可能会不时更新本隐私政策。更新后的政策将在本页面发布，并更新"最后更新"日期。</p>
+<h2 class="en">9. Availability</h2>
+<h2 class="zh">九、可用区域</h2>
+<p class="en">The App is offered worldwide, except mainland China.</p>
+<p class="zh">本应用面向全球提供，但中国大陆地区除外。</p>
 </div>
 
 <div class="section">
-<h2 class="en">10. Contact</h2>
-<h2 class="zh">十、联系方式</h2>
-<p class="en">If you have any questions about this Privacy Policy, please contact us at:</p>
-<p class="zh">如果您对本隐私政策有任何疑问，请通过以下方式联系我们：</p>
-<p>GitHub: <a href="https://github.com/cdcupt/BillMind/issues">github.com/cdcupt/BillMind/issues</a></p>
+<h2 class="en">10. Changes to This Policy</h2>
+<h2 class="zh">十、隐私政策更新</h2>
+<p class="en">We may update this Privacy Policy from time to time. The updated policy will be posted on this page with a revised effective date.</p>
+<p class="zh">我们可能会不时更新本隐私政策。更新后的政策将在本页面发布，并更新生效日期。</p>
+</div>
+
+<div class="section">
+<h2 class="en">11. Contact</h2>
+<h2 class="zh">十一、联系方式</h2>
+<p class="en">If you have any questions or requests about this Privacy Policy, please contact us at:</p>
+<p class="zh">如果您对本隐私政策有任何疑问或请求，请通过以下方式联系我们：</p>
+<p>Email: <a href="mailto:cdcupt@gmail.com">cdcupt@gmail.com</a></p>
 </div>
 
 <div style="text-align: center; padding: 30px 0 20px; color: #78716C; font-size: 13px;">
