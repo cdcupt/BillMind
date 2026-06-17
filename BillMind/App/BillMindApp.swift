@@ -104,14 +104,17 @@ final class SyncCoordinator: ObservableObject {
     @Published private(set) var lastOutcome: SyncOutcome?
 
     private let engine: SyncEngine
+    private let enabled: Bool
 
-    init(container: ModelContainer, api: SyncAPI) {
+    init(container: ModelContainer, api: SyncAPI, enabled: Bool = true) {
         engine = SyncEngine(container: container, api: api)
+        self.enabled = enabled
     }
 
     private static let log = Logger(subsystem: "com.billmind.app", category: "sync")
 
     func sync() async {
+        guard enabled else { return }   // UI-test mode: no network, instant
         guard !isSyncing else { Self.log.notice("sync: skipped (already syncing)"); return }
         isSyncing = true
         defer { isSyncing = false }
@@ -206,14 +209,25 @@ struct BillMindApp: App {
         // never get a serverID and capture stays on the local path. This prevents
         // test runs from polluting a signed-in user's real server data.
         let syncTokenStore: TokenStore
+        // In UI-test mode the sync is a true no-op (`enabled: false`): no network
+        // at all, so post-save "Saving…" clears instantly and the save UI tests
+        // never depend on a live round-trip. Because a disabled sync never calls
+        // createTrip, test-created trips still never get a serverID and capture
+        // stays on the offline local path. The ephemeral token store is kept as
+        // belt-and-suspenders.
+        let syncEnabled: Bool
         #if DEBUG
-        syncTokenStore = CommandLine.arguments.contains("--uitesting-signedin")
-            ? EphemeralTokenStore() : TokenVault()
+        let isUITesting = CommandLine.arguments.contains("--uitesting-signedin")
+        syncTokenStore = isUITesting ? EphemeralTokenStore() : TokenVault()
+        syncEnabled = !isUITesting
         #else
         syncTokenStore = TokenVault()
+        syncEnabled = true
         #endif
         _sync = StateObject(wrappedValue: SyncCoordinator(
-            container: modelContainer, api: APIClient(tokenStore: syncTokenStore)))
+            container: modelContainer,
+            api: APIClient(tokenStore: syncTokenStore),
+            enabled: syncEnabled))
     }
 
     /// Delete the legacy unversioned cache (`default.store` + sidecars). Safe:
