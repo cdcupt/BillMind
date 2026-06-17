@@ -26,7 +26,7 @@ final class Journal {
     var bills: [BillRecord] = []
 
     var coverAnimal: AnimalType {
-        get { AnimalType(rawValue: coverAnimalRaw) ?? .cat }
+        get { AnimalType(rawValue: coverAnimalRaw) ?? .owl }
         set { coverAnimalRaw = newValue.rawValue }
     }
 
@@ -57,7 +57,7 @@ final class Journal {
     init(
         name: String,
         currency: String = "CNY",
-        coverAnimal: AnimalType = .cat,
+        coverAnimal: AnimalType = .owl,
         notes: String? = nil
     ) {
         self.id = UUID()

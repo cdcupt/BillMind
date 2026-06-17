@@ -32,7 +32,7 @@ export function Landing() {
     <main className="landing">
       <header className="landing__nav">
         <span className="landing__mark">
-          BillMind<span className="landing__mark-dot">.</span>
+          BillOwl<span className="landing__mark-dot">.</span>
         </span>
         <span className="landing__passport">— a travel ledger</span>
       </header>
@@ -44,7 +44,7 @@ export function Landing() {
           Watch it add up.
         </h1>
         <p className="landing__lede">
-          Snap a receipt or just say what you spent. BillMind reads it, asks
+          Snap a receipt or just say what you spent. BillOwl reads it, asks
           only what it must, and never guesses the number.
         </p>
 
@@ -73,7 +73,7 @@ export function Landing() {
       </section>
 
       <footer className="landing__foot">
-        <span>BillMind 2.0</span>
+        <span>BillOwl 2.0</span>
         <span>Never guess money.</span>
       </footer>
     </main>

@@ -12,16 +12,16 @@ struct WelcomeNoticeView: View {
         VStack(spacing: 14) {
             Capsule().fill(SketchTheme.lightBrown.opacity(0.5)).frame(width: 40, height: 4).padding(.top, 8)
 
-            Image(AnimalType.cat.imageName)
+            Image(AnimalType.owl.imageName)
                 .resizable().scaledToFill().frame(width: 56, height: 56).clipShape(Circle())
 
-            Text("Welcome to BillMind")
+            Text("Welcome to BillOwl")
                 .font(SketchTheme.titleFont(24)).foregroundStyle(SketchTheme.softBrown)
                 .accessibilityIdentifier("welcome-title")
 
             VStack(alignment: .leading, spacing: 12) {
-                point("🔒", "Your trips sync to your private BillMind account over an encrypted connection.")
-                point("✨", "Receipts and questions are read by BillMind's AI to help you record — never sold.")
+                point("🔒", "Your trips sync to your private BillOwl account over an encrypted connection.")
+                point("✨", "Receipts and questions are read by BillOwl's AI to help you record — never sold.")
                 point("🗂", "Delete a trip — or your whole account — anytime; it removes the data too.")
             }
             .padding(.horizontal, 4)

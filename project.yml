@@ -34,10 +34,11 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_NSCameraUsageDescription: "BillMind needs camera access to scan bills and invoices"
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "BillMind needs photo library access to import bill images"
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "BillMind listens so you can add bills by voice"
-        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "BillMind transcribes your voice to turn it into bills"
+        INFOPLIST_KEY_NSCameraUsageDescription: "BillOwl needs camera access to scan bills and invoices"
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "BillOwl needs photo library access to import bill images"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "BillOwl listens so you can add bills by voice"
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "BillOwl transcribes your voice to turn it into bills"
+        INFOPLIST_KEY_CFBundleDisplayName: BillOwl
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: false
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "1.0.0"

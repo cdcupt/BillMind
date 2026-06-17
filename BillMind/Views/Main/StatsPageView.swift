@@ -121,7 +121,7 @@ struct StatsPageView: View {
                         Text("Statistics")
                             .font(SketchTheme.titleFont(24))
                             .foregroundStyle(SketchTheme.softBrown)
-                        AnimalMascotView(animal: .bear, size: 28)
+                        AnimalMascotView(animal: .owl, size: 28)
                     }
                 }
             }

@@ -297,7 +297,7 @@ struct BillImportFlowView: View {
             VStack(spacing: 16) {
                 StepIndicator(current: 3, total: 3)
 
-                AnimalMascotView(animal: .rabbit, size: 48)
+                AnimalMascotView(animal: .owl, size: 48)
                 Text("\(draftBills.count) bill(s) recognized!")
                     .font(SketchTheme.headlineFont(18))
                     .foregroundStyle(SketchTheme.sageGreen)

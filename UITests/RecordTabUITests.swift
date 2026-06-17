@@ -156,16 +156,16 @@ final class RecordTabUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--uitesting-reset", "--uitesting-signedin", "--uitesting-show-notice"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Welcome to BillOwl"].waitForExistence(timeout: 10))
         app.buttons["welcome-get-started"].tap()
-        XCTAssertFalse(app.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["Welcome to BillOwl"].waitForExistence(timeout: 2))
 
         // Relaunch signed-in WITHOUT reset/show-notice → the persisted flag suppresses it.
         app.terminate()
         let relaunch = XCUIApplication()
         relaunch.launchArguments = ["--uitesting-signedin"]
         relaunch.launch()
-        XCTAssertFalse(relaunch.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 5),
+        XCTAssertFalse(relaunch.staticTexts["Welcome to BillOwl"].waitForExistence(timeout: 5),
                        "The notice must not reappear after Get started")
     }
 }

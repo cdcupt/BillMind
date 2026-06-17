@@ -60,7 +60,7 @@ struct JournalsListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("BillMind")
+                    Text("BillOwl")
                         .font(SketchTheme.titleFont(28))
                         .foregroundStyle(SketchTheme.softBrown)
                 }

@@ -15,7 +15,7 @@ export function AppShell() {
     <div className="shell">
       <header className="shell__head">
         <span className="shell__mark">
-          BillMind<span className="shell__mark-dot">.</span>
+          BillOwl<span className="shell__mark-dot">.</span>
         </span>
       </header>
 

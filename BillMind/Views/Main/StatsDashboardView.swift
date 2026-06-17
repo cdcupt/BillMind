@@ -34,7 +34,7 @@ struct StatsDashboardView: View {
                     .font(SketchTheme.captionFont())
                     .foregroundStyle(SketchTheme.lightBrown)
                 Spacer()
-                AnimalMascotView(animal: .bear, size: 22)
+                AnimalMascotView(animal: .owl, size: 22)
             }
 
             Text(totalAmount.formattedCurrency)

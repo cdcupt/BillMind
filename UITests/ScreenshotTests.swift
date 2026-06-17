@@ -19,7 +19,7 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments = ["--uitesting-reset", "--uitesting-signedin", "--uitesting-show-notice"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Welcome to BillMind"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Welcome to BillOwl"].waitForExistence(timeout: 10))
         grab(app, "01-welcome-notice")
         app.buttons["welcome-get-started"].tap()
 

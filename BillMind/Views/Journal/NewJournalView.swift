@@ -9,7 +9,7 @@ struct NewJournalView: View {
 
     @State private var name = ""
     @State private var selectedCurrency = "CNY"
-    @State private var selectedAnimal: AnimalType = .cat
+    @State private var selectedAnimal: AnimalType = .owl
     @State private var notes = ""
 
     var body: some View {

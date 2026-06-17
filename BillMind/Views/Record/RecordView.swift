@@ -155,7 +155,7 @@ struct RecordView: View {
 
     private var introCard: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(AnimalType.cat.imageName).resizable().scaledToFill().frame(width: 34, height: 34).clipShape(Circle())
+            Image(AnimalType.owl.imageName).resizable().scaledToFill().frame(width: 34, height: 34).clipShape(Circle())
             Text("Tell me about a bill — like “ramen 2840” — or 📷 a receipt. I'll make a card you can edit, and ask if something's unclear. Nothing saves until you tap Save.")
                 .font(SketchTheme.bodyFont(13)).foregroundStyle(SketchTheme.softBrown)
         }

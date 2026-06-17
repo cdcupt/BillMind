@@ -30,7 +30,7 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        Text("BillMind reads your bills with AI on its secure server. Receipts and text you capture are sent there for recognition, and your ledger is saved to your account. See the policy for details.")
+                        Text("BillOwl reads your bills with AI on its secure server. Receipts and text you capture are sent there for recognition, and your ledger is saved to your account. See the policy for details.")
                             .font(.system(size: 12, design: .serif))
                             .foregroundStyle(SketchTheme.lightBrown)
                             .padding(.horizontal, 4)
@@ -68,7 +68,7 @@ struct SettingsView: View {
                             .accessibilityIdentifier("delete-account")
                         }
                         Text(accountError
-                            ?? "Deleting your account permanently removes your trips and bills from BillMind's servers and this device.")
+                            ?? "Deleting your account permanently removes your trips and bills from BillOwl's servers and this device.")
                             .font(.system(size: 12, design: .serif))
                             .foregroundStyle(accountError == nil ? SketchTheme.lightBrown : SketchTheme.mutedRed)
                             .padding(.horizontal, 4)
@@ -77,15 +77,15 @@ struct SettingsView: View {
                         Button("Delete Account", role: .destructive) { Task { await performDeleteAccount() } }
                         Button("Cancel", role: .cancel) {}
                     } message: {
-                        Text("This permanently deletes your account and all trips and bills — on BillMind's servers and on this device. This can't be undone.")
+                        Text("This permanently deletes your account and all trips and bills — on BillOwl's servers and on this device. This can't be undone.")
                     }
 
                     // About
                     VStack(spacing: 4) {
-                        Text("BillMind v1.0.0")
+                        Text("BillOwl v1.0.0")
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
-                        Text("Bill with AI Mind")
+                        Text("Smart bills, wise owl")
                             .font(.system(size: 12, design: .serif))
                             .foregroundStyle(SketchTheme.lightBrown.opacity(0.7))
                     }
@@ -102,7 +102,7 @@ struct SettingsView: View {
                         Text("Settings")
                             .font(SketchTheme.headlineFont(20))
                             .foregroundStyle(SketchTheme.softBrown)
-                        Image("mascot_fox")
+                        Image("mascot_owl")
                             .resizable().scaledToFill()
                             .frame(width: 24, height: 24)
                             .clipShape(Circle())
@@ -199,7 +199,7 @@ struct AIDataConsentView: View {
                         .font(SketchTheme.headlineFont(22))
                         .foregroundStyle(SketchTheme.softBrown)
 
-                    Text("BillMind uses AI to recognize bills from photos and generate timeline images. Before using these features, please review what data is shared.")
+                    Text("BillOwl uses AI to recognize bills from photos and generate timeline images. Before using these features, please review what data is shared.")
                         .font(SketchTheme.bodyFont(15))
                         .foregroundStyle(SketchTheme.lightBrown)
                         .multilineTextAlignment(.center)
@@ -217,7 +217,7 @@ struct AIDataConsentView: View {
                         icon: "server.rack",
                         title: "Who receives the data",
                         items: [
-                            "BillMind's secure server, which calls the AI provider on your behalf",
+                            "BillOwl's secure server, which calls the AI provider on your behalf",
                             "Data is sent over an encrypted connection",
                         ]
                     )

@@ -90,7 +90,7 @@ struct SplashView: View {
         ZStack {
             SketchTheme.cream.ignoresSafeArea()
             VStack(spacing: 12) {
-                Text("BillMind")
+                Text("BillOwl")
                     .font(.system(size: 40, weight: .bold, design: .serif))
                     .foregroundStyle(SketchTheme.softBrown)
                 ProgressView().tint(SketchTheme.dustyRose)
@@ -111,7 +111,7 @@ struct SignInView: View {
             VStack(spacing: 18) {
                 Spacer()
 
-                Text("BillMind")
+                Text("BillOwl")
                     .font(.system(size: 46, weight: .bold, design: .serif))
                     .foregroundStyle(SketchTheme.softBrown)
                 Text("Your travel-and-money agent")
