@@ -26,7 +26,7 @@ struct AgentCardView: View {
     @State private var thinkingWord = AgentCardView.thinkingPhrases.randomElement() ?? "Thinking…"
 
     /// Pool of status words shown while the agent calls the remote model.
-    private static let thinkingPhrases = ["Thinking…", "Pondering…", "Reading…", "Recognizing…", "Tallying…", "Crunching…", "Cooking…", "Noodling…", "Musing…", "Conjuring…", "Reckoning…", "Mulling…", "Calculating…", "Sorting…", "Working…"]
+    private static let thinkingPhrases = ["Thinking…", "Pondering…", "Reading…", "Recognizing…", "Tallying…", "Crunching…", "Musing…", "Reckoning…", "Mulling…", "Calculating…", "Sorting…", "Working…"]
 
     private var draft: BillDraft { card.draft }
     private var amountMissing: Bool { draft.amount == nil }
