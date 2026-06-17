@@ -243,9 +243,20 @@ struct AgentCardView: View {
 
     @ViewBuilder private var actions: some View {
         if card.state == .recorded {
-            Label("In the trip", systemImage: "checkmark.seal.fill")
-                .font(SketchTheme.captionFont(13))
-                .foregroundStyle(SketchTheme.sageGreen)
+            Group {
+                if coordinator.savingCardIDs.contains(card.id) {
+                    Label("Saving…", systemImage: "arrow.triangle.2.circlepath")
+                        .font(SketchTheme.captionFont(13))
+                        .foregroundStyle(SketchTheme.softBlue)
+                        .accessibilityIdentifier("card-saving")
+                } else {
+                    Label("In the trip", systemImage: "checkmark.seal.fill")
+                        .font(SketchTheme.captionFont(13))
+                        .foregroundStyle(SketchTheme.sageGreen)
+                }
+            }
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.4), value: coordinator.savingCardIDs.contains(card.id))
         } else if card.state == .failed {
             HStack(spacing: 8) {
                 Button("Retry") { coordinator.retry(cardID: card.id) }
@@ -305,7 +316,8 @@ struct AgentCardView: View {
         case .intake, .extracting, .validating: ("reading…", SketchTheme.softBlue)
         case .clarifying: ("needs info", SketchTheme.mutedRed)
         case .review: amountMissing ? ("needs info", SketchTheme.mutedRed) : ("ready", SketchTheme.sageGreen)
-        case .recorded: ("saved", SketchTheme.sageGreen)
+        case .recorded: coordinator.savingCardIDs.contains(card.id)
+            ? ("saving…", SketchTheme.softBlue) : ("saved", SketchTheme.sageGreen)
         case .failed: ("extract failed", SketchTheme.mutedRed)
         case .discarded: ("discarded", SketchTheme.lightBrown)
         }

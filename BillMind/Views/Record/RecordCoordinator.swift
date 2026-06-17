@@ -24,6 +24,9 @@ final class RecordCoordinator {
     var errorMessage: String?
     /// A calm decline from moderation (intent isn't travel-and-money), shown then cleared.
     var declineMessage: String?
+    /// Cards whose saved bill is still committing/syncing to the server — drives a
+    /// transient "Saving…" state on the card until the sync round-trip completes.
+    var savingCardIDs: Set<UUID> = []
 
     init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI,
          sync: SyncCoordinator? = nil) {
@@ -247,8 +250,15 @@ final class RecordCoordinator {
         bill.syncState = .local        // mark pending so the next push sends it
         modelContext.insert(bill)
         try? modelContext.save()
-        // Push it now (creates the trip on the server first if needed).
-        Task { await sync?.sync() }
+        // Push it now (creates the trip on the server first if needed). Mark the
+        // card saving and clear it when the round-trip ends — success OR failure —
+        // so the card never sticks on "Saving…". `SyncCoordinator.sync()` catches
+        // its own errors and never throws, so `remove` always runs after the await.
+        savingCardIDs.insert(card.id)
+        Task {
+            await sync?.sync()
+            savingCardIDs.remove(card.id)
+        }
     }
 }
 
