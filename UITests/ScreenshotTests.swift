@@ -30,7 +30,12 @@ final class ScreenshotTests: XCTestCase {
         let nameField = app.textFields["journalNameField"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 5))
         nameField.tap(); nameField.typeText("Osaka Trip")
-        app.buttons["createJournalButton"].tap()
+        // Dismiss the keyboard so the bottom "Create Trip" button is reachable on tall devices (Pro Max).
+        if app.keyboards.element.waitForExistence(timeout: 2) { app.swipeUp() }
+        let createBtn = app.buttons["createJournalButton"]
+        XCTAssertTrue(createBtn.waitForExistence(timeout: 10))
+        if !createBtn.isHittable { app.swipeUp() }
+        createBtn.tap()
 
         // The trip's capture surface.
         let input = app.textFields["record-input"]
@@ -58,7 +63,12 @@ final class ScreenshotTests: XCTestCase {
         let nameField = app.textFields["journalNameField"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 5))
         nameField.tap(); nameField.typeText("Osaka Trip")
-        app.buttons["createJournalButton"].tap()
+        // Dismiss the keyboard so the bottom "Create Trip" button is reachable on tall devices (Pro Max).
+        if app.keyboards.element.waitForExistence(timeout: 2) { app.swipeUp() }
+        let createBtn = app.buttons["createJournalButton"]
+        XCTAssertTrue(createBtn.waitForExistence(timeout: 10))
+        if !createBtn.isHittable { app.swipeUp() }
+        createBtn.tap()
         XCTAssertTrue(app.textFields["record-input"].waitForExistence(timeout: 15))
 
         app.tabBars.buttons["Minds"].tap()
