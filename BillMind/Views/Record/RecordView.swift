@@ -267,13 +267,13 @@ struct RecordView: View {
         let id = selectedJournalID ?? journals.first?.id
         selectedJournalID = id
         if let journal = journals.first(where: { $0.id == id }) {
-            coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client)
+            coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client, sync: sync)
         }
     }
 
     private func rebuild() {
         guard let id = selectedJournalID, let journal = journals.first(where: { $0.id == id }) else { return }
-        coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client)
+        coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client, sync: sync)
     }
 
     private func loadPhotos(_ items: [PhotosPickerItem]) {

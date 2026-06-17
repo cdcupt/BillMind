@@ -109,15 +109,21 @@ final class SyncCoordinator: ObservableObject {
         engine = SyncEngine(container: container, api: api)
     }
 
+    private static let log = Logger(subsystem: "com.billmind.app", category: "sync")
+
     func sync() async {
-        guard !isSyncing else { return }
+        guard !isSyncing else { Self.log.notice("sync: skipped (already syncing)"); return }
         isSyncing = true
         defer { isSyncing = false }
         do {
             lastOutcome = try await engine.sync()
             lastError = nil
+            if let o = lastOutcome {
+                Self.log.notice("sync: ok pushedBills=\(o.pushedBills, privacy: .public) pulledBills=\(o.pulledBills, privacy: .public)")
+            }
         } catch {
             lastError = (error as? APIError)?.errorDescription ?? "Couldn't sync. Pull to retry."
+            Self.log.error("sync: FAILED \(self.lastError ?? "", privacy: .public)")
         }
     }
 }
@@ -254,12 +260,19 @@ struct BillMindApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // BillMind's palette is a fixed warm-paper light theme; lock the
+                // color scheme so Dark Mode doesn't flash a black background through
+                // the tab-bar/content during transitions.
+                .preferredColorScheme(.light)
                 .environmentObject(auth)
                 .environmentObject(sync)
                 .task { auth.bootstrap() }
                 // Sync once signed in, and again whenever the app returns to foreground.
-                .task(id: auth.state) {
-                    if case .signedIn = auth.state { await sync.sync() }
+                // Use an unstructured Task (not `.task(id:)`) so a sign-in state change
+                // or view re-render during launch can't cancel an in-flight push —
+                // that was dropping freshly-recorded bills before they reached the server.
+                .onChange(of: auth.state, initial: true) { _, state in
+                    if case .signedIn = state { Task { await sync.sync() } }
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, case .signedIn = auth.state {

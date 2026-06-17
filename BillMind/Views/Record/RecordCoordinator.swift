@@ -13,6 +13,10 @@ final class RecordCoordinator {
     let journal: Journal
     private let modelContext: ModelContext
     private let recognizer: RecognitionAPI
+    /// Pushes a newly-recorded bill to the server right away (and creates the trip
+    /// if it isn't synced yet). Without this, recorded bills sit local-only until
+    /// some other sync event — so Minds/Stats (which read the server) see nothing.
+    @ObservationIgnored private let sync: SyncCoordinator?
     /// Source images kept in memory for retry; not persisted, not observed.
     @ObservationIgnored private var sourceImages: [UUID: UIImage] = [:]
 
@@ -21,10 +25,12 @@ final class RecordCoordinator {
     /// A calm decline from moderation (intent isn't travel-and-money), shown then cleared.
     var declineMessage: String?
 
-    init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI) {
+    init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI,
+         sync: SyncCoordinator? = nil) {
         self.journal = journal
         self.modelContext = modelContext
         self.recognizer = recognizer
+        self.sync = sync
         let validator = BillValidator(
             knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
             journalCurrencyCode: journal.currency,
@@ -78,12 +84,13 @@ final class RecordCoordinator {
             }
             // First bill fills the card we already enqueued; each additional bill
             // (one sentence → several bills) gets its own new card.
+            let stated = Self.textMentionsDate(text)
             _ = session.completeExtraction(cardID: cardID,
-                draft: BillDraft(serverDraft: first.draft, fallbackCurrency: journal.currency))
+                draft: draftWithDefaultDate(first.draft, dateStated: stated))
             for extra in cards.dropFirst() {
                 let extraID = session.enqueue(source: .text)
                 _ = session.completeExtraction(cardID: extraID,
-                    draft: BillDraft(serverDraft: extra.draft, fallbackCurrency: journal.currency))
+                    draft: draftWithDefaultDate(extra.draft, dateStated: stated))
             }
         } catch {
             // Offline / server error → graceful local fallback so capture never breaks.
@@ -93,8 +100,28 @@ final class RecordCoordinator {
 
     /// Deterministic local fallback (offline / pre-sync / AI error).
     private func completeLocally(text: String, cardID: UUID) {
-        let draft = DraftExtractor.parse(text, currencyCode: journal.currency)
+        var draft = DraftExtractor.parse(text, currencyCode: journal.currency)
+        if draft.date == nil { draft.date = Date() }   // no date stated → device-local today
         _ = session.completeExtraction(cardID: cardID, draft: draft)
+    }
+
+    /// When the user didn't state a date, default it to the device's local **today**
+    /// — not the model's guess (which is anchored to the server's clock and can land
+    /// on yesterday for non-UTC users). An explicitly stated date is kept as-is.
+    private func draftWithDefaultDate(_ serverDraft: APIBillDraft, dateStated: Bool) -> BillDraft {
+        var draft = BillDraft(serverDraft: serverDraft, fallbackCurrency: journal.currency)
+        if !dateStated { draft.date = Date() }
+        return draft
+    }
+
+    /// Did the note mention a date at all — an explicit date (handled by the
+    /// extractor) or a relative day word the model resolves server-side?
+    static func textMentionsDate(_ text: String) -> Bool {
+        if DraftExtractor.date(in: text) != nil { return true }
+        let lower = text.lowercased()
+        let words = ["today", "yesterday", "tomorrow", "tonight", "last ", "this ", " ago",
+                     "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        return words.contains { lower.contains($0) }
     }
 
     /// Photo path — server-side recognition (Gemini vision + moderation). The
@@ -137,7 +164,8 @@ final class RecordCoordinator {
             }
             // Seed the local clarify-loop from the server card (the local
             // BillValidator re-derives gaps; amount stays nil if unread).
-            let draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
+            var draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
+            if draft.date == nil { draft.date = Date() }   // unreadable receipt date → today
             _ = session.completeExtraction(cardID: cardID, draft: draft)
         } catch {
             _ = session.failExtraction(cardID: cardID)
@@ -216,8 +244,11 @@ final class RecordCoordinator {
             BillLineItem(itemDescription: $0.label, amount: $0.amount)
         }
         bill.journal = journal
+        bill.syncState = .local        // mark pending so the next push sends it
         modelContext.insert(bill)
         try? modelContext.save()
+        // Push it now (creates the trip on the server first if needed).
+        Task { await sync?.sync() }
     }
 }
 

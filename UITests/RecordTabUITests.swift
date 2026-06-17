@@ -43,7 +43,7 @@ final class RecordTabUITests: XCTestCase {
                       "Saved card should show its recorded state")
     }
 
-    // MARK: - 1. Happy / clarify + category correction
+    // MARK: - 1. Happy / category correction (date defaults to today, no clarify)
 
     @MainActor
     func testRecordTextAnswerDateChangeCategorySaves() throws {
@@ -52,12 +52,10 @@ final class RecordTabUITests: XCTestCase {
 
         type(app, "ramen 2840")
 
-        // Card asks for the missing date — answer with the Today chip.
-        XCTAssertTrue(app.buttons["clarify-Today"].waitForExistence(timeout: 10))
-        app.buttons["clarify-Today"].tap()
-
-        // Change the category via the edit drawer.
-        app.buttons["card-category"].tap()
+        // No date stated → defaults to today (no clarify); change the category.
+        let categoryButton = app.buttons["card-category"]
+        XCTAssertTrue(categoryButton.waitForExistence(timeout: 10))
+        categoryButton.tap()
         let transport = app.buttons["drawer-cat-transport"]
         XCTAssertTrue(transport.waitForExistence(timeout: 5))
         transport.tap()
@@ -77,14 +75,11 @@ final class RecordTabUITests: XCTestCase {
         let app = launchedApp()
         createTrip(app, named: "Kyoto Trip")
 
-        type(app, "ramen")    // no number → amount missing
-
-        XCTAssertTrue(app.buttons["clarify-Today"].waitForExistence(timeout: 10))
-        app.buttons["clarify-Today"].tap()
+        type(app, "ramen")    // no number → amount missing (date defaults to today)
 
         // Tapping save with no amount opens the amount drawer instead of persisting.
         let save = app.buttons["card-save"]
-        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
         save.tap()
 
         let amountField = app.textFields["drawer-amount-field"]

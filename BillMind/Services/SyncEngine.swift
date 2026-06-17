@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// One full reconcile's tallies (for logging / pull-to-refresh feedback).
 struct SyncOutcome: Sendable {
@@ -22,6 +23,7 @@ struct SyncOutcome: Sendable {
 /// An `actor` (not `@ModelActor`) so it can also hold the `SyncAPI`; each method
 /// makes its own `ModelContext` from the shared container for background work.
 actor SyncEngine {
+    private static let log = Logger(subsystem: "com.billmind.app", category: "sync")
     private let container: ModelContainer
     private let api: SyncAPI
 
@@ -32,6 +34,7 @@ actor SyncEngine {
 
     @discardableResult
     func sync() async throws -> SyncOutcome {
+        Self.log.notice("sync: start")
         let context = ModelContext(container)
         try await pushDeletedTrips(context)                     // remove trips the user deleted
         let createdTrips = try await pushPendingTrips(context)   // trips must exist before their bills
@@ -102,6 +105,7 @@ actor SyncEngine {
                 rowVersion: bill.rowVersion,
                 deleted: bill.isDeleted ? true : nil)
         }
+        Self.log.notice("pushBills: dirty=\(dirty.count, privacy: .public) upserts=\(upserts.count, privacy: .public)")
         guard !upserts.isEmpty else { return (0, 0) }
 
         let result = try await api.syncPush(APISyncPush(bills: upserts))
