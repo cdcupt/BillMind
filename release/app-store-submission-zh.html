@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — App Store 提交中文填写指南</title>
+<style>
+  :root{--ink:#2b2117;--soft:#6f6253;--paper:#faf3e3;--card:#fffdf7;--line:#e7ddc8;--accent:#b5642f;--green:#1f6f5c;--blue:#2d6ca8;--red:#a8432f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;padding:32px 18px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:30px;margin:0 0 4px}
+  h2{font-size:21px;margin:34px 0 10px;border-bottom:2px solid var(--line);padding-bottom:6px}
+  h3{font-size:16px;margin:18px 0 6px;color:var(--accent)}
+  .sub{color:var(--soft);margin:0 0 18px}
+  .card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3ecda;padding:1px 5px;border-radius:5px;font-size:.9em;word-break:break-all}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#f3ecda}
+  .ok{color:var(--green);font-weight:600}.warn{color:var(--accent);font-weight:600}.no{color:var(--red);font-weight:600}
+  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#eef2ee;color:var(--green);font-weight:600}
+  .zh{background:#fdeee3;color:var(--accent)}
+  .en{background:#e8f0f6;color:var(--blue)}
+  .field{font-weight:600;white-space:nowrap}
+  .copy{color:#3a2f22;font-size:14.5px;background:#fbf6ea;border-left:3px solid var(--line);padding:8px 12px;border-radius:0 8px 8px 0;margin:6px 0}
+  .copy.en-c{border-left-color:var(--blue)}
+  .copy.zh-c{border-left-color:var(--accent)}
+  .count{color:var(--soft);font-size:12px;font-weight:400}
+  .note{color:var(--soft);font-size:13.5px}
+  ul{margin:6px 0 6px 20px}.tight li{margin:3px 0}
+  .lbl{font-size:12.5px;color:var(--soft);font-weight:600;text-transform:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>BillOwl · App Store 提交中文填写指南</h1>
+<p class="sub">你的 App Store Connect 后台是中文界面 —— 本指南把每个<strong>中文字段</strong>对应到要填入的值。App：<code>com.billmind.app</code> · 版本 <strong>1.0.1（build 2）</strong> · 全球上架（<strong>不含中国大陆</strong>）· 生效日期 2026 年 6 月 17 日。
+<br><span class="pill en">英文值 = 商店主语言直接粘贴</span> <span class="pill zh">中文值 = 仅当你额外添加"简体中文"本地化时使用</span></p>
+
+<div class="card" style="background:#fff8ef;border-color:#ecd9bf">
+<strong>先看这一点 —— 界面语言 ≠ 商店展示语言。</strong>
+<p class="note" style="margin:6px 0 0">你后台是中文，只是<strong>操作界面</strong>的语言；它不决定用户在 App Store 看到的文案语言。用户看到的语言由你的"<strong>App 本地化</strong>"决定。BillOwl 面向全球英文用户，<strong>建议主语言设为「English (U.S.)」并粘贴下面的英文值</strong>。如果你想再针对新加坡 / 港澳台等中文市场，可以<strong>添加一个「简体中文 / 繁体中文」本地化</strong>，那时再用下面的中文值。App 名称两种语言都保持品牌名 <strong>BillOwl</strong> 不翻译。</p>
+</div>
+
+<h2>1 · App 信息（App Information）</h2>
+<div class="card">
+<table>
+<tr><th>中文字段（English）</th><th>填入的值</th></tr>
+<tr><td class="field">名称 <span class="lbl">Name</span></td><td><strong>BillOwl</strong> <span class="count">(7/30)</span></td></tr>
+<tr><td class="field">副标题 <span class="lbl">Subtitle</span></td><td>英文：<strong>Your AI travel-money agent</strong> <span class="count">(26/30)</span><br>中文（可选）：<strong>你的 AI 旅行记账助手</strong></td></tr>
+<tr><td class="field">主要类别 <span class="lbl">Primary</span></td><td>财务 <span class="lbl">Finance</span></td></tr>
+<tr><td class="field">次要类别 <span class="lbl">Secondary</span></td><td>旅游 <span class="lbl">Travel</span></td></tr>
+<tr><td class="field">套装 ID <span class="lbl">Bundle ID</span></td><td><code>com.billmind.app</code></td></tr>
+<tr><td class="field">价格 <span class="lbl">Price</span></td><td>免费 <span class="lbl">Free</span></td></tr>
+<tr><td class="field">上架地区 <span class="lbl">Availability</span></td><td>所有国家或地区，<strong>但不包括中国大陆</strong>（避免 ICP 备案要求）</td></tr>
+<tr><td class="field">年龄分级 <span class="lbl">Age Rating</span></td><td>4+（见第 5 节）</td></tr>
+<tr><td class="field">版权 <span class="lbl">Copyright</span></td><td>© 2026 Daichen Chai</td></tr>
+</table>
+</div>
+
+<h2>2 · 网址 URL</h2>
+<div class="card">
+<table>
+<tr><td class="field">隐私政策 URL <span class="no">必填</span><br><span class="lbl">在「App 信息」页，不在版本页</span></td><td><code>https://cdcupt.github.io/BillMind/docs/privacy-policy.html</code></td></tr>
+<tr><td class="field">支持 URL <span class="no">必填</span></td><td><code>https://cdcupt.github.io/BillMind/docs/support.html</code></td></tr>
+<tr><td class="field">营销 URL <span class="note">（选填）</span></td><td><code>https://cdcupt.github.io/BillMind/docs/</code></td></tr>
+</table>
+<p class="note">三个网址都已确认在线（返回 200）。隐私政策 URL 在左侧「<strong>App 信息</strong>」里，不在版本页 —— 这点最容易找错。</p>
+</div>
+
+<h2>3 · 商店文本（在 1.0.1 版本页）</h2>
+<div class="card">
+<h3>宣传文本 Promotional text <span class="count">(≤170)</span></h3>
+<p class="copy en-c">Just say what you spent — BillOwl's AI reads it, sorts it, and tallies your trip. Capture by text, voice, or a photo of any receipt. Nothing saves until you tap Save.</p>
+<p class="copy zh-c">说一句你花了多少，BillOwl 的 AI 就帮你识别、归类、汇总整趟行程。可以打字、说话，或拍一张收据来记账。点击「保存」前，什么都不会被保存。</p>
+
+<h3>描述 Description <span class="count">(≤4000)</span></h3>
+<p class="copy en-c">BillOwl is the travel expense tracker that does the typing for you. Tell it what you spent — in plain words, with your voice, or by snapping a receipt — and its AI agent turns it into a clean, editable bill in seconds. No spreadsheets, no fiddly forms.<br><br>
+<strong>Capture any way you like</strong><br>
+• Type it: "ramen 2840" or "lunch 500, taxi 200, coffee 80" → one card per expense.<br>
+• Say it: tap the mic and speak; BillOwl transcribes and files it.<br>
+• Snap it: photograph a receipt and the AI reads the merchant, amount, date, and category.<br><br>
+<strong>Smart, but never sneaky</strong><br>
+• The AI recognizes as much as it can and asks when something's unclear.<br>
+• It never guesses an amount — if a total isn't clear, it asks you.<br>
+• Nothing is saved until you tap Save. Every card is fully editable.<br><br>
+<strong>See where your money went</strong><br>
+• Organize spending into trips, each in its own currency.<br>
+• Stats break down totals by trip, category, and day.<br>
+• "Minds" turns a trip into a beautiful hand-drawn timeline of your spending.<br><br>
+<strong>Yours, across devices</strong><br>
+• Sign in with Apple or Google. Your trips sync securely so they're there on every device.<br>
+• Delete any bill, any trip, or your whole account anytime.<br><br>
+BillOwl is built for travelers, freelancers, and anyone who wants expense tracking to feel like a quick conversation instead of a chore.</p>
+<p class="copy zh-c">BillOwl 是一款会替你打字的旅行记账工具。只要说出你花了什么 —— 用文字、用语音，或拍一张收据 —— 它的 AI 助手几秒内就能把它变成一张干净、可编辑的账单。不用表格，也不用繁琐的表单。<br><br>
+<strong>想怎么记，就怎么记</strong><br>
+• 打字记：输入"拉面 2840"，或"午餐 500、打车 200、咖啡 80"，每一笔自动生成一张卡片。<br>
+• 说话记：点一下麦克风说出来，BillOwl 自动转写并归档。<br>
+• 拍照记：拍下收据，AI 自动识别商家、金额、日期和类别。<br><br>
+<strong>聪明，但绝不自作主张</strong><br>
+• AI 会尽力识别，遇到不确定的地方会主动问你。<br>
+• 它从不猜测金额 —— 总额不清楚时，一定会先问你。<br>
+• 在你点击「保存」之前，什么都不会被保存。每张卡片都可以完全编辑。<br><br>
+<strong>看清钱花在了哪里</strong><br>
+• 把花费按行程整理，每个行程可用各自的币种。<br>
+• 统计按行程、类别、日期拆解总额。<br>
+• "Minds" 把一段行程变成一张手绘风格的精美消费时间线。<br><br>
+<strong>你的数据，多设备同步</strong><br>
+• 用 Apple 或 Google 登录，行程安全同步，每台设备上都在。<br>
+• 随时删除任意账单、任意行程，或你的整个账户。<br><br>
+BillOwl 为旅行者、自由职业者，以及所有希望记账像一次轻松对话、而不是一件苦差事的人而打造。</p>
+
+<h3>关键词 Keywords <span class="count">(≤100，英文逗号分隔，不要空格)</span></h3>
+<p class="copy en-c"><code>expense,travel,receipt,scanner,budget,money,bills,tracker,trip,spending,finance,voice,AI,tally</code> <span class="count">(96/100)</span></p>
+<p class="copy zh-c"><code>记账,旅行,发票,扫描,预算,花费,账单,出差,报销,理财,语音,记录,旅游,消费</code></p>
+
+<h3>此版本的新增内容 What's New（1.0.1）</h3>
+<p class="copy en-c">Welcome to BillOwl! Capture travel expenses by text, voice, or photo and let the AI do the rest.</p>
+<p class="copy zh-c">全新 BillOwl 上线！用文字、语音或拍照记录旅行消费，剩下的都交给 AI。</p>
+</div>
+
+<h2>4 · App 隐私 —— 数据"营养标签"（必填，需精确）</h2>
+<div class="card">
+<p class="note">在「App 隐私」中按下表申报。<strong>所有数据都"与用户身份关联"，仅用于"App 功能"，且不用于追踪。</strong>「你或你的第三方合作伙伴是否将数据用于追踪？」一律选 <strong>否</strong>。</p>
+<table>
+<tr><th>Apple 数据类别（路径）</th><th>在 BillOwl 中指什么</th><th>与用户关联</th><th>用途</th><th>追踪</th></tr>
+<tr><td>联系信息 → <b>电子邮件地址</b></td><td>Apple/Google 登录返回的邮箱（用于你的账户）</td><td class="ok">是</td><td>App 功能</td><td class="ok">否</td></tr>
+<tr><td>财务信息 → <b>其他财务信息</b></td><td>你的账单金额 / 消费数据</td><td class="ok">是</td><td>App 功能</td><td class="ok">否</td></tr>
+<tr><td>用户内容 → <b>照片或视频</b></td><td>你提交的收据照片</td><td class="ok">是</td><td>App 功能</td><td class="ok">否</td></tr>
+<tr><td>用户内容 → <b>其他用户内容</b></td><td>账单文字、商家名称、备注</td><td class="ok">是</td><td>App 功能</td><td class="ok">否</td></tr>
+<tr><td>标识符 → <b>用户 ID</b></td><td>登录方提供的稳定用户标识（账户键）</td><td class="ok">是</td><td>App 功能</td><td class="ok">否</td></tr>
+</table>
+<p class="note"><strong>不要申报：</strong>位置、通讯录、浏览/搜索记录、健康、购买项目、诊断/分析、广告数据 —— BillOwl 都不收集。语音在设备端转写（Apple Speech），转写出的文字归入"其他用户内容"，音频本身不存储。</p>
+</div>
+
+<h2>5 · 年龄分级问卷 → 4+</h2>
+<div class="card">
+<p class="note">每一项内容问题都选 <strong>无 / 没有</strong>（无暴力、脏话、性内容、赌博、毒品、恐怖、成人/暗示性主题）。"不受限制的网页访问"选 <strong>否</strong>。App 没有公开的用户生成内容分享（AI "Minds" 图片由你自己的私密数据生成、只留在你账户里），因此不触发 UGC/审核问题。结果：<strong>4+</strong>。备查：App 内有 AI 生成内容（账单识别 + Minds），且<strong>每条用户输入在送入模型前都会经过 OpenAI 审核 API 过滤</strong>。</p>
+</div>
+
+<h2>6 · App 审核信息（App Review Information）</h2>
+<div class="card">
+<h3>登录 / 演示账户 —— 备注（Notes）</h3>
+<p class="note">不需要演示账户。审核员读英文，<strong>「备注」请填英文版</strong>（中文仅供你对照）：</p>
+<p class="copy en-c">BillOwl requires sign-in. Please tap <b>"Sign in with Apple"</b> on the launch screen and use your own Apple ID — this creates a fresh account instantly (no credentials required). On the Record tab, type for example <b>"ramen 2840"</b> and tap the send arrow: the AI assistant (Ollie) returns an editable bill card; tap <b>"Save to trip"</b> to save it. The app needs network access — AI recognition runs on our US-hosted backend, and every input is screened by content moderation. To remove the account: Settings → Delete Account.</p>
+<p class="copy zh-c">（中文对照）BillOwl 需要登录。在启动页点击「通过 Apple 登录」用你自己的 Apple ID 即可即时创建账户（无需任何凭据）。在"记录"页输入例如「ramen 2840」并点发送箭头：AI 助手（Ollie）会返回一张可编辑的账单卡片，点「保存到行程」即保存。App 需要联网 —— AI 识别在我们位于美国的后端运行，且每条输入都会经过内容审核。删除账户：设置 → 删除账户。</p>
+<h3>联系信息 Contact</h3>
+<p class="note">名字 / 姓氏：Daichen / Chai · 电子邮件：cdcupt@gmail.com · 电话：你的手机号</p>
+</div>
+
+<h2>7 · 出口合规（加密 / Export Compliance）</h2>
+<div class="card">
+<p class="note">BillOwl 只使用标准 HTTPS/TLS 加密 → <strong>豁免</strong>。构建里已设置 <code>ITSAppUsesNonExemptEncryption = NO</code>，所以 App Store Connect 通常不会再问。（若被问"App 是否使用加密？"→ 仅标准加密 / 豁免。）</p>
+</div>
+
+<h2>8 · 截屏（App 预览和截屏）</h2>
+<div class="card">
+<p class="note">把 <code>release/screenshots/</code> 里的 5 张拖进 <strong>「iPhone 6.9 英寸显示屏」</strong>插槽（尺寸 <strong>1320 × 2868</strong>，已就绪，含 BillOwl + 猫头鹰 + Ollie）。6.9 英寸会自动覆盖更小的 iPhone，<strong>无需 6.5 英寸</strong>。万一后台仍要求 6.5 英寸，用 <code>release/screenshots-6.5/</code>（1284 × 2778）。本 App 为 iPhone 专用，<strong>无需 iPad 截屏</strong>。建议首图用 <code>03-card</code>（AI 返回账单卡片，最能体现价值）。</p>
+</div>
+
+<h2>9 · 构建 → 上传 → 提交</h2>
+<div class="card">
+<ol class="tight">
+<li><span class="warn">一次性：</span>在 Apple Developer 后台为 App ID <code>com.billmind.app</code> 开启 <b>「通过 Apple 登录 / Sign in with Apple」</b>（Identifiers → com.billmind.app → 勾选 → 存储）。</li>
+<li>用 <b>Xcode Cloud 构建 <code>main</code> 分支</b>（已是 1.0.1 / build 2 的 BillOwl 代码；旧的 <code>feat/billmind-2-server</code> 分支已删除）。</li>
+<li>因为 <code>1.0.0</code> 版本列已关闭，在 App Store Connect 里点 <b>(＋) 添加版本 → iOS</b>，输入 <b>1.0.1</b>。</li>
+<li>构建处理完成后（约 10–15 分钟，会收到邮件），在 1.0.1 版本的「构建版本」里选中 build 2，粘贴第 1–8 节内容，回答第 4 节隐私 + 第 5 节分级，然后 <b>提交以供审核</b>。</li>
+</ol>
+</div>
+
+<p class="note" style="margin-top:24px">提示：App 名称、品牌词 <strong>BillOwl</strong> 与助手名 <strong>Ollie</strong> 在所有语言里都保持原样不翻译。所有 <code>cdcupt.github.io/BillMind/...</code> 网址保持不变（那是固定路径，不是要翻译的产品名）。如需我再补一份<strong>繁体中文</strong>文案（针对台湾 / 港澳市场），告诉我即可。</p>
+
+</div>
+</body>
+</html>

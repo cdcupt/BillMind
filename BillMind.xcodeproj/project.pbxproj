@@ -79,7 +79,7 @@
 		0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0FC74283E52A503FB0A17A5A /* AIRecognitionMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionMapper.swift; sourceTree = "<group>"; };
 		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
-		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		166CBE10EC2FF76A53B34FF0 /* Prompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prompts.swift; sourceTree = "<group>"; };
 		17E76A2BD5243EED8B530996 /* MindsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindsView.swift; sourceTree = "<group>"; };
 		1D375A2E6F928AAF5B16B8E8 /* AgentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCardView.swift; sourceTree = "<group>"; };
@@ -654,6 +654,7 @@
 				CODE_SIGN_ENTITLEMENTS = BillMind/BillMind.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = NK3U2C365Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BillOwl;
@@ -762,6 +763,7 @@
 				CODE_SIGN_ENTITLEMENTS = BillMind/BillMind.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = NK3U2C365Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BillOwl;
