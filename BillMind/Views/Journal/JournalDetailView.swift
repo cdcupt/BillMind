@@ -46,7 +46,7 @@ struct JournalDetailView: View {
                 currencyWidget
 
                 // Bills grouped by date
-                if journal.bills.isEmpty {
+                if journal.liveBills.isEmpty {
                     EmptyStateView(
                         animal: .cat,
                         title: "No bills yet!",
@@ -89,6 +89,7 @@ struct JournalDetailView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(SketchTheme.softBrown)
                 }
+                .accessibilityIdentifier("addBillMenu")
             }
         }
         .navigationDestination(for: BillNavID.self) { navId in

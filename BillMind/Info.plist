@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Google Sign-In. GIDClientID = the iOS OAuth client ID; GIDServerClientID =
+	     the WEB client ID, so the issued ID token's audience is the web client the
+	     server validates (GOOGLE_CLIENT_ID). The reversed iOS client ID is the
+	     OAuth callback URL scheme. The rest of Info.plist is still generated
+	     (GENERATE_INFOPLIST_FILE merges the INFOPLIST_KEY_* settings into this). -->
+	<key>GIDClientID</key>
+	<string>328818408791-q7qpcqn0rs2jnf9020kocb2fpifgkj13.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>328818408791-na01luumqhg2cl8og1jr1cdiuqm41ehv.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.328818408791-q7qpcqn0rs2jnf9020kocb2fpifgkj13</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

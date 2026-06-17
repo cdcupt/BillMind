@@ -3,7 +3,9 @@ import SwiftData
 
 struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @EnvironmentObject private var sync: SyncCoordinator
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
     @State private var navigationPath = NavigationPath()
     @State private var journalToDelete: Journal?
@@ -23,8 +25,8 @@ struct JournalsListView: View {
                     if journals.isEmpty {
                         EmptyStateView(
                             animal: .cat,
-                            title: "No journals yet!",
-                            subtitle: "Create your first journal to start tracking bills"
+                            title: "No trips yet!",
+                            subtitle: "Create your first trip to start tracking bills"
                         )
                     } else {
                         LazyVStack(spacing: 12) {
@@ -38,7 +40,7 @@ struct JournalsListView: View {
                                         journalToDelete = journal
                                         showDeleteAlert = true
                                     } label: {
-                                        Label("Delete Journal", systemImage: "trash")
+                                        Label("Delete Trip", systemImage: "trash")
                                     }
                                 }
                             }
@@ -47,11 +49,13 @@ struct JournalsListView: View {
                     }
 
                     newJournalButton
+                        .accessibilityIdentifier("newJournalButton")
                         .padding(.horizontal)
                         .padding(.bottom, 20)
                 }
                 .padding(.top, 8)
             }
+            .refreshable { await sync.sync() }
             .paperBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -81,14 +85,25 @@ struct JournalsListView: View {
                         navigationPath.append(journalId)
                     }
                 }
+                .environmentObject(sync)   // sheets don't always inherit environmentObjects
             }
-            .alert("Delete Journal?", isPresented: $showDeleteAlert) {
+            .alert("Delete Trip?", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { journalToDelete = nil }
                 Button("Delete", role: .destructive) {
                     if let journal = journalToDelete {
-                        modelContext.delete(journal)
+                        // Gather on-disk image references before the cascade delete
+                        // removes the bills, then clean up files after the DB delete.
+                        let billImagePaths = journal.bills.flatMap { $0.imagePaths }
+                        let journalID = journal.id
+                        // Tombstone locally (hidden by the isDeleted query filter) and let
+                        // sync DELETE it on the server — a plain local delete would let the
+                        // next pull bring the trip right back.
+                        journal.isDeleted = true
+                        journal.syncState = .local
                         try? modelContext.save()
+                        BillFileCleanup.cleanUp(billImagePaths: billImagePaths, journalID: journalID)
                         journalToDelete = nil
+                        Task { await sync.sync() }
                     }
                 }
             } message: {
@@ -99,7 +114,7 @@ struct JournalsListView: View {
 
     private var sectionHeader: some View {
         HStack {
-            Text("My Journals")
+            Text("My Trips")
                 .font(SketchTheme.captionFont())
                 .foregroundStyle(SketchTheme.lightBrown)
             Rectangle()
@@ -118,7 +133,7 @@ struct JournalsListView: View {
                 VStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: 24))
-                    Text("New Journal")
+                    Text("New Trip")
                         .font(SketchTheme.captionFont())
                 }
                 .foregroundStyle(SketchTheme.lightBrown)

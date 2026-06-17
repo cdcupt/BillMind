@@ -5,6 +5,7 @@ struct NewJournalView: View {
     var onCreated: ((UUID) -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var sync: SyncCoordinator
 
     @State private var name = ""
     @State private var selectedCurrency = "CNY"
@@ -63,10 +64,11 @@ struct NewJournalView: View {
 
                     // Name field
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Journal Name")
+                        Text("Trip Name")
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
                         TextField("e.g., Tokyo Trip 2026", text: $name)
+                            .accessibilityIdentifier("journalNameField")
                             .font(SketchTheme.bodyFont())
                             .textFieldStyle(.plain)
                             .padding(12)
@@ -147,9 +149,10 @@ struct NewJournalView: View {
                     Button {
                         createJournal()
                     } label: {
-                        HandDrawnButton(title: "Create Journal", icon: nil, style: .primary)
+                        HandDrawnButton(title: "Create Trip", icon: nil, style: .primary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("createJournalButton")
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
                 }
@@ -159,7 +162,7 @@ struct NewJournalView: View {
             .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("New Journal")
+                    Text("New Trip")
                         .font(SketchTheme.headlineFont(20))
                         .foregroundStyle(SketchTheme.softBrown)
                 }
@@ -187,6 +190,9 @@ struct NewJournalView: View {
         } catch {
             print("Failed to save journal: \(error)")
         }
+        // The trip is created locally (syncState defaults to .local); sync creates
+        // it on the server (/v1/trips) so its bills become pushable.
+        Task { await sync.sync() }
         onCreated?(journal.id)
         dismiss()
     }

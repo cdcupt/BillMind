@@ -1,0 +1,106 @@
+import Vapor
+import Fluent
+import BillMindCore
+
+/// `POST /v1/recognition` — capture entry for text OR a photo:
+/// text → local DraftExtractor; image → Gemini vision → AIRecognitionMapper.
+/// Both run the moderation gate first and return the same CardDTO. Amount is
+/// never guessed (the validator flags a missing amount; canSave gates on it).
+struct CaptureController: RouteCollection {
+    let moderation: ModerationService
+    let recognizer: Recognizer
+    let textRecognizer: TextRecognizer
+
+    init(moderation: ModerationService, recognizer: Recognizer,
+         textRecognizer: TextRecognizer = LocalTextRecognizer()) {
+        self.moderation = moderation
+        self.recognizer = recognizer
+        self.textRecognizer = textRecognizer
+    }
+
+    func boot(routes: RoutesBuilder) throws {
+        let group = routes.grouped("v1").grouped(UserAuthMiddleware())
+        group.post("recognition", use: recognize)
+    }
+
+    func recognize(_ req: Request) async throws -> CaptureResponse {
+        let user = try req.auth.require(User.self)
+        let uid = try user.requireID()
+        let body = try req.content.decode(CaptureRequest.self)
+
+        guard let trip = try await Trip.query(on: req.db)
+            .filter(\.$id == body.tripID).filter(\.$owner.$id == uid).first()
+        else { throw Abort(.notFound, reason: "trip not found") }
+
+        let drafts: [BillDraft]
+
+        if let imageBase64 = body.imageBase64, !imageBase64.isEmpty {
+            // Photo path — server-side recognition (one bill per receipt).
+            let result = try await recognizer.recognize(imageBase64: imageBase64,
+                                                         mimeType: body.mimeType ?? "image/jpeg", on: req)
+            // Moderate the recognized text (treated as untrusted), catastrophic-only.
+            let recognizedText = [result.merchant, result.notes].compactMap { $0 }.joined(separator: " ")
+            if let declined = try await guardModeration(recognizedText.isEmpty ? "receipt" : recognizedText,
+                                                        uid: uid, req: req) { return declined }
+            drafts = [AIRecognitionMapper.draft(from: result, currencyCode: trip.currencyCode)]
+
+        } else if let text = body.text, !text.isEmpty {
+            // Text path — AI (Gemini) with a deterministic local fallback. One
+            // sentence can yield SEVERAL bills. Moderate first (untrusted input),
+            // then recognize; the validator still guards money downstream (a missing
+            // amount blocks Save, never guessed).
+            if let declined = try await guardModeration(text, uid: uid, req: req,
+                                                        expenseShaped: DraftExtractor.firstAmount(in: text) != nil) {
+                return declined
+            }
+            let today = Self.validClientDate(body.clientDate) ?? LocalTextRecognizer.utcTodayString()
+            drafts = await textRecognizer.recognize(text: text, currencyCode: trip.currencyCode, today: today, on: req)
+
+        } else {
+            throw Abort(.badRequest, reason: "provide text or imageBase64")
+        }
+
+        let tripID = try trip.requireID()
+        let cards = drafts.map { makeCardDTO($0, tripID: tripID, currencyCode: trip.currencyCode) }
+        return .cardsResponse(cards)
+    }
+
+    /// Accept the client's date only if it's a strict yyyy-MM-dd in a sane range —
+    /// it's interpolated into the prompt, so an unvalidated value is an injection
+    /// surface. Returns the validated string, or nil to fall back to UTC today.
+    static func validClientDate(_ raw: String?) -> String? {
+        guard let raw, raw.count == 10 else { return nil }
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        f.isLenient = false
+        guard let date = f.date(from: raw), f.string(from: date) == raw else { return nil }
+        // Reject absurd dates (clock-skew / tampering): within ~2 days of UTC now.
+        let drift = abs(date.timeIntervalSince(Date()))
+        return drift < 60 * 60 * 24 * 2 ? raw : nil
+    }
+
+    /// Runs the gate; returns a decline response if blocked, else nil (proceed).
+    private func guardModeration(_ text: String, uid: UUID, req: Request,
+                                 expenseShaped: Bool = true) async throws -> CaptureResponse? {
+        let verdict = try await moderation.evaluate(text, surface: .recognition, expenseShaped: expenseShaped, on: req)
+        try await moderation.logEvent(verdict, raw: text, surface: .recognition, userID: uid,
+                                      requestID: req.id, on: req.db)
+        guard verdict.decision == .block else { return nil }
+        return .declinedResponse("I can't help with that one — I'm your travel-and-money agent.")
+    }
+
+    private func makeCardDTO(_ draft: BillDraft, tripID: UUID, currencyCode: String) -> CardDTO {
+        let validator = BillValidator(
+            knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
+            journalCurrencyCode: currencyCode, today: Date()
+        )
+        let gaps = validator.validate(draft).map {
+            GapDTO(field: $0.field.rawValue, reason: $0.reason,
+                   prompt: $0.question.prompt, options: $0.question.options.map(\.label))
+        }
+        return CardDTO(tripID: tripID, draft: BillDraftDTO(draft), gaps: gaps, canSave: draft.amount != nil)
+    }
+}

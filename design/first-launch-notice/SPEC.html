@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First-Launch Privacy Notice — Spec</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --paper:#fdfaf4; --ink:#2a2520; --ink-soft:#6b6155; --rule:#e6ddcd; --accent:#c0532a;
+    --sage:#5e7a50; --blue:#4f7385; --card:#fffdf8; --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --cream:#FDF6EC; --ww:#FEFCF7; --brown:#8B7355; --lbrown:#B8A080; --rose:#D4A0A0; --shadow:rgba(212,197,169,.35); }
+  body { background:var(--paper); color:var(--ink); font-family:'Noto Serif',Georgia,serif; line-height:1.62; font-size:16px;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(184,160,128,.05) 27px,rgba(184,160,128,.05) 28px); }
+  .wrap { max-width:860px; margin:0 auto; padding:0 22px 70px; overflow-x:clip; }
+  header { padding:40px 0 20px; border-bottom:3px solid var(--ink); }
+  .kicker { font-family:var(--mono); font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:'Caveat',cursive; font-size:clamp(36px,6vw,54px); line-height:1; margin:6px 0 4px; }
+  .lede { color:var(--ink-soft); font-size:15.5px; max-width:640px; }
+  .meta-strip { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .pill { font-family:var(--mono); font-size:11.5px; background:var(--card); border:1.5px solid var(--rule); border-radius:8px; padding:4px 11px; max-width:100%; white-space:normal; word-break:break-word; }
+  .pill b { color:var(--accent); }
+  .cols { display:grid; grid-template-columns:1.1fr .9fr; gap:26px; margin-top:24px; align-items:start; }
+  .cols > div { min-width:0; }
+  @media (max-width:720px){ .cols { grid-template-columns:1fr; } }
+  h2 { font-family:'Caveat',cursive; font-size:29px; margin:30px 0 4px; }
+  h2 .n { color:var(--accent); margin-right:8px; }
+  h3 { font-size:15.5px; margin:16px 0 5px; }
+  p { margin:7px 0; } ul { margin:7px 0 7px 20px; } li { margin:3px 0; }
+  code { font-family:var(--mono); font-size:.84em; background:#f1e8d8; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+  .callout { background:#f4ecdc; border-left:4px solid var(--accent); border-radius:0 10px 10px 0; padding:10px 14px; margin:12px 0; font-size:14.5px; }
+  .dod { list-style:none; margin-left:0; }
+  .dod li { padding:5px 0 5px 26px; position:relative; border-bottom:1px dashed var(--rule); font-size:14.5px; }
+  .dod li::before { content:"☐"; position:absolute; left:2px; top:5px; color:var(--accent); }
+  footer { margin-top:34px; padding-top:16px; border-top:3px solid var(--ink); font-size:13px; color:var(--ink-soft); }
+  /* phone mockup */
+  .phonewrap { position:sticky; top:20px; }
+  .phone { width:100%; max-width:300px; margin:0 auto; background:var(--cream); border-radius:40px; border:3px solid var(--lbrown);
+    overflow:hidden; box-shadow:8px 10px 24px rgba(139,115,85,.18); position:relative;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 20px,rgba(184,160,128,.05) 20px,rgba(184,160,128,.05) 21px); }
+  .pstatus { height:34px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 20px 5px; font-size:11.5px; font-weight:700; color:var(--brown); }
+  .dim { height:120px; background:rgba(42,37,32,.06); display:flex; align-items:flex-end; }
+  .sheet { background:var(--ww); border-top-left-radius:26px; border-top-right-radius:26px; border:2px solid var(--lbrown); border-bottom:none;
+    padding:18px 18px 22px; width:100%; box-shadow:0 -6px 18px rgba(139,115,85,.12); }
+  .sheet .grip { width:40px; height:4px; border-radius:3px; background:var(--lbrown); opacity:.5; margin:0 auto 12px; }
+  .sheet .mascot { width:54px; height:54px; margin:0 auto 8px; display:block; }
+  .sheet h4 { font-family:'Caveat',cursive; font-size:25px; text-align:center; color:var(--brown); margin-bottom:8px; }
+  .sheet .pt { display:flex; gap:9px; align-items:flex-start; margin:9px 2px; font-size:12px; line-height:1.45; color:#4a423a; }
+  .sheet .pt .ic { font-size:15px; flex:none; line-height:1.2; }
+  .sheet .pt b { color:var(--ink); }
+  .sheet .link { display:block; text-align:center; font-size:12px; color:var(--blue); text-decoration:underline; margin:12px 0 12px; }
+  .sheet .cta { display:block; width:100%; text-align:center; font-family:'Caveat',cursive; font-size:19px; color:#fff;
+    background:var(--rose); border:2px solid #c08f8f; border-radius:14px; padding:8px; box-shadow:2px 3px 0 var(--shadow); }
+  .caption { text-align:center; font-size:12px; color:var(--ink-soft); font-style:italic; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">BillMind · First-Launch Privacy Notice · Worker deliverable</div>
+  <h1>Welcome notice</h1>
+  <p class="lede">A one-time, informational privacy notice shown on the very first launch. It explains BillMind's local-first posture and links the full policy. It does <strong>not</strong> gate anything — AI data sharing keeps its own separate consent.</p>
+  <div class="meta-strip">
+    <span class="pill"><b>shows</b> once, first launch only</span>
+    <span class="pill"><b>flag</b> UserDefaults — no schema change</span>
+    <span class="pill"><b>gates</b> nothing (informational)</span>
+  </div>
+</header>
+
+<div class="cols">
+  <div>
+    <h2><span class="n">1</span>Behavior</h2>
+    <ul>
+      <li>On launch, if <code>UserDefaults.standard.bool(forKey: "hasSeenFirstLaunchNotice")</code> is <code>false</code>, present the notice as a sheet over the root (<code>ContentView</code>).</li>
+      <li>Tapping <strong>Get started</strong> sets the flag <code>true</code> and dismisses. It never appears again.</li>
+      <li>Purely informational — it does <strong>not</strong> block recording or viewing, and it does <strong>not</strong> grant AI consent. the new <code>hasSeenFirstLaunchNotice</code> flag ≠ <code>hasConsentedToAIDataSharing</code>; the AI consent sheet still appears before the first AI call, unchanged.</li>
+    </ul>
+
+    <h2><span class="n">2</span>Storage — no schema change</h2>
+    <div class="callout">The "seen" flag lives in <strong>UserDefaults</strong>, not the SwiftData <code>AppSettings</code> model. A UI-only flag doesn't belong in the persistent store, and keeping it out means <strong>no SchemaV2 / migration</strong> — consistent with the Record tab v1.</div>
+
+    <h2><span class="n">3</span>Copy (honest to actual behavior)</h2>
+    <ul>
+      <li><strong>Title:</strong> "Welcome to BillMind"</li>
+      <li>🔒 "Your journals and bills stay <strong>on this device</strong>. BillMind has no servers and no account."</li>
+      <li>✨ "AI receipt recognition sends a photo to <strong>your chosen provider</strong> — and only after you agree, the first time."</li>
+      <li>🗂 "Delete a journal anytime, right inside the app — it removes its bills too." <span style="color:var(--ink-soft);font-style:italic">(honest: Settings only backs up config/API keys, not bills; deletion is per-journal — removing a journal cascade-deletes its bills. There is no delete-all and, today, no per-bill delete.)</span></li>
+      <li><strong>Link:</strong> "Read the Privacy Policy" → <code>https://cdcupt.github.io/BillMind/docs/privacy-policy.html</code> (opens in Safari)</li>
+      <li><strong>Button:</strong> "Get started"</li>
+    </ul>
+
+    <h2><span class="n">4</span>Presentation</h2>
+    <ul>
+      <li>SwiftUI <code>.sheet</code> bound to <code>@State private var showWelcome</code> in <code>ContentView</code>, set in <code>.onAppear</code> from the UserDefaults flag.</li>
+      <li>New file <code>BillMind/Views/Onboarding/WelcomeNoticeView.swift</code> (the sheet body). Uses <code>SketchTheme</code> + an AI-generated mascot, matching the app.</li>
+      <li>Not dismissible by swipe-to-cancel into a half state — only "Get started" sets the flag (interactive-dismiss disabled so the flag is always written).</li>
+    </ul>
+
+    <h2><span class="n">5</span>E2E interaction (important)</h2>
+    <ul>
+      <li><code>--uitesting-reset</code> is extended to also set <code>hasSeenFirstLaunchNotice = true</code>, so the existing create-journal/add-bill E2E and the Record-tab E2E start <strong>without</strong> the notice and are not derailed.</li>
+      <li>A dedicated test passes a new <code>--uitesting-show-notice</code> arg (clears the flag) to assert the notice <strong>appears once</strong>: launch → "Welcome to BillMind" visible → tap "Get started" → relaunch (flag now set) → notice does <strong>not</strong> appear.</li>
+    </ul>
+
+    <h2><span class="n">6</span>Definition of done</h2>
+    <ul class="dod">
+      <li>Notice shows on first launch only; "Get started" sets the UserDefaults flag.</li>
+      <li>No SwiftData schema change; AI consent flow unchanged and still separate.</li>
+      <li>Privacy Policy link opens the live Pages URL.</li>
+      <li>E2E: notice appears once then never again; existing + Record E2Es unaffected (reset arg skips it).</li>
+      <li>Screenshot captured of the notice.</li>
+    </ul>
+  </div>
+
+  <div>
+    <div class="phonewrap">
+      <div class="phone">
+        <div class="pstatus"><span>9:41</span><span>⌁ 100%</span></div>
+        <div class="dim">
+          <div class="sheet">
+            <div class="grip"></div>
+            <svg class="mascot" viewBox="0 0 40 40" aria-label="cat mascot">
+              <path d="M8 14 L11 5 L16 11" fill="#E8D9C4" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M32 14 L29 5 L24 11" fill="#E8D9C4" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"/>
+              <ellipse cx="20" cy="22" rx="13.5" ry="12" fill="#F3E8D5" stroke="#8B7355" stroke-width="1.7"/>
+              <circle cx="15" cy="20" r="1.6" fill="#5d4e3c"/><circle cx="25" cy="20" r="1.6" fill="#5d4e3c"/>
+              <path d="M18.5 25 Q20 26.5 21.5 25" fill="none" stroke="#5d4e3c" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <h4>Welcome to BillMind</h4>
+            <div class="pt"><span class="ic">🔒</span><span>Your journals and bills stay <b>on this device</b>. No servers, no account.</span></div>
+            <div class="pt"><span class="ic">✨</span><span>AI recognition sends a photo to <b>your chosen provider</b> — only after you agree, the first time.</span></div>
+            <div class="pt"><span class="ic">🗂</span><span>Delete a journal anytime, right inside the app — it removes its bills too.</span></div>
+            <span class="link">Read the Privacy Policy</span>
+            <span class="cta">Get started</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">First launch only · informational · gates nothing</p>
+    </div>
+  </div>
+</div>
+
+<footer>BillMind · First-launch privacy notice · companion to the Record tab work · HTML doc recorded in <code>design/first-launch-notice/</code>.</footer>
+</div>
+</body>
+</html>

@@ -33,3 +33,7 @@ Package.resolved
 *.xccheckout
 *.xcscmblueprint
 BillMind_config.json
+
+# secrets
+.env
+server/deploy/.env

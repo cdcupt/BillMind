@@ -1,0 +1,141 @@
+.capture-card {
+  position: relative;
+  background: var(--paper-card);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transform: rotate(-0.4deg);
+  animation: card-in var(--duration) var(--ease);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) rotate(-0.4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-0.4deg);
+  }
+}
+
+/* A strip of "washi tape" pinning the receipt to the page. */
+.capture-card__tape {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 96px;
+  height: 24px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: color-mix(in oklch, var(--gold) 55%, transparent);
+  border: 1px solid color-mix(in oklch, var(--gold) 70%, var(--ink));
+  opacity: 0.7;
+}
+
+.capture-card__title {
+  font-size: 1.8rem;
+  color: var(--ink);
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.field__label {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.field__flag {
+  font-style: normal;
+  font-family: var(--font-hand);
+  font-size: 1.05rem;
+  color: var(--stamp);
+}
+.field__input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 0.55em 0.7em;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+.field__input:focus {
+  border-color: var(--stamp);
+  outline: none;
+}
+.field--needed .field__input {
+  border-color: color-mix(in oklch, var(--stamp) 60%, var(--hairline));
+  background: color-mix(in oklch, var(--stamp) 6%, var(--paper));
+}
+
+.field__money {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+.field__currency {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.7em;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.chip {
+  border: 1.5px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 0.35em 0.85em;
+  font-size: var(--text-sm);
+  transition:
+    background var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+.chip:hover {
+  border-color: var(--ink-faint);
+}
+.chip--on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.capture-card__error {
+  margin: 0;
+  color: var(--alert);
+  font-size: var(--text-sm);
+}
+
+.capture-card__save {
+  align-self: flex-start;
+}
+.capture-card__save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: none;
+}

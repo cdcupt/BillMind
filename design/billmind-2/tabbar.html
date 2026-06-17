@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind 2.0 — the bottom bar</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--paper:#F7F4EE;--ink:#1B201D;--soft:#6b675f;--rule:#e4ded2;--card:#fff;--pine:#1F6F5C;--terra:#C8643C;--sand:#E9C46A;--gate:#B23A3A;--blue:#2D6CA8;
+    --sans:'Inter',system-ui,sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'IBM Plex Mono',monospace}
+  body{background:#ECE6DA;font-family:var(--sans);color:var(--ink);padding:38px 18px 70px;line-height:1.55}
+  .wrap{max-width:740px;margin:0 auto}
+  h1{font-family:var(--serif);font-size:clamp(26px,5vw,38px);font-weight:600;letter-spacing:-.01em;text-align:center}
+  h1 em{font-style:italic;color:var(--pine)}
+  .lede{text-align:center;color:var(--soft);font-size:14.5px;margin:8px auto 26px;max-width:520px}
+  .barcard{background:var(--card);border:1.5px solid var(--rule);border-radius:18px;padding:18px 18px 6px;margin:18px 0}
+  .barcard .cap{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+  .barcard .cap .t{font-family:var(--serif);font-size:18px;font-weight:600}
+  .barcard .cap .n{font-family:var(--mono);font-size:11px;color:var(--soft)}
+  .bar{display:flex;justify-content:space-around;border-top:1px solid var(--rule);padding:14px 4px 8px;margin-top:10px}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:74px;text-align:center;font-size:11px;color:var(--soft);position:relative}
+  .tab svg{width:23px;height:23px}
+  .tab.kept{color:var(--pine)} .tab.kept svg{color:var(--pine)}
+  .tab.add{color:var(--terra)} .tab.add svg{color:var(--terra)}
+  .tab.drop{color:#b9534a;opacity:.85}
+  .tab.drop svg{color:#b9534a}
+  .tab.drop .lbl{text-decoration:line-through}
+  .tab .badge{position:absolute;top:-12px;font-family:var(--mono);font-size:8px;letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:5px;white-space:nowrap}
+  .tab.drop .badge{background:rgba(178,58,58,.12);color:#b23a3a}
+  .tab.add .badge{background:rgba(200,100,60,.14);color:var(--terra)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--soft);margin:10px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  table{border-collapse:collapse;width:100%;margin:24px 0 6px;font-size:13.5px;background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{background:#efe9dd;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#4a463e}
+  tr:last-child td{border-bottom:none}
+  td .pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:6px}
+  .keep{background:rgba(31,111,92,.13);color:var(--pine)} .new{background:rgba(200,100,60,.14);color:var(--terra)} .rm{background:rgba(178,58,58,.12);color:#b23a3a}
+  .note{font-size:12.5px;color:var(--soft);text-align:center;margin-top:18px;font-style:italic}
+  .arrowrow{text-align:center;color:var(--terra);font-size:20px;margin:-4px 0 -2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The bottom bar — <em>what stays in 2.0</em></h1>
+  <p class="lede">We keep three tabs, promote one, and retire one. The browse job that lived in <b>Journals</b> moves up into the new <b>Record</b> home, so the bar goes from five back to a focused four.</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#1F6F5C"></span> kept</span>
+    <span><span class="dot" style="background:#C8643C"></span> promoted / new role</span>
+    <span><span class="dot" style="background:#b9534a"></span> removed</span>
+  </div>
+
+  <!-- BEFORE -->
+  <div class="barcard">
+    <div class="cap"><span class="t">Before</span><span class="n">current build · 5 tabs</span></div>
+    <div class="bar">
+      <div class="tab drop"><span class="badge">remove</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v15H8a2 2 0 0 1-2-2z"/><path d="M10 4v16"/></svg>
+        <span class="lbl">Journals</span></div>
+      <div class="tab kept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10H10l-4 3v-3H5z"/></svg>
+        <span class="lbl">Record</span></div>
+      <div class="tab kept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>
+        <span class="lbl">Statistics</span></div>
+      <div class="tab kept">
+        <svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg>
+        <span class="lbl">Minds</span></div>
+      <div class="tab kept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.2M12 18.8V21M4.2 7.5l1.9 1.1M17.9 15.4l1.9 1.1M4.2 16.5l1.9-1.1M17.9 8.6l1.9-1.1"/></svg>
+        <span class="lbl">Settings</span></div>
+    </div>
+  </div>
+
+  <div class="arrowrow">↓</div>
+
+  <!-- AFTER -->
+  <div class="barcard">
+    <div class="cap"><span class="t">After</span><span class="n">BillMind 2.0 · 4 tabs</span></div>
+    <div class="bar">
+      <div class="tab add"><span class="badge">home</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 5.5V20l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z"/><path d="M9 9h6M9 12h4"/></svg>
+        <span class="lbl">Record</span></div>
+      <div class="tab kept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>
+        <span class="lbl">Stats</span></div>
+      <div class="tab kept">
+        <svg viewBox="-12 -12 24 24" fill="currentColor"><g transform="translate(-1 1) scale(7.5)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g><g transform="translate(6.5 -5.5) scale(3)"><path d="M0,-1 C0.13,-0.34 0.34,-0.13 1,0 C0.34,0.13 0.13,0.34 0,1 C-0.13,0.34 -0.34,0.13 -1,0 C-0.34,-0.13 -0.13,-0.34 0,-1 Z"/></g></svg>
+        <span class="lbl">Minds</span></div>
+      <div class="tab kept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3"/><circle cx="15" cy="8" r="2.1"/><path d="M4 16h3M11 16h9"/><circle cx="9" cy="16" r="2.1"/></svg>
+        <span class="lbl">Settings</span></div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Tab</th><th>Fate in 2.0</th><th>Why</th></tr>
+    <tr><td><b>Journals</b></td><td><span class="pill rm">removed</span></td><td>Its browse job — the list of a trip's bills — becomes the <b>ledger layer</b> of the Record home. No separate tab needed.</td></tr>
+    <tr><td><b>Record</b></td><td><span class="pill new">promoted → home</span></td><td>Becomes the default tab and the agent surface: capture + ask + browse, one scroll. Icon changes to the receipt (the app mark).</td></tr>
+    <tr><td><b>Statistics → Stats</b></td><td><span class="pill keep">kept</span></td><td>Same data, shorter name. Now also a <b>tool the agent drives</b> (the bars it embeds in answers are this chart system).</td></tr>
+    <tr><td><b>Minds</b></td><td><span class="pill keep">kept</span></td><td>Unchanged as a destination; "make a Mind" also becomes a v2 agent action.</td></tr>
+    <tr><td><b>Settings</b></td><td><span class="pill keep">kept · expanded</span></td><td>Now also holds the net-new <b>Account</b> layer — Apple/Google sign-in, sync, privacy &amp; AI, and Delete account.</td></tr>
+  </table>
+
+  <p class="note">Final bottom bar: <b>Record · Stats · Minds · Settings</b> — the same order shown in every phone of the mockup.</p>
+</div>
+</body>
+</html>

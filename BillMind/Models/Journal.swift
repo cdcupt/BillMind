@@ -10,6 +10,18 @@ final class Journal {
     var currency: String
     var notes: String?
 
+    // MARK: - Sync metadata (maps to the server Trip; see BillRecord for semantics)
+    var serverID: UUID? = nil
+    var rowVersion: Int = 0
+    var updatedAt: Date? = nil
+    var isDeleted: Bool = false
+    var syncStateRaw: String = SyncState.local.rawValue
+
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .local }
+        set { syncStateRaw = newValue.rawValue }
+    }
+
     @Relationship(deleteRule: .cascade, inverse: \BillRecord.journal)
     var bills: [BillRecord] = []
 
@@ -18,19 +30,25 @@ final class Journal {
         set { coverAnimalRaw = newValue.rawValue }
     }
 
-    var totalAmount: Decimal {
-        bills.reduce(Decimal.zero) { $0 + $1.amount }
+    /// Bills not pending a delete — the set shown in the UI and counted. A bill
+    /// marked `isDeleted` is a tombstone awaiting sync; it must not appear or count.
+    var liveBills: [BillRecord] {
+        bills.filter { !$0.isDeleted }
     }
 
-    var billCount: Int { bills.count }
+    var totalAmount: Decimal {
+        liveBills.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
+    var billCount: Int { liveBills.count }
 
     var sortedBills: [BillRecord] {
-        bills.sorted { $0.date > $1.date }
+        liveBills.sorted { $0.date > $1.date }
     }
 
     var billsByDate: [(date: Date, bills: [BillRecord])] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: bills) { bill in
+        let grouped = Dictionary(grouping: liveBills) { bill in
             calendar.startOfDay(for: bill.date)
         }
         return grouped.sorted { $0.key > $1.key }.map { (date: $0.key, bills: $0.value.sorted { $0.date > $1.date }) }

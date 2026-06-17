@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Record Tab — E2E Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --paper:#fdfaf4; --ink:#2a2520; --ink-soft:#6b6155; --rule:#e6ddcd; --accent:#c0532a;
+    --sage:#5e7a50; --blue:#4f7385; --red:#b14a4a; --card:#fffdf8; --mono:'IBM Plex Mono',ui-monospace,monospace; }
+  body { background:var(--paper); color:var(--ink); font-family:'Noto Serif',Georgia,serif; line-height:1.6; font-size:16px;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(184,160,128,.05) 27px,rgba(184,160,128,.05) 28px); }
+  .wrap { max-width:900px; margin:0 auto; padding:0 22px 70px; overflow-x:clip; }
+  header { padding:42px 0 20px; border-bottom:3px solid var(--ink); }
+  .kicker { font-family:var(--mono); font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:'Caveat',cursive; font-size:clamp(38px,7vw,56px); line-height:1; margin:6px 0 4px; }
+  .lede { color:var(--ink-soft); font-size:15.5px; max-width:660px; }
+  .verdict { margin-top:18px; background:#eef3e9; border:2px solid #cbd9bf; border-radius:14px; padding:14px 18px; font-size:15px; }
+  .verdict b { color:var(--sage); }
+  .stats { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  .stat { background:var(--card); border:1.5px solid var(--rule); border-radius:10px; padding:8px 14px; }
+  .stat .n { font-family:'Caveat',cursive; font-size:26px; color:var(--accent); line-height:1; }
+  .stat .l { font-size:11.5px; color:var(--ink-soft); }
+  h2 { font-family:'Caveat',cursive; font-size:30px; margin:34px 0 8px; }
+  h2 .n { color:var(--accent); margin-right:8px; }
+  .tablewrap { overflow-x:auto; border:1.5px solid var(--rule); border-radius:10px; margin:12px 0; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  th,td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:#f4ecdc; font-family:var(--mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+  tr:last-child td { border-bottom:none; }
+  td.pass { color:var(--sage); font-weight:600; white-space:nowrap; }
+  code { font-family:var(--mono); font-size:.84em; background:#f1e8d8; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+  .shots { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:18px; margin:16px 0; }
+  .shot { background:var(--card); border:1.5px solid var(--rule); border-radius:12px; padding:10px; }
+  .shot img { width:100%; border-radius:8px; border:1px solid var(--rule); display:block; }
+  .shot .cap { font-size:12px; color:var(--ink-soft); margin-top:7px; text-align:center; }
+  .shot .cap b { color:var(--ink); display:block; font-family:'Caveat',cursive; font-size:16px; }
+  ul { margin:8px 0 8px 20px; } li { margin:4px 0; }
+  .note { background:#f4ecdc; border-left:4px solid var(--accent); border-radius:0 10px 10px 0; padding:10px 14px; margin:12px 0; font-size:14.5px; }
+  footer { margin-top:36px; padding-top:16px; border-top:3px solid var(--ink); font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">BillMind · Record Tab · E2E Report · 2026-06-13</div>
+  <h1>It works on-device</h1>
+  <p class="lede">The Record tab and the first-launch notice were built per the approved tech &amp; design docs, then built, unit-tested, and exercised end-to-end on the iPhone 17 Pro simulator (Xcode 26.5). All screenshots below are real captures from the running app during the E2E run.</p>
+  <div class="verdict"><b>✅ BUILD SUCCEEDED · TEST SUCCEEDED.</b> 69 unit tests + 5 UI (E2E) tests, zero failures. The adversarial cases — missing-amount-blocked and discard-never-persists — both hold on-device, and a saved bill persists into the journal.</div>
+  <div class="stats">
+    <div class="stat"><div class="n">69</div><div class="l">unit tests pass</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">UI/E2E tests pass</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">failures</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">schema changes</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">small core additions</div></div>
+  </div>
+</header>
+
+<h2><span class="n">1</span>What was built</h2>
+<ul>
+  <li><strong>Agent core additions</strong> (Foundation, unit-tested): <code>RecordingSession.edit(...)</code>, <code>RecordingSession.setMerchant(...)</code>, and the missing-date gap's Today + Yesterday options.</li>
+  <li><strong>Extractors</strong> (Foundation, unit-tested): <code>DraftExtractor</code> (text → draft, raw category values, no guessed date/amount) and <code>AIRecognitionMapper</code> (AI result → draft, unparseable date → <code>rawDateText</code>).</li>
+  <li><strong>Record tab</strong>: <code>RecordCoordinator</code> (<code>@MainActor @Observable</code>, the single SwiftData writer), <code>RecordView</code> (journal selector, card thread, input bar), <code>AgentCardView</code> + the bottom <strong>edit drawer</strong> (date picker / category grid / number pad / merchant text + recents).</li>
+  <li><strong>First-launch notice</strong>: <code>WelcomeNoticeView</code> (one-time, UserDefaults flag, no schema change), wired into <code>ContentView</code>; Record added as the 2nd of five tabs.</li>
+</ul>
+
+<h2><span class="n">2</span>Test results</h2>
+<div class="tablewrap"><table>
+  <tr><th>Test</th><th>What it proves</th><th>Result</th></tr>
+  <tr><td><code>testRecordTextAnswerDateChangeCategorySaves</code></td><td>Happy path: type “ramen 2840” → answer date chip → change category in the drawer → Save → bill appears in the journal (merchant + amount).</td><td class="pass">PASS</td></tr>
+  <tr><td><code>testMissingAmountBlockedUntilEntered</code></td><td><strong>Adversarial:</strong> “ramen” (no amount) → answer date → Save is blocked (opens the amount drawer) → enter amount → only then does it persist.</td><td class="pass">PASS</td></tr>
+  <tr><td><code>testDiscardDoesNotPersist</code></td><td>A discarded card never reaches the journal.</td><td class="pass">PASS</td></tr>
+  <tr><td><code>testFirstLaunchNoticeShowsOnce</code></td><td>The welcome notice shows on first launch and never again after “Get started”.</td><td class="pass">PASS</td></tr>
+  <tr><td><code>testCreateJournalAndAddBillEndToEnd</code></td><td>Pre-existing E2E still green — no regression to the manual flow.</td><td class="pass">PASS</td></tr>
+</table></div>
+<p>Plus <strong>69 unit tests</strong> (agent core, validator, <code>edit</code>/<code>setMerchant</code>, Today+Yesterday options, <code>DraftExtractor</code>, <code>AIRecognitionMapper</code>, file cleanup) — all pass.</p>
+
+<h2><span class="n">3</span>Screenshots (live captures)</h2>
+<div class="shots">
+  <div class="shot"><img src="e2e/01-welcome-notice.png" alt="Welcome notice"><div class="cap"><b>Welcome notice</b>one-time, first launch only</div></div>
+  <div class="shot"><img src="e2e/02-record-empty.png" alt="Record tab"><div class="cap"><b>Record tab</b>journal chip + input</div></div>
+  <div class="shot"><img src="e2e/03-card-clarify.png" alt="Card mid-clarify"><div class="cap"><b>Card mid-clarify</b>Today / Yesterday / Pick a date</div></div>
+  <div class="shot"><img src="e2e/04-edit-drawer-category.png" alt="Edit drawer"><div class="cap"><b>Edit drawer</b>category grid over a dimmed card</div></div>
+  <div class="shot"><img src="e2e/05-card-ready.png" alt="Card ready"><div class="cap"><b>Card ready</b>Save to journal</div></div>
+  <div class="shot"><img src="e2e/06-bill-in-journal.png" alt="Bill in journal"><div class="cap"><b>Persisted</b>Ramen · Confirmed · ¥2,840 (transport icon = the category change stuck)</div></div>
+</div>
+<div class="note">The journal screenshot shows the <strong>Transport category icon</strong> — confirming the in-drawer category change (Food → Transport) persisted through the single-writer confirm path, not just on the card.</div>
+
+<h2><span class="n">4</span>Definition-of-done check</h2>
+<ul>
+  <li>✅ Record tab reachable; selecting a journal enables capture.</li>
+  <li>✅ Typing a phrase produces a card; missing date asked as Today/Yesterday chips + a “Pick a date…” picker.</li>
+  <li>✅ Category is a tappable chip → 10-category drawer; change persists.</li>
+  <li>✅ Save writes exactly one <code>BillRecord</code> into the journal (count + total update).</li>
+  <li>✅ A no-amount card cannot be confirmed until an amount is entered.</li>
+  <li>✅ No SwiftData schema change; existing flows still pass (59→69 unit, original E2E green).</li>
+  <li>✅ Every editable field opens the bottom edit drawer — no inline input boxes.</li>
+  <li>✅ Screenshots captured for the empty Record state, a card mid-clarify, the drawer, and a saved bill.</li>
+</ul>
+
+<footer>BillMind · Record Tab E2E report · Xcode 26.5 / iPhone 17 Pro simulator · for the Reviewer (E2E) gate, then the Manager.</footer>
+
+</div>
+</body>
+</html>

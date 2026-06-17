@@ -1,0 +1,104 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.shell__head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in oklch, var(--paper) 86%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1.5px solid var(--hairline);
+}
+.shell__mark {
+  font-family: var(--font-hand);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.shell__mark-dot {
+  color: var(--stamp);
+}
+
+.shell__content {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3) calc(var(--space-section) + 4rem);
+}
+
+/* Bottom tab bar (mobile-first) */
+.shell__nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2)
+    calc(var(--space-1) + env(safe-area-inset-bottom, 0));
+  background: color-mix(in oklch, var(--paper-card) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1.5px solid var(--hairline);
+}
+
+.shell__tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.55em 0.25em;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-family: var(--font-serif);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  transition:
+    color var(--duration-fast) var(--ease),
+    background var(--duration-fast) var(--ease);
+}
+.shell__tab:hover {
+  color: var(--ink-soft);
+}
+.shell__tab--active {
+  color: var(--stamp-deep);
+  font-weight: 600;
+  background: color-mix(in oklch, var(--stamp) 12%, transparent);
+}
+
+@media (min-width: 860px) {
+  .shell {
+    grid-template-columns: 13rem 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .shell__head {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  /* Explicit placement: nav in the left rail, content in the wide column.
+     (DOM order is content-before-nav, so auto-placement would swap them.) */
+  .shell__nav {
+    grid-column: 1;
+    grid-row: 2;
+    position: sticky;
+    top: 3.4rem;
+    align-self: start;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: calc(100dvh - 3.4rem);
+    border-top: none;
+    border-right: 1.5px solid var(--hairline);
+    background: transparent;
+    backdrop-filter: none;
+  }
+  .shell__content {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .shell__tab {
+    flex: none;
+    text-align: left;
+    font-size: var(--text-base);
+    padding: 0.6em 0.8em;
+  }
+}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Record Tab — Technical Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --paper:#fdfaf4; --ink:#2a2520; --ink-soft:#6b6155; --rule:#e6ddcd; --accent:#c0532a;
+    --sage:#5e7a50; --blue:#4f7385; --red:#b14a4a; --card:#fffdf8; --mono:'IBM Plex Mono',ui-monospace,monospace; }
+  body { background:var(--paper); color:var(--ink); font-family:'Noto Serif',Georgia,serif; line-height:1.62; font-size:16px;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(184,160,128,.05) 27px,rgba(184,160,128,.05) 28px); }
+  .wrap { max-width:820px; margin:0 auto; padding:0 22px 70px; overflow-x:clip; }
+  header { padding:44px 0 22px; border-bottom:3px solid var(--ink); }
+  .kicker { font-family:var(--mono); font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:'Caveat',cursive; font-size:clamp(40px,7vw,60px); line-height:1; margin:6px 0 4px; }
+  .lede { color:var(--ink-soft); font-size:15.5px; max-width:640px; }
+  .meta-strip { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .pill { font-family:var(--mono); font-size:11.5px; background:var(--card); border:1.5px solid var(--rule); border-radius:8px; padding:4px 11px; max-width:100%; white-space:normal; word-break:break-word; }
+  .pill b { color:var(--accent); }
+  h2 { font-family:'Caveat',cursive; font-size:31px; margin:38px 0 4px; color:var(--ink); }
+  h2 .n { color:var(--accent); font-style:normal; margin-right:8px; }
+  h3 { font-size:16px; margin:20px 0 6px; letter-spacing:.01em; }
+  p { margin:8px 0; } ul,ol { margin:8px 0 8px 22px; } li { margin:4px 0; }
+  code { font-family:var(--mono); font-size:.84em; background:#f1e8d8; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+  pre code { overflow-wrap:normal; }
+  pre { background:#2a2520; color:#f3ead8; border-radius:10px; padding:14px 16px; margin:12px 0; font-size:13px;
+    white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
+  pre code { background:none; color:inherit; padding:0; }
+  .tablewrap { overflow-x:auto; margin:12px 0; border:1.5px solid var(--rule); border-radius:10px; }
+  table { border-collapse:collapse; width:100%; min-width:520px; font-size:14px; }
+  th,td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:#f4ecdc; font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+  tr:last-child td { border-bottom:none; }
+  .scope { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:12px 0; }
+  .scope > div { min-width:0; }
+  @media (max-width:620px){
+    .scope { grid-template-columns:1fr; }
+    table { min-width:0; font-size:12.5px; }
+    th,td { padding:6px 7px; }
+    pre { font-size:12px; }
+  }
+  .scope div { border:1.5px solid var(--rule); border-radius:12px; padding:14px 16px; background:var(--card); }
+  .scope h4 { font-family:'Caveat',cursive; font-size:21px; margin-bottom:4px; }
+  .scope.in h4 { color:var(--sage); } .scope.out h4 { color:var(--red); }
+  .scope ul { margin-left:18px; font-size:14px; }
+  .flow { counter-reset:s; list-style:none; margin-left:0; }
+  .flow li { counter-increment:s; position:relative; padding:6px 0 6px 34px; }
+  .flow li::before { content:counter(s); position:absolute; left:0; top:6px; width:22px; height:22px; background:var(--accent); color:#fff;
+    border-radius:50%; font-family:var(--mono); font-size:12px; display:grid; place-items:center; }
+  .dod { list-style:none; margin-left:0; }
+  .dod li { padding:5px 0 5px 28px; position:relative; border-bottom:1px dashed var(--rule); font-size:14.5px; }
+  .dod li::before { content:"☐"; position:absolute; left:2px; top:5px; color:var(--accent); font-size:15px; }
+  .callout { background:#f4ecdc; border-left:4px solid var(--accent); border-radius:0 10px 10px 0; padding:10px 14px; margin:12px 0; font-size:14.5px; }
+  footer { margin-top:40px; padding-top:16px; border-top:3px solid var(--ink); font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">BillMind · Tech Design · Worker deliverable</div>
+  <h1>Record Tab</h1>
+  <p class="lede">A capture surface that turns a typed phrase (v1 primary) or a photo into a confirmed bill in a chosen journal, driven by the verified <code>RecordingSession</code> agent core.</p>
+  <div class="meta-strip">
+    <span class="pill"><b>branch</b> feat/recording-agent-foundation (stacked on PR&nbsp;#3)</span>
+    <span class="pill"><b>gates</b> Reviewer → you → Reviewer(E2E) → Manager</span>
+    <span class="pill"><b>schema</b> unchanged</span>
+  </div>
+</header>
+
+<h2><span class="n">1</span>Goal &amp; non-goals</h2>
+<p><strong>Goal:</strong> Give the agent core a real screen. The user types something like <code>ramen 2840</code>, the agent forms an editable <strong>bill card</strong>, asks at most a couple of chip-answerable questions when a field is unclear, and writes a <code>BillRecord</code> only when the user confirms. Additive — existing manual / import / Minds flows are untouched.</p>
+<div class="scope in">
+  <div>
+    <h4>v1 IN scope</h4>
+    <ul>
+      <li>New <strong>Record</strong> tab</li>
+      <li><strong>Text capture</strong>: local, deterministic parse (no network / API key) → draft</li>
+      <li><strong>Photo capture</strong>: PhotosPicker → <code>AIService.recognizeBill</code> (demo mode works with no key)</li>
+      <li>Full agent loop: validate → clarify (chips) → review → confirm</li>
+      <li><strong>Editable cards via a bottom drawer</strong>: tap any field → an edit drawer with the field-appropriate selector (date picker, category grid, number pad, merchant text + recent chips) — <strong>no inline input boxes</strong>; plus skip + acknowledge</li>
+      <li><strong>Confirm → persist</strong>: one <code>BillRecord</code> into the selected journal</li>
+      <li>Journal selector; graceful "no journals yet" state</li>
+    </ul>
+  </div>
+</div>
+<div class="scope out">
+  <div>
+    <h4>v1 OUT (follow-ups)</h4>
+    <ul>
+      <li>Real multi-provider structured-output mode (validate is the backstop)</li>
+      <li>Voice capture; image downscaling at intake; streaming-animation polish</li>
+      <li><code>sourceSessionID</code> + audit blob (needs SchemaV2 — kept out to leave the schema <strong>unchanged</strong>)</li>
+      <li>Replacing the Minds tab; conversational (LLM) repair</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="n">2</span>Information architecture</h2>
+<p>Add <strong>Record</strong> as the 2nd tab in <code>ContentView</code>: <code>Journals · Record · Statistics · Minds · Settings</code> (5 tabs).</p>
+<ul>
+  <li><strong>Rationale:</strong> additive and non-destructive. The earlier "talk to record" concept made Record central and folded Minds into journals, but that removes a shipped feature and is out of scope for v1. A 5th tab is acceptable on iPhone and keeps the change reviewable.</li>
+  <li>Tab icon: <code>text.bubble</code>; tint <code>SketchTheme.dustyRose</code>.</li>
+</ul>
+
+<h2><span class="n">3</span>Architecture</h2>
+<h3>New files</h3>
+<div class="tablewrap"><table>
+  <tr><th>File</th><th>Layer</th><th>Dependencies</th><th>Tested by</th></tr>
+  <tr><td><code>Agent/DraftExtractor.swift</code></td><td>Foundation-only</td><td>none (regex)</td><td>unit</td></tr>
+  <tr><td><code>Agent/AIRecognitionMapper.swift</code></td><td>Foundation-only</td><td><code>AIRecognitionResult</code></td><td>unit</td></tr>
+  <tr><td><code>Views/Record/RecordCoordinator.swift</code></td><td><code>@MainActor @Observable</code></td><td>SwiftData, AIService, core</td><td>E2E</td></tr>
+  <tr><td><code>Views/Record/RecordView.swift</code></td><td>SwiftUI</td><td>coordinator</td><td>E2E</td></tr>
+  <tr><td><code>Views/Record/AgentCardView.swift</code></td><td>SwiftUI</td><td>coordinator</td><td>E2E</td></tr>
+</table></div>
+
+<h3>Core additions (agent core, with unit tests)</h3>
+<p>The drawer is a UI surface, but three small, well-bounded core additions back it (everything else is UI-only):</p>
+<ul>
+  <li><code>RecordingSession.edit(cardID:field:value:)</code> — applies a direct field edit for the gap-relevant fields (amount / date / category / currency via <code>ClarificationValue</code>), <strong>pins</strong> the field, and re-resolves the card (same machinery as <code>answer</code>, but not tied to an open clarify question). Makes a blocked/flagged card recoverable by editing, not only by chip.</li>
+  <li><code>RecordingSession.setMerchant(cardID:, _ merchant: String?)</code> — sets the draft's merchant directly. Merchant is never a validator gap, so it needs no <code>ClarificationValue</code> case, no pin, and no re-validate; this small method backs the merchant drawer. Unit-tested for "updates the draft merchant".</li>
+  <li>Validator: the missing-date gap lists <strong>Today and Yesterday</strong> as its chip options — Yesterday via a <code>guard let</code> on <code>Calendar.current.date(byAdding: .day, value: -1, to: today)</code> (not a force-unwrap, matching the file's style).</li>
+</ul>
+
+<h3>The coordinator (the "session actor")</h3>
+<pre><code>@MainActor @Observable
+final class RecordingCoordinator {
+    private(set) var session: RecordingSession   // pure value-type core
+    let journal: Journal
+    private let modelContext: ModelContext
+    private let aiService = AIService()
+
+    var cards: [AgentCard] { session.cards.filter { $0.state != .discarded } }
+
+    func submitText(_ raw: String)                 // text path
+    func submitPhoto(_ image: UIImage) async        // photo path (demo/real)
+    func answer(cardID:, field:, value:)
+    func edit(cardID:, field:, value:)
+    func skip(cardID:)
+    func confirm(cardID:, acknowledging:) -> Bool    // performs the .persist effect
+    func discard(cardID:)
+}</code></pre>
+<ul>
+  <li>Owns the single <code>ModelContext</code> writer. The <code>.persist</code> effect from <code>confirm</code> is the <strong>only</strong> place a <code>BillRecord</code> is created — single-writer rule stays structural.</li>
+  <li>Holds the <code>RecordingSession</code> by value and republishes <code>cards</code> via <code>@Observable</code>.</li>
+  <li>Photo extraction runs in a <code>Task</code> (async <code>AIService</code>); the result is applied back on the main actor. Text extraction is synchronous and local.</li>
+</ul>
+<div class="callout"><strong>Photo-path settings plumbing:</strong> the coordinator owns a <code>ModelContext</code>, so it reads the settings singleton via <code>AppSettings.getOrCreate(context:)</code> and calls <code>aiService.recognizeBill(images:provider:model:apiKey:demoMode:)</code> with: <code>provider = settings.selectedProvider</code>; <code>model = settings.customModel.isEmpty ? provider.defaultModel : settings.customModel</code> (mirrors <code>BillImportFlowView</code>); <code>apiKey = settings.apiKey</code>; <code>demoMode = settings.demoMode</code>. Real (non-demo) extraction is gated on <code>settings.hasConsentedToAIDataSharing</code>, reusing the existing consent sheet. The text path touches none of this.</div>
+<h3>Field-mapping contracts (avoid two easy traps)</h3>
+<ul>
+  <li><strong><code>DraftExtractor</code> emits <code>BillCategory</code> raw values</strong> (<code>food</code>, <code>transport</code>, <code>accommodation</code>, …), not display names — otherwise <code>BillValidator</code> flags every category as unknown. Its unit test asserts raw values.</li>
+  <li><strong><code>AIRecognitionMapper</code> maps an unparseable date to <code>rawDateText</code></strong>: <code>AIRecognitionResult</code> gives <code>parsedDate: Date?</code> (nil on failure) plus the raw <code>date</code> string — set <code>draft.date = result.parsedDate</code> and, when that is nil but <code>result.date != nil</code>, <code>draft.rawDateText = result.date</code>, so the "date hard to read" gap path is exercised. An unknown <code>result.category</code> is carried to <code>categoryRaw</code> verbatim so the validator can flag it.</li>
+</ul>
+
+<h3>Edit affordances — the bottom edit drawer (user feedback)</h3>
+<div class="callout"><strong>Every field edit happens in a bottom drawer (a SwiftUI <code>.sheet</code> + <code>.presentationDetents([.medium])</code> half-sheet), never an inline input box.</strong> Tapping a field on a card opens the drawer with the field-appropriate control over a dimmed card: <strong>date</strong> → quick chips + graphical <code>DatePicker</code>; <strong>category</strong> → the 10-item grid (pure selection); <strong>amount</strong> → a number pad (free value, but a focused full-width control); <strong>merchant</strong> → a text field + recent-merchant chips (free value with selectable recents).
+<br><br><strong>How each resolves:</strong> date, category, and amount route through the existing <code>answer</code>/<code>edit</code> (<code>ClarificationValue</code>) path. <strong>Merchant is never a validator gap</strong>, so it does <em>not</em> use <code>ClarificationValue</code>/<code>edit</code> (which has no merchant case) — it uses a small dedicated <code>setMerchant(cardID:, String?)</code> core method that sets the draft field directly (see Core additions).
+<br><br><strong>Presentation:</strong> a single <code>.sheet(item:)</code> on the thread container driven by one <code>editTarget: (cardID, field)?</code> state — not a sheet per card — to avoid multiple-presentation glitches. Dismissing the drawer commits nothing (only "Set" / a selection commits), so an amount-required card stays blocked on dismiss.</div>
+<ul>
+  <li><strong>Date — quick chips + a real picker.</strong> The date clarify offers <strong>Today</strong> and <strong>Yesterday</strong> chips for the common case, plus a <strong>"Pick a date…"</strong> control that opens a SwiftUI <code>DatePicker</code> (graphical) for any specific day — e.g. a receipt from earlier in the trip. All three resolve via <code>answer(cardID:, .date, .date(chosen))</code>; the core already accepts an arbitrary date, so the picker is UI-only. The "Pick a date…" picker is also the resolver for the <em>unparseable-date</em> gap (<code>rawDateText != nil</code>), which carries no chips. Reuse <code>Date.relativeLabel</code> (existing in <code>Extensions.swift</code>) for chip/card date labels so a "Yesterday" pick and the Yesterday chip render identically.</li>
+  <li><strong>Category ("tag") — always one-tap changeable at recognition time.</strong> Every card renders its category as a <strong>tappable chip</strong> (icon + name). Tapping opens the 10-category picker (the grid reused from <code>AddBillManualView</code>), so the user can correct it the moment the card appears, <em>not only</em> when the agent is unsure. The agent cannot detect a <em>valid-but-wrong</em> category (it's not a gap), so the fix is to make the chip always editable rather than to add a clarify prompt. An <em>unknown</em> category is still highlighted via the validator's category gap; a confident guess is still one tap from change.</li>
+  <li><strong>Category value contract (must-get-right).</strong> The picker iterates <code>BillCategory.allCases</code>, shows <code>category.englishName</code> as the label, and passes <code>edit(cardID:, .category, .category(category.rawValue))</code> — <strong>the rawValue, never the label</strong>. Three labels differ from their raw value (<strong>Hotel→<code>accommodation</code>, Fun→<code>entertainment</code>, Other→<code>misc</code></strong>); passing the label would store a non-<code>BillCategory</code> raw and re-flag the category as unknown. This mirrors how <code>AddBillManualView</code> binds the enum case, not the label.</li>
+</ul>
+
+<h2><span class="n">4</span>Data flow</h2>
+<h3>Text path (E2E primary, no network)</h3>
+<ol class="flow">
+  <li><code>submitText("ramen 2840")</code> → <code>session.enqueue(.text)</code> → <code>DraftExtractor.parse(...)</code></li>
+  <li>Extracts amount (first number), category (keyword map), merchant (leftover words), date <code>nil</code></li>
+  <li><code>completeExtraction</code> → effects</li>
+  <li>No date → validate raises a <strong>date gap</strong> (chip "Today") → card enters <code>clarifying</code></li>
+  <li>User taps "Today" → <code>answer(.date)</code> → re-resolve → <code>review</code></li>
+  <li>User taps <strong>Save</strong> → <code>confirm</code> → <code>.persist</code> → insert <code>BillRecord</code> into the journal, <code>save()</code></li>
+</ol>
+<h3>Photo path</h3>
+<p>PhotosPicker → <code>submitPhoto</code> → <code>enqueue(.photo)</code> + <code>beginExtraction</code> (LLM budget) → <code>aiService.recognizeBill(demoMode:)</code> → <code>AIRecognitionMapper</code> → <code>completeExtraction</code>. Demo mode returns hardcoded results → deterministic. Real mode reuses the existing consent gate.</p>
+<div class="callout"><strong>Missing amount (adversarial case) — the real 3-step sequence.</strong> <code>submitText("ramen")</code> → draft with <code>amount == nil</code> <em>and</em> <code>date == nil</code>. <code>validate</code> returns <strong>both</strong> a date gap (chip "Today") and an amount gap (no chip options). Per <code>resolve()</code>, only the <em>askable</em> date gap opens a round, so the card first enters <code>clarifying</code> and asks the date chip. After the user answers it, re-validation surfaces the still-missing amount → the card moves to <code>review</code> with <strong>Save blocked</strong> (<code>ConfirmError.amountRequired</code>) until the user taps the amount field and enters a value (<code>edit(.amount)</code>). So a no-amount text input is a three-step recovery: <strong>answer date → enter amount → Save</strong>. (The design prototype and E2E §8 #2 follow this exact order.)</div>
+
+<h2><span class="n">5</span>Persistence &amp; schema</h2>
+<ul>
+  <li><strong>No SwiftData schema change in v1.</strong> Confirmed bills are created exactly like the manual flow (<code>status: .confirmed</code>), so the store stays at <code>BillMindSchemaV1</code> — no migration risk. <code>sourceSessionID</code>/audit is a SchemaV2 follow-up.</li>
+  <li>Drafts live only in the coordinator's in-memory <code>RecordingSession</code>. Leaving the tab / app discards unconfirmed drafts; nothing partial is persisted.</li>
+  <li><strong>Switching journals rebuilds the session.</strong> The validator's <code>journalCurrencyCode</code> is baked in at construction, so the journal selector reconstructs the coordinator (new validator + currency) and discards unconfirmed drafts. A one-line confirm guards against losing in-flight cards.</li>
+  <li><strong>Dateless confirm → today.</strong> <code>BillRecord.date</code> is non-optional. The date chip's "Today" is an explicit choice, so a confirmed draft normally has a date. If a draft is somehow confirmed with <code>date == nil</code> (e.g. the user skipped the date round), the coordinator records it with <code>Date()</code> — matching the manual flow's default DatePicker value — and the card shows "dated today". This is a documented fallback, not a silent guess of an arbitrary date.</li>
+</ul>
+
+<h2><span class="n">6</span>Concurrency (Swift 6)</h2>
+<ul>
+  <li><code>RecordingCoordinator</code> is <code>@MainActor</code>; it owns the card array and the only <code>modelContext.insert/save</code>.</li>
+  <li><code>RecordingSession</code>, <code>BillDraft</code>, and the effect/question types are <code>Sendable</code> value types.</li>
+  <li>Photo extraction is structured: a <code>Task</code> awaits <code>AIService</code>, then applies the mapped draft on the main actor. No bare-<code>Task</code> <code>@State</code> mutation (avoids the <code>BillImportFlowView</code> anti-pattern flagged in review).</li>
+</ul>
+
+<h2><span class="n">7</span>Consent &amp; cost</h2>
+<ul>
+  <li><strong>Text path needs no AI</strong> → no data leaves the device → no consent prompt. (This is the E2E path.)</li>
+  <li>Photo path: real AI reuses the existing consent gate; demo mode bypasses it. The session's <code>llmCallBudget</code> caps extraction calls.</li>
+</ul>
+
+<h2><span class="n">8</span>Test plan</h2>
+<h3>Unit (XCTest)</h3>
+<ul>
+  <li><code>DraftExtractorTests</code>: amount parsing (<code>"ramen 2840"</code>, <code>"2,840"</code>, decimals), category keyword mapping, merchant extraction, <strong>no-amount → draft with <code>amount == nil</code></strong>, currency carried from journal.</li>
+  <li><code>AIRecognitionMapperTests</code>: maps merchant/amount/category/currency/lineItems; unknown category preserved (so validate flags it); nil amount preserved.</li>
+  <li><code>RecordingSessionTests</code> (extend): <code>edit(...)</code> pins the field and clears its gap; editing the category to a valid <code>rawValue</code> clears the category gap; <code>setMerchant(...)</code> updates the draft merchant without touching gaps/state.</li>
+  <li><code>BillValidatorTests</code> (tighten <code>testMissingDateRaisesAnswerableGap</code>): assert the date gap's options are exactly <code>["Today", "Yesterday"]</code> and that Yesterday's value equals <code>today − 1 day</code> (the injected <code>today</code> is fixed, so the <code>Date</code> is deterministic) — so the Yesterday addition is locked in, not just "options non-empty".</li>
+</ul>
+<h3>E2E (XCUITest) — adversarial, three cases</h3>
+<ol class="flow">
+  <li><strong>Happy/clarify + correction:</strong> create a journal → Record → select journal → type <code>ramen 2840</code> → answer the date chip (and, in a variant, use "Pick a date…" to set a specific day) → <strong>tap the category chip and change the category</strong> → Save → assert the bill appears with the <em>chosen</em> category, merchant, and amount, and the count increments.</li>
+  <li><strong>Missing-amount blocked (3-step):</strong> type <code>ramen</code> → answer the date chip ("Today") → card is now in review with amount required → assert <strong>no bill is persisted</strong> (the journal count stays 0) → edit the amount → Save → the bill now persists.</li>
+  <li><strong>Discard:</strong> a card can be discarded and never reaches the journal.</li>
+</ol>
+<p>All E2E uses the <strong>text path</strong> (no API key) and the existing <code>--uitesting-reset</code> for a deterministic store — now extended to also mark the first-launch welcome notice as seen, so the notice doesn't derail this flow (see <code>design/first-launch-notice/SPEC.html</code>). Assertions check the bill in the <strong>journal</strong> (navigate to JournalDetailView, reusing the existing <code>'2,840' OR '2840'</code> matcher), not the in-memory Record thread.</p>
+
+<h2><span class="n">9</span>Risks &amp; mitigations</h2>
+<div class="tablewrap"><table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr><td>No journals exist when opening Record</td><td>Empty state + "Create a journal first" CTA; capture disabled until a journal is selected</td></tr>
+  <tr><td>Text parse ambiguity</td><td>validate → clarify catches gaps; amount is mandatory and never guessed</td></tr>
+  <tr><td><code>@Observable</code> value-type republish</td><td>Coordinator exposes computed <code>cards</code>; mutations go through methods that reassign <code>session</code></td></tr>
+  <tr><td>Keyboard vs. inline edit fields</td><td>All edits happen in a bottom drawer hosting the right control (picker / number pad / text), so there is no inline-input keyboard overlap; the card stays read-only behind a scrim</td></tr>
+  <tr><td>5-tab crowding</td><td>Acceptable on iPhone; revisit IA when Minds moves into journals (future)</td></tr>
+</table></div>
+
+<h2><span class="n">10</span>Definition of done <span style="font-size:14px;color:var(--ink-soft)">(all roles check against this)</span></h2>
+<ul class="dod">
+  <li>Record tab present and reachable; selecting a journal enables capture.</li>
+  <li>Typing <code>ramen 2840</code> produces a card; the missing date is asked with Today/Yesterday chips <strong>plus a "Pick a date…" picker</strong> for a specific day; answering it makes the card saveable.</li>
+  <li>The category is a tappable chip on every card and can be changed via the 10-category picker at recognition time, even when the agent was confident.</li>
+  <li>Every editable field (amount, merchant, date, category) opens a <strong>bottom edit drawer</strong> with the appropriate selector — no inline input boxes.</li>
+  <li>Save writes exactly one <code>BillRecord</code> into the selected journal (appears in the journal, count + total update) and persists across relaunch.</li>
+  <li>A card with no amount cannot be confirmed until an amount is entered (the agent's core guarantee holds in the UI).</li>
+  <li>No SwiftData schema change; existing flows (manual add, import, Minds, stats) still work.</li>
+  <li>App builds; <strong>all unit tests pass</strong>; <strong>the adversarial E2E passes</strong> on the iPhone 17 Pro simulator.</li>
+  <li>No regressions: the existing 59 tests + the create-journal/add-bill E2E still pass.</li>
+  <li>Screenshots captured: empty Record state, a card mid-clarify, a saved bill in the journal.</li>
+</ul>
+
+<footer>BillMind · Record Tab technical design · Worker → Reviewer gate · all working docs are HTML and recorded in <code>design/record-tab/</code>.</footer>
+
+</div>
+</body>
+</html>

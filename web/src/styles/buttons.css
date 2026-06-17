@@ -1,0 +1,47 @@
+/* Shared "stamp" button — a wobbly, ink-bordered press with a hard shadow. */
+.stamp-button {
+  border: 2px solid var(--ink);
+  background: var(--stamp);
+  color: oklch(98% 0.02 85);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: var(--text-base);
+  padding: 0.7em 1.4em;
+  border-radius: 255px 18px 225px 16px / 18px 225px 16px 255px;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition:
+    transform var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+.stamp-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.stamp-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.stamp-button--ghost {
+  background: var(--paper-card);
+  color: var(--ink);
+}
+.stamp-button--danger {
+  background: var(--alert);
+  color: oklch(98% 0.02 85);
+}
+.stamp-button--danger-ghost {
+  background: var(--paper-card);
+  color: var(--alert);
+  border-color: var(--alert);
+  box-shadow: 3px 3px 0 var(--alert);
+}
+.stamp-button--danger-ghost:hover {
+  box-shadow: 5px 5px 0 var(--alert);
+}
+.stamp-button--danger-ghost:active {
+  box-shadow: 1px 1px 0 var(--alert);
+}
+.stamp-button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

@@ -6,7 +6,8 @@ final class BillRecord {
     var id: UUID
     var journal: Journal?
     var date: Date
-    var amountDouble: Double
+    /// Money stored exactly as Decimal (no Double round-trip — currency precision).
+    var amount: Decimal = 0
     var originalCurrency: String?
     var categoryRaw: String
     var merchant: String?
@@ -19,12 +20,24 @@ final class BillRecord {
     var statusRaw: String
     var createdDate: Date
 
-    // MARK: - Computed Properties
+    // MARK: - Sync metadata
+    //
+    // The server is the source of truth; this row is a cache entry. `serverID`
+    // links to the server's Bill; `rowVersion`/`updatedAt` drive last-write-wins;
+    // `isDeleted` is a tombstone pending push; `syncState` marks local edits that
+    // still need pushing. All default so existing inits/call sites are unchanged.
+    var serverID: UUID? = nil
+    var rowVersion: Int = 0
+    var updatedAt: Date? = nil
+    var isDeleted: Bool = false
+    var syncStateRaw: String = SyncState.local.rawValue
 
-    var amount: Decimal {
-        get { Decimal(amountDouble) }
-        set { amountDouble = NSDecimalNumber(decimal: newValue).doubleValue }
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .local }
+        set { syncStateRaw = newValue.rawValue }
     }
+
+    // MARK: - Computed Properties
 
     var category: BillCategory {
         get { BillCategory(rawValue: categoryRaw) ?? .misc }
@@ -72,7 +85,7 @@ final class BillRecord {
     ) {
         self.id = UUID()
         self.date = date
-        self.amountDouble = NSDecimalNumber(decimal: amount).doubleValue
+        self.amount = amount
         self.originalCurrency = originalCurrency
         self.categoryRaw = category.rawValue
         self.merchant = merchant

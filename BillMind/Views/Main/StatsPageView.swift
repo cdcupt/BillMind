@@ -3,7 +3,8 @@ import SwiftData
 import Charts
 
 struct StatsPageView: View {
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var selectedJournalId: UUID?
 
     private var selectedJournal: Journal? {
@@ -78,7 +79,7 @@ struct StatsPageView: View {
                     if journals.count > 1 {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                FilterChip(label: "All Journals", isSelected: selectedJournalId == nil) {
+                                FilterChip(label: "All Trips", isSelected: selectedJournalId == nil) {
                                     selectedJournalId = nil
                                 }
                                 ForEach(journals) { journal in
@@ -152,7 +153,7 @@ struct StatsPageView: View {
             }
 
             HStack(spacing: 12) {
-                StatChipView(label: "Journals", value: "\(journals.count)", color: SketchTheme.softBlue)
+                StatChipView(label: "Trips", value: "\(journals.count)", color: SketchTheme.softBlue)
                 StatChipView(label: "Bills", value: "\(allBills.count)", color: SketchTheme.sageGreen)
                 StatChipView(label: "Categories", value: "\(categoryData.count)", color: SketchTheme.warmOrange)
             }
@@ -166,7 +167,7 @@ struct StatsPageView: View {
 
     private var journalExpensesCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Expenses by Journal")
+            Text("Expenses by Trip")
                 .font(SketchTheme.headlineFont(18))
                 .foregroundStyle(SketchTheme.softBrown)
 

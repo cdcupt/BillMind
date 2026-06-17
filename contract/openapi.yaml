@@ -1,0 +1,820 @@
+openapi: 3.1.0
+info:
+  title: BillMind 2.0 API
+  version: 0.1.0
+  description: >
+    Server contract for BillMind 2.0 — the travel-and-money agent.
+    This file is the single source of truth shared by the Vapor server,
+    the iOS client, and the web client. It is hand-authored to match the
+    routes in `server/Sources/App` and verified against the integration
+    tests (`server/Tests/AppTests`).
+
+    Conventions:
+      * All money is a decimal string (NUMERIC(16,2)); never a float.
+      * All timestamps are RFC 3339 / ISO 8601 unless a field is named
+        `cursor`/`since` (epoch seconds, used only by sync paging).
+      * Every path under `/v1` except `/v1/auth/*` requires a bearer
+        access token. Cross-tenant access returns 404 (not 403) by design.
+      * The agent NEVER guesses money: a draft with no amount has
+        `canSave=false`, and `POST /v1/bills/confirm` returns 422 if the
+        amount is missing.
+servers:
+  - url: https://api.billmind.app
+    description: Production
+  - url: http://127.0.0.1:8080
+    description: Local development
+
+tags:
+  - name: Auth
+    description: Sign-in with Apple / Google, refresh, logout.
+  - name: Account
+    description: The signed-in user and account deletion.
+  - name: Trips
+    description: Trips (voyages) — the ledger container.
+  - name: Bills
+    description: Bills and the confirm write-path.
+  - name: Capture
+    description: Recognition — text or photo → an editable card.
+  - name: Agent
+    description: Ask-anything chat with deterministic tools.
+  - name: Stats
+    description: Spend aggregates (also driven by the agent tools).
+  - name: Sync
+    description: Pull/push offline sync with last-write-wins.
+  - name: Moderation
+    description: User-initiated content reports.
+  - name: System
+    description: Liveness / readiness.
+
+paths:
+  /healthz:
+    get:
+      tags: [System]
+      summary: Liveness/readiness probe
+      security: []
+      responses:
+        "200":
+          description: Service is up.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /v1/auth/apple:
+    post:
+      tags: [Auth]
+      summary: Sign in with Apple
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInRequest" }
+      responses:
+        "200":
+          description: Session pair issued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/google:
+    post:
+      tags: [Auth]
+      summary: Sign in with Google
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInRequest" }
+      responses:
+        "200":
+          description: Session pair issued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate the refresh token for a fresh session pair
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshRequest" }
+      responses:
+        "200":
+          description: New session pair (the presented refresh token is now revoked).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshRequest" }
+      responses:
+        "204": { description: Token revoked. }
+
+  /v1/account/me:
+    get:
+      tags: [Account]
+      summary: The signed-in user
+      responses:
+        "200":
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/account:
+    delete:
+      tags: [Account]
+      summary: Delete the account and all owned data (irreversible)
+      description: >
+        Explicit ordered transactional purge of every record owned by the
+        user — trips, bills, line items, images, conversations, messages,
+        tool calls, AI usage, moderation events, reports, refresh tokens,
+        identities, then the user.
+      responses:
+        "204": { description: Account and all data deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/trips:
+    post:
+      tags: [Trips]
+      summary: Create a trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTripRequest" }
+      responses:
+        "200":
+          description: Created trip.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Trip" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    get:
+      tags: [Trips]
+      summary: List the signed-in user's trips
+      responses:
+        "200":
+          description: Trips owned by the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Trip" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/trips/{tripID}:
+    delete:
+      tags: [Trips]
+      summary: Delete a trip (and all its bills)
+      description: >
+        Soft-deletes the trip and cascade soft-deletes its bills (tombstones), so
+        every device drops them on the next sync. Scoped to the owner.
+      parameters:
+        - $ref: "#/components/parameters/TripIDPath"
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/trips/{tripID}/bills:
+    get:
+      tags: [Trips]
+      summary: List bills in a trip
+      parameters:
+        - $ref: "#/components/parameters/TripIDPath"
+      responses:
+        "200":
+          description: Bills in the trip (newest first).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/bills:
+    post:
+      tags: [Bills]
+      summary: Create a bill directly (amount required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBillRequest" }
+      responses:
+        "200":
+          description: Created bill.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/bills/confirm:
+    post:
+      tags: [Bills]
+      summary: Confirm a resolved draft — the only agent write-path
+      description: >
+        The single place a recognized/clarified draft becomes a Bill.
+        Runs the same `BillValidator` as the iOS client; if `amount` is
+        missing it returns 422 (money is never guessed).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmRequest" }
+      responses:
+        "200":
+          description: Bill written.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: Unresolved required field (e.g. amount missing).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/bills/{billID}:
+    parameters:
+      - name: billID
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Bills]
+      summary: Edit a saved bill
+      description: >
+        Tenant-scoped edit. Bumps `rowVersion` so the change wins last-write-wins
+        on sync. Amount must be positive; category must be a known value. A bill
+        the caller does not own returns 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBillRequest" }
+      responses:
+        "200":
+          description: Updated bill.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: Invalid field (non-positive amount, unknown category, bad currency).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [Bills]
+      summary: Delete a saved bill
+      description: >
+        Tenant-scoped soft-delete (tombstone). Propagates to other devices via
+        sync. A bill the caller does not own returns 404.
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/recognition:
+    post:
+      tags: [Capture]
+      summary: Recognize text or a photo into an editable card
+      description: >
+        Provide `text` (local deterministic extraction) OR `imageBase64`
+        (server-side Gemini vision). Both run the moderation gate first.
+        Returns either a card to confirm or a calm decline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaptureRequest" }
+      responses:
+        "200":
+          description: A card to confirm, or a decline (`declined=true`, `card=null`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaptureResponse" }
+        "400":
+          description: Neither text nor imageBase64 supplied.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/minds:
+    post:
+      tags: [Capture]
+      summary: Generate a Mind — a sketch infographic of a trip's expense timeline
+      description: >
+        Server-side image generation via Gemini (the app's own key — no client
+        API key). Builds the trip's expense timeline and returns a generated
+        image. Can take 60–120s. The trip is scoped to the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MindRequest" }
+      responses:
+        "200":
+          description: The generated image (base64) and its mime type.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MindResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: The trip has no bills to visualize.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/agent/chat:
+    post:
+      tags: [Agent]
+      summary: Ask-anything — one JSON turn
+      description: >
+        Runs the bounded LLM↔tools loop. Returns the assistant text plus
+        the deterministic tool results computed during the turn. A blocked
+        message returns `declined=true` with a calm message and no model call.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatRequest" }
+      responses:
+        "200":
+          description: The completed turn.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentTurn" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/QuotaExceeded" }
+
+  /v1/agent/chat/stream:
+    post:
+      tags: [Agent]
+      summary: Ask-anything — Server-Sent Events
+      description: >
+        Same service as `/v1/agent/chat`, emitted as SSE frames:
+        `tool_result` (one per tool), then `message`, then `done`.
+        A decline emits a single `declined` frame.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatRequest" }
+      responses:
+        "200":
+          description: An SSE stream (`text/event-stream`).
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: >
+                  Newline-delimited SSE. Events: `tool_result` (data is the
+                  tool's result JSON), `message` (`{"text": "..."}`), `done`
+                  (`{}`), or `declined` (`{"message": "..."}`).
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/QuotaExceeded" }
+
+  /v1/stats:
+    get:
+      tags: [Stats]
+      summary: Spend aggregates
+      parameters:
+        - name: tripId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+          description: Scope to one trip. Omit for all trips.
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string, enum: [trip, all] }
+          description: Defaults to `trip` when `tripId` is present, else `all`.
+      responses:
+        "200":
+          description: Totals and per-category breakdown.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Stats" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/sync:
+    get:
+      tags: [Sync]
+      summary: Pull changes since a cursor
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema: { type: number, format: double, default: 0 }
+          description: Epoch seconds cursor from a prior `SyncDelta.cursor`. 0 = full pull.
+      responses:
+        "200":
+          description: Trips and bills changed since the cursor (incl. tombstones).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncDelta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Sync]
+      summary: Push local upserts (last-write-wins by rowVersion)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncPush" }
+      responses:
+        "200":
+          description: Apply count + any conflicts rejected by LWW / ownership.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncPushResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/moderation/report:
+    post:
+      tags: [Moderation]
+      summary: Report a message, session, or trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportRequest" }
+      responses:
+        "202":
+          description: Report accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReportResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: The HS256 access token from `/v1/auth/*`.
+
+  parameters:
+    TripIDPath:
+      name: tripID
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid access token.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found, or not owned by the caller (tenant isolation).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    QuotaExceeded:
+      description: Daily AI quota exhausted.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      description: Vapor's default error envelope.
+      properties:
+        error: { type: boolean }
+        reason: { type: string }
+      required: [error, reason]
+
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        service: { type: string, example: billmind-server }
+        version: { type: string, example: "0.1.0" }
+      required: [status, service, version]
+
+    SignInRequest:
+      type: object
+      properties:
+        idToken: { type: string, description: The OIDC ID token from Apple/Google. }
+        nonce: { type: string, nullable: true }
+      required: [idToken]
+
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken: { type: string }
+      required: [refreshToken]
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        userID: { type: string, format: uuid }
+      required: [accessToken, refreshToken, userID]
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        aiQuotaTier: { type: string, example: free }
+      required: [id, aiQuotaTier]
+
+    CreateTripRequest:
+      type: object
+      properties:
+        name: { type: string }
+        currencyCode: { type: string, example: JPY }
+        mascot: { type: string, nullable: true }
+      required: [name, currencyCode]
+
+    Trip:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        currencyCode: { type: string }
+        exchangeRate: { type: string, description: Decimal string. }
+        mascot: { type: string, nullable: true }
+        rowVersion: { type: integer }
+      required: [id, name, currencyCode, exchangeRate, rowVersion]
+
+    CreateBillRequest:
+      type: object
+      properties:
+        tripID: { type: string, format: uuid }
+        merchant: { type: string, nullable: true }
+        amount: { type: string, description: Decimal string (required). }
+        currencyCode: { type: string, nullable: true }
+        date: { type: string, format: date-time }
+        categoryRaw: { type: string, nullable: true }
+        source: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+      required: [tripID, amount, date]
+
+    UpdateBillRequest:
+      type: object
+      description: Full edit payload — the client sends the complete editable state.
+      properties:
+        merchant: { type: string, nullable: true }
+        amount: { type: string, description: Decimal string; must be positive. }
+        currencyCode: { type: string, description: 3-letter ISO 4217 code. }
+        date: { type: string, format: date-time }
+        categoryRaw: { type: string, description: A known BillCategory raw value. }
+        notes: { type: string, nullable: true }
+      required: [amount, currencyCode, date, categoryRaw]
+
+    Bill:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tripID: { type: string, format: uuid }
+        merchant: { type: string, nullable: true }
+        amount: { type: string, description: Decimal string. }
+        currencyCode: { type: string }
+        date: { type: string, format: date-time }
+        categoryRaw: { type: string, nullable: true }
+        source: { type: string }
+        notes: { type: string, nullable: true }
+        rowVersion: { type: integer }
+      required: [id, tripID, amount, currencyCode, date, source, rowVersion]
+
+    ConfirmRequest:
+      type: object
+      description: A resolved draft. `amount` may be null, in which case confirm returns 422.
+      properties:
+        tripID: { type: string, format: uuid }
+        merchant: { type: string, nullable: true }
+        amount: { type: string, nullable: true, description: Decimal string. }
+        currencyCode: { type: string, nullable: true }
+        date: { type: string, format: date-time, nullable: true }
+        categoryRaw: { type: string, nullable: true }
+        source: { type: string, nullable: true }
+      required: [tripID]
+
+    CaptureRequest:
+      type: object
+      description: Provide `text` OR `imageBase64`.
+      properties:
+        text: { type: string, nullable: true }
+        tripID: { type: string, format: uuid }
+        imageBase64: { type: string, nullable: true, description: Base64-encoded receipt image. }
+        mimeType: { type: string, nullable: true, example: image/jpeg }
+      required: [tripID]
+
+    MindRequest:
+      type: object
+      properties:
+        tripID: { type: string, format: uuid }
+      required: [tripID]
+
+    MindResponse:
+      type: object
+      properties:
+        imageBase64: { type: string, description: Base64-encoded generated image. }
+        mimeType: { type: string, example: image/png }
+      required: [imageBase64, mimeType]
+
+    BillDraft:
+      type: object
+      properties:
+        merchant: { type: string, nullable: true }
+        amount: { type: string, nullable: true, description: Decimal string; null until known. }
+        currencyCode: { type: string }
+        categoryRaw: { type: string, nullable: true }
+        date: { type: string, format: date-time, nullable: true }
+        source: { type: string, example: text }
+      required: [currencyCode, source]
+
+    Gap:
+      type: object
+      description: A validation gap → a chip-answerable clarification.
+      properties:
+        field: { type: string, example: amount }
+        reason: { type: string }
+        prompt: { type: string }
+        options:
+          type: array
+          items: { type: string }
+      required: [field, reason, prompt, options]
+
+    Card:
+      type: object
+      properties:
+        tripID: { type: string, format: uuid }
+        draft: { $ref: "#/components/schemas/BillDraft" }
+        gaps:
+          type: array
+          items: { $ref: "#/components/schemas/Gap" }
+        canSave: { type: boolean, description: Hard gate — true only when amount is present. }
+      required: [tripID, draft, gaps, canSave]
+
+    CaptureResponse:
+      type: object
+      properties:
+        declined: { type: boolean }
+        message: { type: string, nullable: true }
+        card: { oneOf: [{ $ref: "#/components/schemas/Card" }, { type: "null" }] }
+        cards:
+          type: array
+          description: One card per recognized bill (a sentence can yield several). `card` is the first, kept for backward-compat.
+          items: { $ref: "#/components/schemas/Card" }
+      required: [declined, cards]
+
+    ChatRequest:
+      type: object
+      properties:
+        message: { type: string }
+      required: [message]
+
+    ToolResult:
+      type: object
+      properties:
+        name: { type: string, example: compute_totals }
+        resultJSON: { type: string, description: The tool's result as a JSON string. }
+      required: [name, resultJSON]
+
+    AgentTurn:
+      type: object
+      properties:
+        declined: { type: boolean }
+        text: { type: string }
+        toolResults:
+          type: array
+          items: { $ref: "#/components/schemas/ToolResult" }
+        conversationID: { type: string, format: uuid, nullable: true }
+      required: [declined, text, toolResults]
+
+    CategoryTotal:
+      type: object
+      properties:
+        category: { type: string }
+        amount: { type: string, description: Decimal string. }
+      required: [category, amount]
+
+    Stats:
+      type: object
+      properties:
+        scope: { type: string, enum: [trip, all] }
+        total: { type: string, description: Decimal string. }
+        billCount: { type: integer }
+        byCategory:
+          type: array
+          items: { $ref: "#/components/schemas/CategoryTotal" }
+      required: [scope, total, billCount, byCategory]
+
+    TripSync:
+      allOf:
+        - $ref: "#/components/schemas/Trip"
+        - type: object
+          properties:
+            updatedAt: { type: string, format: date-time, nullable: true }
+            deleted: { type: boolean }
+          required: [deleted]
+
+    BillSync:
+      allOf:
+        - $ref: "#/components/schemas/Bill"
+        - type: object
+          properties:
+            updatedAt: { type: string, format: date-time, nullable: true }
+            deleted: { type: boolean }
+          required: [deleted]
+
+    SyncDelta:
+      type: object
+      properties:
+        trips:
+          type: array
+          items: { $ref: "#/components/schemas/TripSync" }
+        bills:
+          type: array
+          items: { $ref: "#/components/schemas/BillSync" }
+        cursor: { type: number, format: double, description: "Pass back as ?since= on the next pull." }
+      required: [trips, bills, cursor]
+
+    BillUpsert:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tripID: { type: string, format: uuid }
+        merchant: { type: string, nullable: true }
+        amount: { type: string, description: Decimal string. }
+        currencyCode: { type: string, nullable: true }
+        date: { type: string, format: date-time }
+        categoryRaw: { type: string, nullable: true }
+        source: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        rowVersion: { type: integer }
+        deleted: { type: boolean, nullable: true }
+      required: [id, tripID, amount, date, rowVersion]
+
+    SyncPush:
+      type: object
+      properties:
+        bills:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/BillUpsert" }
+
+    SyncPushResult:
+      type: object
+      properties:
+        appliedBills: { type: integer }
+        conflicts:
+          type: array
+          items: { type: string, format: uuid }
+          description: IDs rejected by last-write-wins (stale rowVersion) or not owned.
+      required: [appliedBills, conflicts]
+
+    ReportRequest:
+      type: object
+      properties:
+        messageID: { type: string, format: uuid, nullable: true }
+        sessionID: { type: string, format: uuid, nullable: true }
+        tripID: { type: string, format: uuid, nullable: true }
+        reason: { type: string }
+        note: { type: string, nullable: true }
+      required: [reason]
+
+    ReportResponse:
+      type: object
+      properties:
+        reportID: { type: string, format: uuid }
+      required: [reportID]
+
+security:
+  - bearerAuth: []

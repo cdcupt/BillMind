@@ -4,6 +4,7 @@ struct BillDetailView: View {
     @Bindable var bill: BillRecord
     let currencySymbol: String
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sync: SyncCoordinator
     @State private var showFullImage = false
     @State private var showEdit = false
 
@@ -125,7 +126,7 @@ struct BillDetailView: View {
             }
         }
         .sheet(isPresented: $showEdit) {
-            EditBillView(bill: bill)
+            EditBillView(bill: bill).environmentObject(sync)
         }
     }
 }
@@ -136,6 +137,8 @@ struct EditBillView: View {
     @Bindable var bill: BillRecord
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var sync: SyncCoordinator
+    @State private var showDeleteConfirm = false
 
     @State private var merchant: String = ""
     @State private var amountText: String = ""
@@ -323,6 +326,30 @@ struct EditBillView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(.plain)
+
+                    // Delete
+                    Button(role: .destructive) { showDeleteConfirm = true } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Delete Bill")
+                                .font(SketchTheme.headlineFont(18))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(SketchTheme.mutedRed)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(SketchTheme.mutedRed, lineWidth: 1.5)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("edit-delete-bill")
+                    .confirmationDialog("Delete this bill?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                        Button("Delete", role: .destructive) { deleteBill() }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This removes it from the trip and syncs the deletion.")
+                    }
                 }
                 .padding()
             }
@@ -363,7 +390,23 @@ struct EditBillView: View {
         bill.originalCurrency = currency.isEmpty ? nil : currency
         bill.note = note.isEmpty ? nil : note
         bill.lineItems = lineItems.filter { !$0.itemDescription.isEmpty }
+        // Mark the row pending so SyncEngine.pushPendingBills sends the edit to
+        // the server (LWW); without this the edit only ever lived on-device.
+        bill.syncState = .local
+        bill.updatedAt = Date()
         try? modelContext.save()
+        Task { await sync.sync() }
+        dismiss()
+    }
+
+    /// Soft-delete: a tombstone that `pushPendingBills` propagates to the server,
+    /// and `liveBills` hides immediately so the trip drops it from the UI now.
+    private func deleteBill() {
+        bill.isDeleted = true
+        bill.syncState = .local
+        bill.updatedAt = Date()
+        try? modelContext.save()
+        Task { await sync.sync() }
         dismiss()
     }
 }

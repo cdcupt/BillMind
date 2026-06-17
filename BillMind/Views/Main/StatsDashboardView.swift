@@ -42,7 +42,7 @@ struct StatsDashboardView: View {
                 .foregroundStyle(SketchTheme.softBrown)
 
             HStack(spacing: 12) {
-                StatChip(label: "Journals", value: "\(journals.count)")
+                StatChip(label: "Trips", value: "\(journals.count)")
                 StatChip(label: "Bills", value: "\(totalBills)")
                 StatChip(label: "Currencies", value: "\(currencyCount)")
             }

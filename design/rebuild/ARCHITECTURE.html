@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BillMind 2.0 — Rebuild Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --paper:#F7F3EC; --ink:#1B201D; --ink-soft:#5f655f; --rule:#e3ddd0; --pine:#1F6F5C; --terra:#C8643C;
+    --card:#FFFFFF; --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'Inter',system-ui,sans-serif; --serif:'Fraunces',Georgia,serif; }
+  body { background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:16px; }
+  .wrap { max-width:880px; margin:0 auto; padding:0 22px 70px; overflow-x:clip; }
+  header { padding:46px 0 22px; border-bottom:2.5px solid var(--ink); }
+  .kicker { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--terra); }
+  h1 { font-family:var(--serif); font-size:clamp(2.3rem,6vw,3.6rem); line-height:1.04; font-weight:600; margin:8px 0 6px; letter-spacing:-.01em; }
+  h1 em { font-style:italic; color:var(--pine); }
+  .lede { color:var(--ink-soft); font-size:16px; max-width:640px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .chip { font-family:var(--mono); font-size:11.5px; background:var(--card); border:1.5px solid var(--rule); border-radius:999px; padding:5px 13px; }
+  .chip b { color:var(--pine); }
+  h2 { font-family:var(--serif); font-size:clamp(1.5rem,3.4vw,2.1rem); font-weight:600; margin:42px 0 6px; letter-spacing:-.01em; }
+  h2 .n { color:var(--terra); font-style:italic; margin-right:10px; }
+  h3 { font-size:1.02rem; margin:22px 0 6px; }
+  p { margin:9px 0; } ul,ol { margin:9px 0 9px 22px; } li { margin:5px 0; }
+  code { font-family:var(--mono); font-size:.84em; background:#efe9dc; padding:1px 5px; border-radius:4px; overflow-wrap:anywhere; }
+  .lead-callout { margin-top:18px; background:var(--ink); color:var(--paper); border-radius:16px; padding:20px 24px; }
+  .lead-callout b { color:#7FD0BC; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:14px 0; }
+  @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1.5px solid var(--rule); border-radius:14px; padding:16px 18px; }
+  .panel h4 { font-family:var(--serif); font-size:1.15rem; font-weight:600; margin-bottom:6px; }
+  .panel.pine { border-color:var(--pine); } .panel.pine h4 { color:var(--pine); }
+  .panel.terra { border-color:var(--terra); } .panel.terra h4 { color:var(--terra); }
+  .tablewrap { overflow-x:auto; border:1.5px solid var(--rule); border-radius:12px; margin:12px 0; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th,td { text-align:left; padding:10px 13px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:#efe9dc; font-family:var(--mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+  tr:last-child td { border-bottom:none; }
+  .keep { color:var(--pine); font-weight:600; } .new { color:var(--terra); font-weight:600; } .cut { color:#9a9a9a; text-decoration:line-through; }
+  .callout { background:#efe9dc; border-left:4px solid var(--terra); border-radius:0 12px 12px 0; padding:11px 15px; margin:13px 0; font-size:14.5px; }
+  .swatches { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+  .sw { width:64px; height:64px; border-radius:12px; border:1px solid var(--rule); display:flex; align-items:flex-end; padding:5px; font-family:var(--mono); font-size:9px; color:#fff; }
+  footer { margin-top:42px; padding-top:18px; border-top:2.5px solid var(--ink); font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">BillMind 2.0 · Full Rebuild · Architecture · Worker deliverable</div>
+  <h1>One home: <em>record &amp; review,</em> together</h1>
+  <p class="lede">A ground-up rebuild. Journals and Record merge into a single home; the app is re-centered on capture, with a fresh visual direction. Stats and Minds stay (re-scoped); the verified agent core is ported intact.</p>
+  <div class="chips">
+    <span class="chip"><b>tabs</b> Record · Stats · Minds · Settings</span>
+    <span class="chip"><b>merge</b> Journals + Record → one home</span>
+    <span class="chip"><b>depth</b> fresh redesign, agent core ported</span>
+  </div>
+</header>
+
+<div class="lead-callout">
+  <p>The old app made you choose a journal, <em>then</em> open a modal to add a bill. The rebuild collapses that: <b>the home IS the trip, and capture lives at the bottom of it.</b> You see your trip's bills as a timeline and talk to the agent in the same place — no tab-hop, no modal. Journals doesn't disappear; it's absorbed.</p>
+</div>
+
+<h2><span class="n">1</span>The merge — what "Journals + Record" becomes</h2>
+<p>The <strong>Trip</strong> (today's <code>Journal</code>) stays as the data grouping — it's what makes this a <em>travel</em> tracker — but the standalone Journals tab is gone. The <strong>Record</strong> tab becomes the home and does both jobs:</p>
+<div class="grid">
+  <div class="panel pine">
+    <h4>Browse (was Journals)</h4>
+    <ul>
+      <li>Active-trip header: cover, name, dates, running total</li>
+      <li>A <strong>timeline</strong> of that trip's bills, grouped by day</li>
+      <li>A trip <strong>switcher</strong> in the header (and "new trip")</li>
+    </ul>
+  </div>
+  <div class="panel terra">
+    <h4>Capture (was Record)</h4>
+    <ul>
+      <li>A pinned input bar at the bottom of the same screen</li>
+      <li>Type / photo → the agent's editable bill cards stream inline</li>
+      <li>Confirm → the bill drops into the timeline above</li>
+    </ul>
+  </div>
+</div>
+<p>So one scroll surface = your trip + its bills + the way you add more. Tapping a saved bill opens its detail (kept). Switching trips swaps the whole surface.</p>
+
+<h2><span class="n">2</span>Information architecture</h2>
+<div class="tablewrap"><table>
+  <tr><th>Tab</th><th>Role in 2.0</th><th>Status</th></tr>
+  <tr><td><strong>Record</strong> (home)</td><td>Merged trip browse + agent capture. Trip switcher, day-grouped bill timeline, pinned capture bar, bill detail.</td><td class="new">rebuilt + merged</td></tr>
+  <tr><td><strong>Stats</strong></td><td>Re-scoped dashboard: a segmented control toggles <em>This trip</em> ↔ <em>All trips</em>. Big total, category breakdown, daily/▾ trend.</td><td class="new">rebuilt</td></tr>
+  <tr><td><strong>Minds</strong></td><td>Gallery of AI infographics; generate one per trip from the trip menu. Same Gemini path, new gallery shell.</td><td class="new">rebuilt</td></tr>
+  <tr><td><strong>Settings</strong></td><td>Provider/model/key (Keychain), consent, currency, demo mode, data export. New visual shell, same functions.</td><td class="new">rebuilt</td></tr>
+  <tr><td><s>Journals</s></td><td>Absorbed into Record's home.</td><td class="cut">removed</td></tr>
+</table></div>
+
+<h2><span class="n">3</span>What's ported vs. rebuilt vs. cut</h2>
+<div class="tablewrap"><table>
+  <tr><th>Layer</th><th>Plan</th></tr>
+  <tr><td>Agent core (<code>RecordingSession</code>, <code>BillValidator</code>, <code>DraftExtractor</code>, mapper, the edit drawer model)</td><td><span class="keep">Ported intact</span> — verified, 69 unit tests. The capture brain is unchanged; only its host surface is new.</td></tr>
+  <tr><td>Data model (<code>Trip</code>/<code>BillRecord</code>/<code>AppSettings</code>, SwiftData)</td><td><span class="keep">Preserved</span>, with <code>Journal</code> → <code>Trip</code> rename via a SchemaV2 migration stage (keeps existing data; non-destructive). <em>Checkpoint decision: rename now, or keep <code>Journal</code> internally?</em></td></tr>
+  <tr><td>Prerequisite fixes (versioned migration, Keychain, image cleanup, first-launch notice)</td><td><span class="keep">Kept</span>.</td></tr>
+  <tr><td>All SwiftUI views + theme</td><td><span class="new">Rebuilt</span> in the new visual direction (§4). The old <code>SketchTheme</code> and every screen are replaced.</td></tr>
+  <tr><td>Stats / Minds logic</td><td><span class="keep">Ported</span>, re-presented; Stats gains the trip↔all toggle.</td></tr>
+</table></div>
+<div class="callout"><strong>Risk-managed "fresh".</strong> Visually and structurally this is a new app; underneath, the proven agent core and your data survive. A from-scratch <em>data</em> model would risk your bills and discard 69 passing tests for no user benefit — so the rebuild is fresh where it matters (UX, IA, visual) and conservative where it's dangerous (persistence). Flagging this for your checkpoint.</div>
+
+<h2><span class="n">4</span>Visual direction — "Voyage"</h2>
+<p>Away from the childish hand-drawn sketch, toward a <strong>refined travel-ledger</strong>: editorial warmth + the precision a money app needs. Honors your standing preference — light background, near-black text, strong accent, list/timeline navigation.</p>
+<div class="swatches">
+  <div class="sw" style="background:#F7F3EC;color:#1B201D">paper</div>
+  <div class="sw" style="background:#1B201D">ink</div>
+  <div class="sw" style="background:#1F6F5C">pine</div>
+  <div class="sw" style="background:#C8643C">terra</div>
+  <div class="sw" style="background:#E9C46A;color:#1B201D">sand</div>
+</div>
+<ul>
+  <li><strong>Type:</strong> <em>Fraunces</em> (editorial serif, optical display) for headings + trip names; <em>Inter</em> for UI; tabular figures for every amount (it's a ledger).</li>
+  <li><strong>Color:</strong> warm paper, ink text, <strong>pine</strong> as primary (passport-stamp green) with <strong>terracotta</strong> accents and a sand highlight. Category colors re-tuned to sit in this palette.</li>
+  <li><strong>Surfaces:</strong> crisp white cards on warm paper with soft depth; the timeline uses day dividers and a left rail; amounts right-aligned and tabular.</li>
+  <li><strong>Personality kept, matured:</strong> the animal mascots survive as small trip emblems / empty-state characters, not the central motif.</li>
+</ul>
+
+<h2><span class="n">5</span>Definition of done</h2>
+<ul>
+  <li>Four tabs; no Journals tab; Record is the merged home (trip header + day-grouped timeline + pinned capture).</li>
+  <li>The full agent capture flow works inside the home; confirming a bill drops it into the timeline.</li>
+  <li>Trip switch / create from the home header; bill detail reachable.</li>
+  <li>Stats toggles trip↔all; Minds generates per trip; Settings re-skinned, all functions intact.</li>
+  <li>Existing data migrates (no loss); the agent core's 69 unit tests still pass; a fresh E2E covers capture→timeline, trip switch, and stats.</li>
+  <li>New visual direction applied consistently; old <code>SketchTheme</code> and screens removed.</li>
+</ul>
+
+<footer>BillMind 2.0 · rebuild architecture · Worker → Reviewer → your checkpoint → Manager · paired with the interactive design doc.</footer>
+
+</div>
+</body>
+</html>

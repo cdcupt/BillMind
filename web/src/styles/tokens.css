@@ -1,0 +1,49 @@
+/* BillMind "Voyage" — design tokens.
+   A warm travel journal: cream paper, ink text, a vermilion stamp accent,
+   and a passport-teal for positive/ledger figures. Handwriting (Caveat) for
+   warmth, a serif (Noto Serif) for the ledger's quiet authority. */
+:root {
+  /* paper + ink */
+  --paper: oklch(95% 0.022 85);
+  --paper-deep: oklch(91% 0.03 82);
+  --paper-card: oklch(98% 0.015 88);
+  --ink: oklch(24% 0.02 60);
+  --ink-soft: oklch(42% 0.02 60);
+  --ink-faint: oklch(58% 0.015 60);
+  --hairline: oklch(80% 0.02 70);
+
+  /* accents */
+  --stamp: oklch(58% 0.18 32);          /* vermilion — primary action / brand */
+  --stamp-deep: oklch(50% 0.17 32);
+  --teal: oklch(52% 0.09 195);          /* passport teal — savings / positive */
+  --gold: oklch(74% 0.12 80);           /* highlight / mascot */
+  --alert: oklch(56% 0.17 25);
+
+  /* type */
+  --font-hand: "Caveat", ui-rounded, cursive;
+  --font-serif: "Noto Serif", Georgia, "Times New Roman", serif;
+  --text-xs: 0.78rem;
+  --text-sm: 0.9rem;
+  --text-base: clamp(1rem, 0.95rem + 0.2vw, 1.0625rem);
+  --text-lg: 1.25rem;
+  --text-xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --text-display: clamp(2.4rem, 1.6rem + 3.2vw, 3.8rem);
+
+  /* rhythm */
+  --space-1: 0.375rem;
+  --space-2: 0.625rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-section: clamp(2.5rem, 2rem + 3vw, 5rem);
+
+  /* surfaces */
+  --radius: 14px;
+  --radius-lg: 22px;
+  --shadow-card: 0 1px 0 oklch(100% 0 0 / 0.6) inset,
+    0 10px 24px -16px oklch(30% 0.04 60 / 0.5);
+  --shadow-lift: 0 18px 40px -22px oklch(30% 0.04 60 / 0.6);
+  --duration-fast: 140ms;
+  --duration: 280ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}

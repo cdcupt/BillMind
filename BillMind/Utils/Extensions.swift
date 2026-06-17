@@ -84,3 +84,85 @@ extension Array {
         indices.contains(index) ? self[index] : nil
     }
 }
+
+// MARK: - Wire Money (decimal string)
+
+/// Money crosses the wire as a decimal STRING (never a JSON number — float64 is
+/// unsafe for currency). These wrappers mirror the server's WireMoney: Swift
+/// code sees plain `Decimal`, the JSON carries a string. See contract/openapi.yaml.
+@propertyWrapper
+struct DecimalString: Codable, Sendable, Equatable {
+    var wrappedValue: Decimal
+    init(wrappedValue: Decimal) { self.wrappedValue = wrappedValue }
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        guard let value = Decimal(string: raw) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath, debugDescription: "invalid decimal string: \(raw)"))
+        }
+        wrappedValue = value
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(NSDecimalNumber(decimal: wrappedValue).stringValue)
+    }
+}
+
+/// Optional money: a decimal string or JSON `null`.
+@propertyWrapper
+struct OptionalDecimalString: Codable, Sendable, Equatable {
+    var wrappedValue: Decimal?
+    init(wrappedValue: Decimal?) { self.wrappedValue = wrappedValue }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { wrappedValue = nil; return }
+        let raw = try c.decode(String.self)
+        guard let value = Decimal(string: raw) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath, debugDescription: "invalid decimal string: \(raw)"))
+        }
+        wrappedValue = value
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        if let v = wrappedValue { try c.encode(NSDecimalNumber(decimal: v).stringValue) } else { try c.encodeNil() }
+    }
+}
+
+// MARK: - Sync Cursor
+
+/// Persists the delta-sync cursor (epoch seconds from the server's SyncDelta).
+/// Absent/0 means "full pull". Device-local; cleared on sign-out / cache reset.
+enum SyncCursor {
+    private static let key = "billmind.sync.cursor"
+
+    static var value: Double {
+        get { UserDefaults.standard.double(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+
+    static func reset() { UserDefaults.standard.removeObject(forKey: key) }
+}
+
+// MARK: - API JSON Coders
+
+/// The coders used for all BillMind API traffic: ISO-8601 dates (matching the
+/// server's default), money via the wrappers above. One place so the client
+/// can never drift from the wire format.
+enum APICoders {
+    static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    static let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+}

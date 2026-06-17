@@ -10,7 +10,6 @@ final class AppSettings {
     var defaultCurrency: String
     var enableOCRFallback: Bool
     var maxPhotosPerBatch: Int
-    var demoMode: Bool
     var hasConsentedToAIDataSharing: Bool
 
     var selectedProvider: AIProvider {
@@ -26,7 +25,6 @@ final class AppSettings {
         self.defaultCurrency = "CNY"
         self.enableOCRFallback = true
         self.maxPhotosPerBatch = 10
-        self.demoMode = false
         self.hasConsentedToAIDataSharing = false
     }
 

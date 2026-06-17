@@ -1,0 +1,193 @@
+/* Saved-bills list + per-bill edit sheet. Reuses .field / .chips / .chip from
+   capture-card.css; only the list rows and modal shell live here. */
+
+.bills {
+  margin-top: var(--space-4);
+}
+
+.bills__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  border-bottom: 1.5px solid var(--hairline);
+  padding-bottom: var(--space-1);
+}
+
+.bills__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.bills__sum {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.bills__empty {
+  padding: var(--space-3) 0;
+}
+
+.bills__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bill-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper-card);
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+.bill-row:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--stamp);
+}
+.bill-row:active {
+  transform: translateY(0);
+}
+
+.bill-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bill-row__merchant {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bill-row__meta {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.bill-row__amount {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Edit sheet ─────────────────────────────────────────────────────────── */
+
+.bill-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .bill-modal {
+    align-items: center;
+  }
+}
+
+.bill-modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: oklch(24% 0.02 60 / 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.bill-modal__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  max-height: 88vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--paper-card);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lift);
+  animation: bill-sheet-in var(--duration) var(--ease);
+}
+@media (min-width: 640px) {
+  .bill-modal__sheet {
+    border-radius: var(--radius-lg);
+  }
+}
+
+@keyframes bill-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bill-modal__sheet {
+    animation: none;
+  }
+}
+
+.bill-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bill-modal__head h3 {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.bill-modal__close {
+  font-size: var(--text-lg);
+  color: var(--ink-soft);
+  padding: 0.2em 0.4em;
+  line-height: 1;
+}
+.bill-modal__close:hover {
+  color: var(--ink);
+}
+
+.bill-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.bill-modal__confirm {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  color: var(--alert);
+  font-family: var(--font-serif);
+}

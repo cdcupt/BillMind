@@ -2,10 +2,9 @@ import SwiftUI
 import SwiftData
 
 struct MindsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
-    @Query private var allSettings: [AppSettings]
-    private var settings: AppSettings? { allSettings.first }
+    @EnvironmentObject private var auth: AuthSession
+    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+           sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
 
     @State private var selectedJournalId: UUID?
 
@@ -18,7 +17,6 @@ struct MindsView: View {
     @State private var errorMessage: String?
     @State private var showShareSheet = false
     @State private var savedMessage: String?
-    @State private var showConsentSheet = false
 
     var body: some View {
         NavigationStack {
@@ -102,15 +100,6 @@ struct MindsView: View {
                     ShareSheet(items: [image])
                 }
             }
-            .sheet(isPresented: $showConsentSheet) {
-                AIDataConsentView(provider: settings?.selectedProvider ?? .gemini) {
-                    settings?.hasConsentedToAIDataSharing = true
-                    try? modelContext.save()
-                    generateMind()
-                } onDecline: {
-                    // User declined — no action
-                }
-            }
         }
     }
 
@@ -118,12 +107,12 @@ struct MindsView: View {
 
     private var journalPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Select a Journal")
+            Text("Select a Trip")
                 .font(SketchTheme.captionFont())
                 .foregroundStyle(SketchTheme.lightBrown)
 
             if journals.isEmpty {
-                Text("No journals yet")
+                Text("No trips yet")
                     .font(SketchTheme.bodyFont(14))
                     .foregroundStyle(SketchTheme.lightBrown)
             } else {
@@ -313,137 +302,42 @@ struct MindsView: View {
 
     // MARK: - Generate Mind
 
+    /// Server-side generation: the BillMind server builds the timeline and calls
+    /// Gemini image-gen with its own key, so the client never needs an API key.
+    /// (The AI is the product — every smart feature runs through the server.)
     private func generateMind() {
-        guard let journal = selectedJournal, !journal.bills.isEmpty else { return }
-
-        let isDemoMode = settings?.demoMode ?? false
-        let apiKey = settings?.apiKey ?? ""
-
-        if !isDemoMode {
-            guard settings?.hasConsentedToAIDataSharing == true else {
-                showConsentSheet = true
-                return
-            }
-            guard !apiKey.isEmpty else {
-                errorMessage = "Please set your API key in Settings first"
-                return
-            }
-            guard settings?.selectedProvider == .gemini else {
-                errorMessage = "Minds requires Google Gemini. Please switch provider in Settings."
-                return
-            }
+        guard let journal = selectedJournal, !journal.liveBills.isEmpty else { return }
+        guard let tripID = journal.serverID else {
+            errorMessage = "This trip is still syncing — try again in a moment."
+            return
         }
 
         isGenerating = true
         errorMessage = nil
         savedMessage = nil
 
-        // Demo mode: generate a placeholder infographic
-        if isDemoMode {
-            Task {
-                try? await Task.sleep(for: .seconds(1))
-                await MainActor.run {
-                    generatedImage = DemoData.generatePlaceholderMind(journal: journal)
-                    isGenerating = false
-                }
-            }
-            return
-        }
-
-        let currencySymbol = CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
-        let billsSorted = journal.bills.sorted { $0.date < $1.date }
-        var timeline = "Journal: \(journal.name)\nCurrency: \(journal.currency)\n\nBill Timeline:\n"
-        for bill in billsSorted {
-            let dateStr = bill.date.formatted(as: "MMM d")
-            let merchant = bill.merchant ?? bill.category.englishName
-            timeline += "- \(dateStr): \(merchant) — \(currencySymbol)\(bill.amount.formatted2) (\(bill.category.englishName))\n"
-        }
-        timeline += "\nTotal: \(currencySymbol)\(journal.totalAmount.formattedCurrency)"
-
-        let prompt = """
-        Create a beautiful, artistic sketch-style infographic image for a travel expense journal.
-
-        The image should be:
-        - Hand-drawn/sketch style with warm colors (cream, teal, dusty rose, sage green)
-        - A vertical timeline layout showing expenses chronologically
-        - Each expense shown as a cute illustrated card on the timeline
-        - Include small cute icons for each category (food=bowl, transport=car, hotel=bed, shopping=bag, etc.)
-        - The journal title "\(journal.name)" at the top in a decorative hand-lettered style
-        - Total amount at the bottom in a highlighted circle
-        - Decorative elements: small stars, dots, doodle borders
-        - Warm, cozy, journal/planner aesthetic
-        - NO real text that needs to be readable — use decorative/abstract text shapes
-        - The overall feel should be like a page from a beautiful travel journal
-
-        Here is the expense data to visualize:
-        \(timeline)
-        """
-
         Task {
             do {
-                let imageModel = settings?.imageModel.isEmpty == false ? settings!.imageModel : "gemini-3.1-flash-image-preview"
-                let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(imageModel):generateContent")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.setValue(apiKey, forHTTPHeaderField: "X-goog-api-key")
-                request.timeoutInterval = 120
-
-                let body: [String: Any] = [
-                    "contents": [["parts": [["text": prompt]]]],
-                    "generationConfig": ["responseModalities": ["TEXT", "IMAGE"]]
-                ]
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-                let (data, response) = try await URLSession.shared.data(for: request)
-                let httpResponse = response as? HTTPURLResponse
-
-                guard (200...299).contains(httpResponse?.statusCode ?? 0) else {
-                    let msg = parseError(data)
-                    throw AIError.httpError(httpResponse?.statusCode ?? 0, msg)
-                }
-
-                guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let candidates = json["candidates"] as? [[String: Any]],
-                      let content = candidates.first?["content"] as? [String: Any],
-                      let parts = content["parts"] as? [[String: Any]] else {
-                    throw AIError.invalidResponse("No candidates")
-                }
-
-                var foundImage: UIImage?
-                for part in parts {
-                    if let inlineData = part["inlineData"] as? [String: Any],
-                       let base64 = inlineData["data"] as? String,
-                       let imageData = Data(base64Encoded: base64),
-                       let uiImage = UIImage(data: imageData) {
-                        foundImage = uiImage
-                        break
+                let response = try await auth.client.generateMind(tripID: tripID)
+                guard let data = Data(base64Encoded: response.imageBase64),
+                      let image = UIImage(data: data) else {
+                    await MainActor.run {
+                        errorMessage = "Couldn't read the generated image. Try again."
+                        isGenerating = false
                     }
+                    return
                 }
-
                 await MainActor.run {
-                    if let img = foundImage {
-                        generatedImage = img
-                    } else {
-                        errorMessage = "AI didn't return an image. Try again."
-                    }
+                    generatedImage = image
                     isGenerating = false
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
+                    errorMessage = (error as? LocalizedError)?.errorDescription
+                        ?? "Couldn't generate a Mind right now. Please try again."
                     isGenerating = false
                 }
             }
         }
-    }
-
-    private func parseError(_ data: Data) -> String {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let error = json["error"] as? [String: Any],
-              let msg = error["message"] as? String else {
-            return "Unknown error"
-        }
-        return msg
     }
 }

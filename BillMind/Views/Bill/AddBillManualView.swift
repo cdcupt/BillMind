@@ -27,6 +27,7 @@ struct AddBillManualView: View {
                                 .font(SketchTheme.amountFont(28))
                                 .foregroundStyle(SketchTheme.lightBrown)
                             TextField("0.00", text: $amountText)
+                                .accessibilityIdentifier("billAmountField")
                                 .font(SketchTheme.amountFont(42))
                                 .foregroundStyle(SketchTheme.softBrown)
                                 .keyboardType(.decimalPad)
@@ -92,6 +93,7 @@ struct AddBillManualView: View {
                             .font(SketchTheme.captionFont())
                             .foregroundStyle(SketchTheme.lightBrown)
                         TextField("Store or company name", text: $merchant)
+                            .accessibilityIdentifier("billMerchantField")
                             .font(SketchTheme.bodyFont())
                             .textFieldStyle(.plain)
                             .padding(12)
@@ -142,6 +144,7 @@ struct AddBillManualView: View {
                         HandDrawnButton(title: "Save Bill", icon: "checkmark", style: .primary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("saveBillButton")
                     .disabled(!isValid)
                     .opacity(isValid ? 1 : 0.5)
                 }
