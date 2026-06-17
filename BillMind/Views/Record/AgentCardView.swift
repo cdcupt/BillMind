@@ -18,11 +18,15 @@ struct AgentCardView: View {
     @State private var ackArmed = false
     @State private var pulse = false
     @State private var shimmer: CGFloat = -1
-    @State private var phraseIndex = 0
 
-    /// Rotating status words shown while the agent calls the remote model,
-    /// like Claude Code's cycling status line. Loops back to the first.
-    private static let thinkingPhrases = ["Thinking…", "Reading…", "Recognizing…", "Tallying…"]
+    /// One fixed status word per card, picked once at random from the pool when
+    /// the card is created (Claude Code style). Different cards may differ, but
+    /// within a single card the word never changes — `@State` evaluates the
+    /// default once, and each card is a distinct view (`.id(card.id)`).
+    @State private var thinkingWord = AgentCardView.thinkingPhrases.randomElement() ?? "Thinking…"
+
+    /// Pool of status words shown while the agent calls the remote model.
+    private static let thinkingPhrases = ["Thinking…", "Pondering…", "Reading…", "Recognizing…", "Tallying…", "Crunching…", "Cooking…", "Noodling…", "Musing…", "Conjuring…", "Reckoning…", "Mulling…", "Calculating…", "Sorting…", "Working…"]
 
     private var draft: BillDraft { card.draft }
     private var amountMissing: Bool { draft.amount == nil }
@@ -66,13 +70,10 @@ struct AgentCardView: View {
                     .foregroundStyle(SketchTheme.warmOrange)
                     .scaleEffect(pulse ? 1.2 : 0.8)
                     .opacity(pulse ? 1 : 0.5)
-                Text(Self.thinkingPhrases[phraseIndex])
+                Text(thinkingWord)
                     .font(SketchTheme.captionFont(13))
                     .foregroundStyle(SketchTheme.softBlue)
                     .opacity(pulse ? 1 : 0.6)
-                    .id(phraseIndex)
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.35), value: phraseIndex)
                 Spacer()
                 Text(sourceLabel)
                     .font(.system(size: 10))
@@ -94,15 +95,6 @@ struct AgentCardView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) { pulse = true }
             withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) { shimmer = 1 }
-        }
-        // Cycle the status word ~every 1.1s; the `.task` is cancelled
-        // automatically when the thinkingView is replaced, so no timer leaks.
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_100_000_000)
-                if Task.isCancelled { break }
-                phraseIndex = (phraseIndex + 1) % Self.thinkingPhrases.count
-            }
         }
     }
 
