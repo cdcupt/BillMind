@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillMind — App Store Submission Packet</title>
+<style>
+  :root{--ink:#2b2117;--soft:#6f6253;--paper:#faf3e3;--card:#fffdf7;--line:#e7ddc8;--accent:#b5642f;--green:#1f6f5c;--blue:#2d6ca8;--red:#a8432f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:32px 18px}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:30px;margin:0 0 4px}
+  h2{font-size:21px;margin:34px 0 10px;border-bottom:2px solid var(--line);padding-bottom:6px}
+  h3{font-size:16px;margin:18px 0 6px;color:var(--accent)}
+  .sub{color:var(--soft);margin:0 0 18px}
+  .card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3ecda;padding:1px 5px;border-radius:5px;font-size:.92em}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#f3ecda}
+  .ok{color:var(--green);font-weight:600}.warn{color:var(--accent);font-weight:600}.no{color:var(--red);font-weight:600}
+  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#eef2ee;color:var(--green);font-weight:600}
+  .you{background:#fdeee3;color:var(--accent)}
+  .me{background:#e8f0f6;color:var(--blue)}
+  .field{font-weight:600}
+  pre{background:#2b2117;color:#f4ead4;padding:12px 14px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.5}
+  ul{margin:6px 0 6px 18px}.tight li{margin:2px 0}
+  .copy{color:var(--soft);font-size:13px}
+  .count{color:var(--soft);font-size:12px;font-weight:400}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>BillMind — App Store Submission Packet</h1>
+<p class="sub">Everything to paste into <strong>App Store Connect</strong> + the build steps. <span class="pill me">me = I prepare</span> <span class="pill you">you = you do it (Apple account / 2FA)</span> · App: <code>com.billmind.app</code> · v1.0.0 · Worldwide except mainland China · Effective June 17, 2026.</p>
+
+<h2>1 · App information</h2>
+<div class="card">
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td class="field">Name</td><td>BillMind <span class="count">(8/30)</span></td></tr>
+<tr><td class="field">Subtitle</td><td>Your AI travel-money agent <span class="count">(26/30)</span></td></tr>
+<tr><td class="field">Primary category</td><td>Finance</td></tr>
+<tr><td class="field">Secondary category</td><td>Travel</td></tr>
+<tr><td class="field">Bundle ID</td><td><code>com.billmind.app</code></td></tr>
+<tr><td class="field">Price</td><td>Free</td></tr>
+<tr><td class="field">Availability</td><td>All countries/regions <strong>except China mainland</strong> (avoids the ICP filing requirement)</td></tr>
+<tr><td class="field">Age rating</td><td>4+ (see §5)</td></tr>
+<tr><td class="field">Copyright</td><td>© 2026 Daichen Chai</td></tr>
+</table>
+</div>
+
+<h2>2 · URLs</h2>
+<div class="card">
+<table>
+<tr><td class="field">Privacy Policy URL <span class="no">(required)</span></td><td><code>https://cdcupt.github.io/BillMind/docs/privacy-policy.html</code></td></tr>
+<tr><td class="field">Support URL <span class="no">(required)</span></td><td><code>https://cdcupt.github.io/BillMind/docs/support.html</code></td></tr>
+<tr><td class="field">Marketing URL (optional)</td><td><code>https://cdcupt.github.io/BillMind/docs/</code></td></tr>
+</table>
+</div>
+
+<h2>3 · Store text</h2>
+<div class="card">
+<h3>Promotional text <span class="count">(≤170)</span></h3>
+<p class="copy">Just say what you spent — BillMind's AI reads it, sorts it, and tallies your trip. Capture by text, voice, or a photo of any receipt. Nothing saves until you tap Save.</p>
+
+<h3>Description <span class="count">(≤4000)</span></h3>
+<p class="copy">BillMind is the travel expense tracker that does the typing for you. Tell it what you spent — in plain words, with your voice, or by snapping a receipt — and its AI agent turns it into a clean, editable bill in seconds. No spreadsheets, no fiddly forms.<br><br>
+<strong>Capture any way you like</strong><br>
+• Type it: "ramen 2840" or "lunch 500, taxi 200, coffee 80" → one card per expense.<br>
+• Say it: tap the mic and speak; BillMind transcribes and files it.<br>
+• Snap it: photograph a receipt and the AI reads the merchant, amount, date, and category.<br><br>
+<strong>Smart, but never sneaky</strong><br>
+• The AI recognizes as much as it can and asks when something's unclear.<br>
+• It never guesses an amount — if a total isn't clear, it asks you.<br>
+• Nothing is saved until you tap Save. Every card is fully editable.<br><br>
+<strong>See where your money went</strong><br>
+• Organize spending into trips, each in its own currency.<br>
+• Stats break down totals by trip, category, and day.<br>
+• "Minds" turns a trip into a beautiful hand-drawn timeline of your spending.<br><br>
+<strong>Yours, across devices</strong><br>
+• Sign in with Apple or Google. Your trips sync securely so they're there on every device.<br>
+• Delete any bill, any trip, or your whole account anytime.<br><br>
+BillMind is built for travelers, freelancers, and anyone who wants expense tracking to feel like a quick conversation instead of a chore.</p>
+
+<h3>Keywords <span class="count">(≤100, comma-separated, no spaces)</span></h3>
+<p class="copy"><code>expense,travel,receipt,scanner,budget,money,bills,tracker,trip,spending,finance,voice,AI,tally</code> <span class="count">(96/100)</span></p>
+
+<h3>What's New (v1.0.0)</h3>
+<p class="copy">Welcome to BillMind! Capture travel expenses by text, voice, or photo and let the AI do the rest.</p>
+</div>
+
+<h2>4 · App Privacy — "nutrition label" answers <span class="no">(required, exact)</span></h2>
+<div class="card">
+<p class="copy">In App Store Connect → App Privacy, declare the following. <strong>All data is "Linked to you", used only for "App Functionality", and NOT used for Tracking.</strong> Answer <strong>NO</strong> to "Do you or your third-party partners use data for tracking?"</p>
+<table>
+<tr><th>Apple data category</th><th>What it is in BillMind</th><th>Linked</th><th>Purpose</th><th>Tracking</th></tr>
+<tr><td>Contact Info → <b>Email Address</b></td><td>Email from Apple/Google sign-in (for your account)</td><td class="ok">Yes</td><td>App Functionality</td><td class="ok">No</td></tr>
+<tr><td>Financial Info → <b>Other Financial Info</b></td><td>Your bill amounts / expense data</td><td class="ok">Yes</td><td>App Functionality</td><td class="ok">No</td></tr>
+<tr><td>User Content → <b>Photos or Videos</b></td><td>Receipt photos you submit</td><td class="ok">Yes</td><td>App Functionality</td><td class="ok">No</td></tr>
+<tr><td>User Content → <b>Other User Content</b></td><td>Bill text, merchant names, notes</td><td class="ok">Yes</td><td>App Functionality</td><td class="ok">No</td></tr>
+<tr><td>Identifiers → <b>User ID</b></td><td>Stable provider user identifier (account key)</td><td class="ok">Yes</td><td>App Functionality</td><td class="ok">No</td></tr>
+</table>
+<p class="copy"><strong>Do NOT declare:</strong> Location, Contacts, Browsing/Search History, Health, Purchases, Diagnostics/Analytics, Advertising data — BillMind collects none of these. The voice feature transcribes on-device (Apple Speech) and the transcript text follows the "Other User Content" path; the audio itself is not stored.</p>
+</div>
+
+<h2>5 · Age rating questionnaire → 4+</h2>
+<div class="card">
+<p class="copy">Answer <strong>None</strong> to every content question (no violence, profanity, sexual content, gambling, drugs, horror, mature/suggestive themes). <strong>No</strong> to Unrestricted Web Access. The app has no public user-generated-content sharing (the AI "Minds" image is generated from your own private data and stays in your account), so the UGC/moderation question does not gate the rating. Result: <strong>4+</strong>. Note for your records: AI-generated content exists (bill recognition + Minds) and <strong>every user input is screened by OpenAI's moderation API before reaching the model</strong>.</p>
+</div>
+
+<h2>6 · App Review information</h2>
+<div class="card">
+<h3>Sign-in / demo account</h3>
+<p class="copy"><strong>No demo account needed.</strong> Put this in "Notes":</p>
+<p class="copy" style="border-left:3px solid var(--blue);padding-left:12px">BillMind requires sign-in. Please tap <b>"Sign in with Apple"</b> on the launch screen and use your own Apple ID — this creates a fresh account instantly (no credentials required). Then on the Record tab, type for example <b>"ramen 2840"</b> and tap the send arrow: the AI returns an editable bill card; tap <b>"Save to trip"</b> to save it. The app needs network access — AI recognition runs on our US-hosted backend, and every input is screened by content moderation. To remove the account: Settings → Delete Account.</p>
+<h3>Contact</h3>
+<p class="copy">Daichen Chai · cdcupt@gmail.com</p>
+</div>
+
+<h2>7 · Export compliance</h2>
+<div class="card">
+<p class="copy">BillMind uses only standard HTTPS/TLS encryption → <strong>exempt</strong>. <code>ITSAppUsesNonExemptEncryption = NO</code> is already set in the build, so App Store Connect will not prompt. (If asked: "Does your app use encryption?" → standard only / exempt.)</p>
+</div>
+
+<h2>8 · Screenshots</h2>
+<div class="card">
+<p class="copy">Apple now requires one size that covers all iPhones: <strong>6.9" (1290 × 2796)</strong> — iPhone 16 Pro Max. I'll generate these from the real app (Record capture, a saved bill, Stats, Minds, Settings). 3–10 per size; first 1–3 matter most. iPad shots only if you mark the app iPad-compatible (it's iPhone-only today → not needed).</p>
+</div>
+
+<h2>9 · Build → archive → upload <span class="pill you">you sign + upload</span></h2>
+<div class="card">
+<ol class="tight">
+<li><span class="warn">First (one-time):</span> in the Apple Developer portal, enable <b>"Sign in with Apple"</b> on the <code>com.billmind.app</code> App ID (Identifiers → com.billmind.app → check Sign in with Apple → Save).</li>
+<li>I'll set the Release scheme + automatic signing to your team and produce the archive command. The signed <b>archive + upload</b> runs through <b>Xcode → Product → Archive → Distribute → App Store Connect</b> (uses your Apple ID + 2FA), or Transporter with an app-specific password.</li>
+<li>In App Store Connect: attach the uploaded build, paste §1–7, add §8 screenshots, answer §4 privacy + §5 age rating, then <b>Submit for Review</b>.</li>
+</ol>
+</div>
+
+<h2>Readiness checklist</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>Item</th><th>Status</th></tr>
+<tr><td>1</td><td>Privacy policy accurate for 2.0</td><td class="ok">Done — live, awaiting your sign-off</td></tr>
+<tr><td>2</td><td>Sign in with Apple entitlement (app)</td><td class="ok">Done</td></tr>
+<tr><td>3</td><td>Server Apple-token audience validation</td><td class="ok">Done</td></tr>
+<tr><td>4</td><td>Export-compliance flag</td><td class="ok">Done</td></tr>
+<tr><td>5</td><td>Metadata + store text</td><td class="ok">Drafted (this doc)</td></tr>
+<tr><td>6</td><td>Privacy nutrition labels</td><td class="ok">Drafted (§4)</td></tr>
+<tr><td>7</td><td>Age rating answers</td><td class="ok">Drafted (§5)</td></tr>
+<tr><td>8</td><td>Screenshots (6.9")</td><td class="warn">I generate next</td></tr>
+<tr><td>9</td><td>Enable "Sign in with Apple" on the App ID</td><td class="no">You (portal)</td></tr>
+<tr><td>10</td><td>Release archive + signed upload + Submit</td><td class="no">I prep / You sign + submit</td></tr>
+</table>
+</div>
+
+</div>
+</body>
+</html>
