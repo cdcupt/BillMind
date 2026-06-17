@@ -177,7 +177,7 @@ struct RecordView: View {
 
             micButton(coordinator)
 
-            TextField(voice.isRecording ? "Listening…" : "Tell Mochi about a bill…", text: $inputText)
+            TextField(voice.isRecording ? "Listening…" : "Tell Ollie about a bill…", text: $inputText)
                 .textFieldStyle(.plain)
                 .submitLabel(.send)
                 .focused($inputFocused)
