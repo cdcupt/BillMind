@@ -56,7 +56,8 @@ BillMind/
 ├── Views/
 │   ├── Main/       # JournalsListView, StatsPageView, MindsView
 │   ├── Journal/    # JournalDetailView, NewJournalView
-│   ├── Bill/       # BillImportFlowView, AddBillManualView, BillDetailView
+│   ├── Record/     # RecordView, RecordCoordinator — server-backed AI capture (the only way bills are created)
+│   ├── Bill/       # BillDetailView (+ EditBillView — card editing)
 │   ├── Settings/   # SettingsView, APIKeyEditorView, EditBillView
 │   └── Components/ # AnimalMascotView, HandDrawnButton, EmptyStateView
 ├── Theme/          # SketchTheme, SketchShapes

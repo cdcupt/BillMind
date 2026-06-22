@@ -42,9 +42,10 @@ BillMind/
 │   │   ├── JournalDetailView.swift  # Bill list + mind image + currency widget
 │   │   └── NewJournalView.swift     # Create journal with mascot/currency picker
 │   ├── Bill/
-│   │   ├── BillImportFlowView.swift # 3-step: Pick → Recognize → Review
-│   │   ├── AddBillManualView.swift  # Manual bill entry
-│   │   └── BillDetailView.swift     # Bill detail + edit + zoomable image viewer
+│   │   └── BillDetailView.swift     # Bill detail + edit (EditBillView) + zoomable image viewer
+│   ├── Record/                      # The 2.0 AI capture flow (server-backed) — the ONLY way bills are created
+│   │   ├── RecordView.swift
+│   │   └── RecordCoordinator.swift  # posts images/text to the server agent (POST /v1/recognition)
 │   ├── Settings/
 │   │   └── SettingsView.swift       # Provider, models, API key, config, test connection
 │   └── Components/
@@ -83,7 +84,7 @@ BillMind/
 
 ## Key Notes
 
-- **AI Data Consent**: `AppSettings.hasConsentedToAIDataSharing` — must be `true` before any data is sent to AI providers. `AIDataConsentView` (in SettingsView.swift) is shown automatically before the first AI call. Users can revoke in Settings > Privacy. Skipped in demo mode.
+- **AI Data Consent**: the 2.0 capture path (Record tab) is server-backed and does not gate on a local consent flag. `AppSettings.hasConsentedToAIDataSharing` remains as a dormant SwiftData field (kept to avoid a store-reset migration); the old `AIDataConsentView` and the legacy on-device recognizer that used it were removed with the legacy add-bill/import flow.
 - **Demo Mode**: `AppSettings.demoMode` flag — when enabled, `AIService.recognizeBill()` returns hardcoded `DemoData` results, Minds generates a CoreGraphics placeholder, no API key needed. Toggle in Settings UI.
 - **GitHub Pages**: Privacy policy, support, marketing, and privacy choices pages in `docs/`. Served at `https://cdcupt.github.io/BillMind/docs/`.
 - Default provider is Gemini; default currency is CNY

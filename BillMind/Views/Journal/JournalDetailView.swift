@@ -8,8 +8,6 @@ struct BillNavID: Hashable {
 struct JournalDetailView: View {
     @Bindable var journal: Journal
     @Environment(\.modelContext) private var modelContext
-    @State private var showAddBill = false
-    @State private var showImportFlow = false
 
     private var currencySymbol: String {
         CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
@@ -50,7 +48,7 @@ struct JournalDetailView: View {
                     EmptyStateView(
                         animal: .cat,
                         title: "No bills yet!",
-                        subtitle: "Tap the camera button to scan bills\nor add one manually"
+                        subtitle: "Add bills from the Record tab —\njust tell Ollie about them"
                     )
                 } else {
                     billsList
@@ -72,39 +70,11 @@ struct JournalDetailView: View {
                         .clipShape(Circle())
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showAddBill = true
-                    } label: {
-                        Label("Add Manually", systemImage: "pencil")
-                    }
-                    Button {
-                        showImportFlow = true
-                    } label: {
-                        Label("Scan Bills", systemImage: "camera")
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(SketchTheme.softBrown)
-                }
-                .accessibilityIdentifier("addBillMenu")
-            }
         }
         .navigationDestination(for: BillNavID.self) { navId in
             if let bill = journal.bills.first(where: { $0.id == navId.id }) {
                 BillDetailView(bill: bill, currencySymbol: currencySymbol)
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            fabButton
-        }
-        .sheet(isPresented: $showAddBill) {
-            AddBillManualView(journal: journal)
-        }
-        .sheet(isPresented: $showImportFlow) {
-            BillImportFlowView(journal: journal)
         }
         .fullScreenCover(isPresented: $showMindFullscreen) {
             if let mind = mindImage {
@@ -174,23 +144,6 @@ struct JournalDetailView: View {
         }
     }
 
-    // MARK: - FAB
-
-    private var fabButton: some View {
-        Button {
-            showImportFlow = true
-        } label: {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 22))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(SketchTheme.primaryGradient)
-                .clipShape(Circle())
-                .shadow(color: SketchTheme.dustyRose.opacity(0.3), radius: 8, y: 4)
-        }
-        .padding(.trailing, 24)
-        .padding(.bottom, 24)
-    }
 }
 
 // MARK: - Bill Card
