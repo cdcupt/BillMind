@@ -5,6 +5,19 @@ import Speech
 import AVFoundation
 import os
 
+/// One photo staged in the compose tray: a thumbnail held above the input bar with
+/// its own editable caption, waiting to be sent as ONE bill. Identity is the `id`;
+/// the caption mutates as the user types/dictates into the active chip.
+struct StagedChip: Identifiable, Equatable {
+    let id = UUID()
+    let image: UIImage
+    var caption: String = ""
+
+    static func == (lhs: StagedChip, rhs: StagedChip) -> Bool {
+        lhs.id == rhs.id && lhs.caption == rhs.caption && lhs.image === rhs.image
+    }
+}
+
 /// The Record tab: pick a journal, then type a phrase (or pick photos) and the
 /// agent turns each into an editable bill card you confirm. Text capture needs no
 /// AI or API key.
@@ -22,6 +35,11 @@ struct RecordView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showNewJournal = false
     @State private var showTrips = false
+    /// Compose: photos picked are STAGED as chips (not submitted) so the field below
+    /// becomes that photo's caption. Send dispatches one composed request per chip.
+    @State private var stagedChips: [StagedChip] = []
+    /// The chip the caption field is bound to (terra ring). Tapping a chip activates it.
+    @State private var activeChipID: UUID?
     /// A gentle "touch the flagged groups first" note when "Save all" is blocked by
     /// still-open fuse/duplicate groups. Cleared once the user resolves them.
     @State private var blockedNote: String?
@@ -350,31 +368,43 @@ struct RecordView: View {
     }
 
     private func inputBar(_ coordinator: RecordCoordinator) -> some View {
-        HStack(spacing: 8) {
-            PhotosPicker(selection: $photoItems, maxSelectionCount: 10, matching: .images) {
-                Image(systemName: "photo.on.rectangle")
-                    .font(.system(size: 16)).foregroundStyle(SketchTheme.softBrown)
-                    .frame(width: 34, height: 34)
-                    .overlay(Circle().stroke(SketchTheme.lightBrown, lineWidth: 1.5))
+        VStack(spacing: 8) {
+            if !stagedChips.isEmpty {
+                stagedTray
             }
-            .accessibilityIdentifier("record-photos")
+            HStack(spacing: 8) {
+                PhotosPicker(selection: $photoItems, maxSelectionCount: 10, matching: .images) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 16)).foregroundStyle(SketchTheme.softBrown)
+                        .frame(width: 34, height: 34)
+                        .overlay(Circle().stroke(SketchTheme.lightBrown, lineWidth: 1.5))
+                }
+                .accessibilityIdentifier("record-photos")
 
-            micButton(coordinator)
+                micButton(coordinator)
 
-            TextField(voice.isRecording ? "Listening…" : "Tell Ollie about a bill…", text: $inputText)
-                .textFieldStyle(.plain)
-                .submitLabel(.send)
-                .focused($inputFocused)
-                .disabled(voice.isRecording)
-                .onSubmit { send(coordinator) }
-                .accessibilityIdentifier("record-input")
+                TextField(captionPlaceholder, text: $inputText)
+                    .textFieldStyle(.plain)
+                    .submitLabel(.send)
+                    .focused($inputFocused)
+                    .disabled(voice.isRecording)
+                    .onSubmit { send(coordinator) }
+                    // Keep the active chip's caption in lock-step with the field so a
+                    // re-render (e.g. tray re-layout) never reads a stale note.
+                    .onChange(of: inputText) { _, text in
+                        guard let id = activeChipID,
+                              let i = stagedChips.firstIndex(where: { $0.id == id }) else { return }
+                        if stagedChips[i].caption != text { stagedChips[i].caption = text }
+                    }
+                    .accessibilityIdentifier("record-input")
 
-            Button { send(coordinator) } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 26)).foregroundStyle(SketchTheme.dustyRose)
+                Button { send(coordinator) } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 26)).foregroundStyle(SketchTheme.dustyRose)
+                }
+                .disabled(voice.isRecording)   // avoid submitting partial text mid-dictation
+                .accessibilityIdentifier("record-send")
             }
-            .disabled(voice.isRecording)   // avoid submitting partial text mid-dictation
-            .accessibilityIdentifier("record-send")
         }
         .padding(10)
         .background(SketchTheme.warmWhite)
@@ -390,6 +420,75 @@ struct RecordView: View {
             if let message { coordinator.errorMessage = message; voice.errorMessage = nil }
         }
         .animation(.easeInOut(duration: 0.2), value: voice.isRecording)
+        .animation(.easeInOut(duration: 0.2), value: stagedChips)
+    }
+
+    /// The field's placeholder reflects the compose state: a note prompt while a photo
+    /// is staged, the listening hint mid-dictation, else the default bill prompt.
+    private var captionPlaceholder: String {
+        if voice.isRecording { return "Listening…" }
+        if !stagedChips.isEmpty { return "Add a note for this photo…" }
+        return "Tell Ollie about a bill…"
+    }
+
+    /// The horizontal tray of staged photo chips above the bar. The active chip is
+    /// ringed in terra and the field binds to its caption; ✕ un-stages a chip.
+    private var stagedTray: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(stagedChips.count > 1 ? "Tap a photo to note it" : "Pinned to this photo")
+                .font(SketchTheme.captionFont(11))
+                .foregroundStyle(SketchTheme.dustyRose)
+                .accessibilityIdentifier("record-staged-hint")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(stagedChips) { chip in
+                        chipView(chip)
+                    }
+                }
+                .padding(.horizontal, 2).padding(.vertical, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("record-staged-tray")
+    }
+
+    private func chipView(_ chip: StagedChip) -> some View {
+        let isActive = chip.id == activeChipID
+        let preview = chip.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Button {
+            activateChip(chip.id)
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: chip.image)
+                        .resizable().scaledToFill()
+                        .frame(width: 56, height: 66)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                    Button { removeChip(chip.id) } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(SketchTheme.mutedRed)
+                            .background(Circle().fill(SketchTheme.warmWhite).padding(2))
+                    }
+                    .offset(x: 6, y: -6)
+                    .accessibilityIdentifier("record-chip-remove")
+                }
+                Text(preview.isEmpty ? "no note yet" : preview)
+                    .font(SketchTheme.captionFont(10))
+                    .foregroundStyle(preview.isEmpty ? SketchTheme.lightBrown : SketchTheme.sageGreen)
+                    .lineLimit(1)
+                    .frame(width: 64, alignment: .leading)
+            }
+            .padding(6)
+            .background(SketchTheme.warmWhite)
+            .clipShape(RoundedRectangle(cornerRadius: 13))
+            .overlay(RoundedRectangle(cornerRadius: 13)
+                .stroke(isActive ? SketchTheme.dustyRose : SketchTheme.lightBrown.opacity(0.4),
+                        lineWidth: isActive ? 2 : 1.4))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("record-chip")
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
     }
 
     /// Tap to start dictation, tap again to stop — the final transcript is
@@ -422,12 +521,80 @@ struct RecordView: View {
 
     // MARK: - Actions
 
+    /// Send. If chips are staged, each is dispatched as ONE composed request (photo +
+    /// its caption) → one bill per chip, then the tray and field clear. With nothing
+    /// staged, the text-only path (`submitText`) is byte-for-byte unchanged.
     private func send(_ coordinator: RecordCoordinator) {
+        if !stagedChips.isEmpty {
+            sendComposed(coordinator)
+            return
+        }
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         inputText = ""
         inputFocused = false        // dismiss the keyboard so the new card (and tab bar) are reachable
         coordinator.submitText(text)
+    }
+
+    /// Dispatch every staged chip as a composed photo + caption (one request → one bill
+    /// each). A chip with an empty caption sends as photo-only (unchanged from today's
+    /// instant photo capture).
+    ///
+    /// `submitComposed` can REJECT a send (unsynced trip → `serverID == nil`, or the
+    /// session limit was reached) and surface a retryable `errorMessage`. We must NOT
+    /// clear a chip that wasn't accepted, or the photo + its caption are lost while the
+    /// user is told to try again. So we keep only the chips that `submitComposed`
+    /// accepted; any rejected chip stays staged (with its caption preserved) and the
+    /// active selection re-binds to a surviving chip so the user can retry. When the trip
+    /// is unsynced every chip is rejected and nothing is lost.
+    private func sendComposed(_ coordinator: RecordCoordinator) {
+        commitFieldToActiveChip()       // fold the in-progress note into its chip first
+        let previousActiveID = activeChipID
+        let surviving = stagedChips.filter { chip in
+            !coordinator.submitComposed(image: chip.image, caption: chip.caption)
+        }
+        stagedChips = surviving
+        if surviving.isEmpty {
+            activeChipID = nil
+            inputText = ""
+            inputFocused = false
+        } else {
+            // Keep the previously active chip selected if it was rejected; otherwise
+            // re-bind to the first surviving chip so its caption stays editable.
+            activeChipID = surviving.contains { $0.id == previousActiveID } ? previousActiveID : surviving.first?.id
+            inputText = surviving.first(where: { $0.id == activeChipID })?.caption ?? ""
+        }
+    }
+
+    /// Make `id` the active chip and bind the field to its caption.
+    private func activateChip(_ id: UUID) {
+        guard id != activeChipID else { return }
+        commitFieldToActiveChip()
+        activeChipID = id
+        inputText = stagedChips.first { $0.id == id }?.caption ?? ""
+        inputFocused = true
+    }
+
+    /// Remove a staged chip (its ✕). If it was active, the field re-binds to the next
+    /// remaining chip (or clears when the tray empties).
+    private func removeChip(_ id: UUID) {
+        if id == activeChipID {
+            stagedChips.removeAll { $0.id == id }
+            activeChipID = stagedChips.first?.id
+            inputText = stagedChips.first(where: { $0.id == activeChipID })?.caption ?? ""
+        } else {
+            // Preserve the active chip's unsaved field edits across the removal.
+            commitFieldToActiveChip()
+            stagedChips.removeAll { $0.id == id }
+        }
+    }
+
+    /// Fold the live field text into the active chip's caption so a chip switch / send /
+    /// stage never drops what the user just typed.
+    private func commitFieldToActiveChip() {
+        guard let id = activeChipID,
+              let index = stagedChips.firstIndex(where: { $0.id == id }) else { return }
+        stagedChips[index].caption = inputText
     }
 
     /// Save the whole reviewed batch. `confirmAll` returns the ids it could NOT save
@@ -447,10 +614,19 @@ struct RecordView: View {
         }
     }
 
-    /// Start dictation, or stop it and hand the final transcript to the AI.
+    /// Start dictation, or stop it. With a chip staged, the transcript dictates the
+    /// active chip's CAPTION — it stays as the editable note (no auto-submit, so a
+    /// misheard amount can be fixed before send). With nothing staged, the final
+    /// transcript flows straight into the AI as a text bill (unchanged).
     private func toggleVoice(_ coordinator: RecordCoordinator) {
         if voice.isRecording {
             voice.stop()
+            return
+        }
+        // Compose: dictate INTO the active chip's caption; don't wipe what's there.
+        if !stagedChips.isEmpty {
+            inputFocused = false
+            voice.start { _ in }     // transcript mirrors into the field via onChange; kept on stop
             return
         }
         inputFocused = false
@@ -477,8 +653,11 @@ struct RecordView: View {
         coordinator = RecordCoordinator(journal: journal, modelContext: modelContext, recognizer: auth.client, sync: sync)
     }
 
+    /// Picking photos no longer submits — it STAGES each as a chip so the field below
+    /// becomes that photo's caption. The first newly-staged chip becomes active so the
+    /// caption field binds to it right away.
     private func loadPhotos(_ items: [PhotosPickerItem]) {
-        guard !items.isEmpty, let coordinator else { return }
+        guard !items.isEmpty else { return }
         Task {
             var images: [UIImage] = []
             for item in items {
@@ -487,7 +666,14 @@ struct RecordView: View {
                 }
             }
             await MainActor.run {
-                coordinator.submitPhotos(images)
+                let newChips = images.map { StagedChip(image: $0) }
+                guard !newChips.isEmpty else { photoItems = []; return }
+                // Persist the active chip's in-progress caption before re-binding the field.
+                commitFieldToActiveChip()
+                stagedChips.append(contentsOf: newChips)
+                activeChipID = newChips.first?.id
+                inputText = ""               // a fresh chip starts with an empty note
+                inputFocused = true
                 photoItems = []
             }
         }
@@ -697,6 +883,97 @@ final class VoiceCapture: ObservableObject {
 // MARK: - Preview
 
 #if DEBUG
+/// A self-contained render of the compose input bar with a staged chip + caption —
+/// the visual proof of the compose tray. Mirrors `RecordView.stagedTray` / `inputBar`
+/// composition (terra-ringed active chip, caption preview, ✕, note placeholder) at a
+/// fixed width so a `#Preview` and the snapshot test exercise the exact styling.
+struct ComposeBarPreview: View {
+    /// Stub thumbnails so the preview/snapshot need no photo library.
+    static func swatch(_ color: UIColor, label: String) -> UIImage {
+        let size = CGSize(width: 120, height: 150)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            color.setFill(); ctx.fill(CGRect(origin: .zero, size: size))
+            let attrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: UIColor.white,
+                .font: UIFont.systemFont(ofSize: 14, weight: .semibold)]
+            (label as NSString).draw(at: CGPoint(x: 12, y: 64), withAttributes: attrs)
+        }
+    }
+
+    var chips: [StagedChip] = [
+        StagedChip(image: swatch(.brown, label: "receipt"), caption: "the total was ¥240, lunch"),
+        StagedChip(image: swatch(.gray, label: "taxi"), caption: ""),
+    ]
+    var activeID: UUID? { chips.first?.id }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(chips.count > 1 ? "Tap a photo to note it" : "Pinned to this photo")
+                    .font(SketchTheme.captionFont(11)).foregroundStyle(SketchTheme.dustyRose)
+                HStack(spacing: 10) {
+                    ForEach(chips) { chip in
+                        let isActive = chip.id == activeID
+                        let preview = chip.caption.trimmingCharacters(in: .whitespacesAndNewlines)
+                        VStack(alignment: .leading, spacing: 4) {
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: chip.image).resizable().scaledToFill()
+                                    .frame(width: 56, height: 66)
+                                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16)).foregroundStyle(SketchTheme.mutedRed)
+                                    .background(Circle().fill(SketchTheme.warmWhite).padding(2))
+                                    .offset(x: 6, y: -6)
+                            }
+                            Text(preview.isEmpty ? "no note yet" : preview)
+                                .font(SketchTheme.captionFont(10))
+                                .foregroundStyle(preview.isEmpty ? SketchTheme.lightBrown : SketchTheme.sageGreen)
+                                .lineLimit(1).frame(width: 64, alignment: .leading)
+                        }
+                        .padding(6).background(SketchTheme.warmWhite)
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
+                        .overlay(RoundedRectangle(cornerRadius: 13)
+                            .stroke(isActive ? SketchTheme.dustyRose : SketchTheme.lightBrown.opacity(0.4),
+                                    lineWidth: isActive ? 2 : 1.4))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 16)).foregroundStyle(SketchTheme.softBrown)
+                    .frame(width: 34, height: 34)
+                    .overlay(Circle().stroke(SketchTheme.lightBrown, lineWidth: 1.5))
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 15)).foregroundStyle(SketchTheme.softBrown)
+                    .frame(width: 34, height: 34)
+                    .overlay(Circle().stroke(SketchTheme.lightBrown, lineWidth: 1.5))
+                Text("the total was ¥240, lunch")
+                    .font(SketchTheme.bodyFont(14)).foregroundStyle(SketchTheme.softBrown)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 26)).foregroundStyle(SketchTheme.dustyRose)
+            }
+        }
+        .padding(10).background(SketchTheme.warmWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(SketchTheme.lightBrown, lineWidth: 1.8))
+        .padding(.horizontal)
+    }
+}
+
+#Preview("Compose bar — staged chip + caption") {
+    VStack {
+        Spacer()
+        ComposeBarPreview()
+    }
+    .padding(.vertical, 40)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(SketchTheme.cream)
+}
+
 /// A standalone host that renders the untangle review surface from a seeded
 /// `.reviewing` coordinator (one fuse proposal + one duplicate group + one plain
 /// card) — the visual proof of what the coordinator reviews. Mirrors the review

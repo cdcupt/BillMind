@@ -46,8 +46,12 @@ final class RecordCoordinator {
     /// transient "Saving…" state on the card until the sync round-trip completes.
     var savingCardIDs: Set<UUID> = []
 
+    /// `llmCallBudget` is forwarded to the session's per-session extraction-call cap.
+    /// It defaults to `nil` so production uses the session's own default budget
+    /// (byte-for-byte unchanged); tests inject a small budget to reach the limit
+    /// deterministically and exercise the session-limit rejection path.
     init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI,
-         sync: SyncCoordinator? = nil) {
+         sync: SyncCoordinator? = nil, llmCallBudget: Int? = nil) {
         self.journal = journal
         self.modelContext = modelContext
         self.recognizer = recognizer
@@ -57,7 +61,8 @@ final class RecordCoordinator {
             journalCurrencyCode: journal.currency,
             today: Date()
         )
-        self.session = RecordingSession(validator: validator)
+        self.session = llmCallBudget.map { RecordingSession(validator: validator, llmCallBudget: $0) }
+            ?? RecordingSession(validator: validator)
     }
 
     /// Visible cards in the Record input, newest last. Terminal cards are hidden:
@@ -208,6 +213,9 @@ final class RecordCoordinator {
             sourceImages[id] = image
             photoHashes[id] = image.perceptualHashHex()   // same-photo dedup signal
             guard session.beginExtraction(cardID: id) else {
+                // Same enqueue-before-guard rollback as submitComposed: drop the phantom
+                // card + its image so a session-limit rejection strands nothing.
+                rollbackEnqueued(cardID: id)
                 errorMessage = "Session limit reached — start a new session."
                 continue
             }
@@ -215,7 +223,11 @@ final class RecordCoordinator {
         }
     }
 
-    private func extract(image: UIImage, cardID: UUID, tripID: UUID) async {
+    /// Recognize one image (optionally with a `caption` from the compose path). When a
+    /// caption is present it rides in the SAME request as the image (both fields set), so
+    /// the server reads the photo + sentence as one bill — that is the only difference
+    /// from the plain photo-only path.
+    private func extract(image: UIImage, caption: String? = nil, cardID: UUID, tripID: UUID) async {
         // Bound the upload: a full-res sensor photo, base64-in-JSON, can exceed the
         // server's body limit (this was the "413 Payload Too Large"). Downscale to a
         // max edge before encoding — smaller/faster uploads and lower vision cost,
@@ -227,7 +239,7 @@ final class RecordCoordinator {
         }
         do {
             let response = try await recognizer.recognize(APICaptureRequest(
-                text: nil, tripID: tripID, imageBase64: data.base64EncodedString(), mimeType: "image/jpeg"))
+                text: caption, tripID: tripID, imageBase64: data.base64EncodedString(), mimeType: "image/jpeg"))
             if response.declined {
                 _ = session.failExtraction(cardID: cardID)
                 declineMessage = response.message ?? "I can only help with travel and money."
@@ -256,6 +268,57 @@ final class RecordCoordinator {
             return
         }
         Task { await extract(image: image, cardID: cardID, tripID: tripID) }
+    }
+
+    /// Compose path — the user staged a photo and attached a caption to it, then sent
+    /// both as **one** input. Mirrors `submitPhotos`' single-image path exactly, but
+    /// carries the caption into the same `APICaptureRequest` (both `imageBase64` AND
+    /// `text` set), so the server reads the picture and the sentence as one bill and the
+    /// caption fills the photo's gaps. One request → one `.photo` card. An empty caption
+    /// degrades to the byte-for-byte photo-only path. The money rule is unchanged: the
+    /// amount stays nil if neither OCR nor the caption yields one (never invented), and
+    /// the local validator's "amount required" gate still applies.
+    ///
+    /// Returns `true` when the photo+caption was accepted (enqueued and extraction
+    /// started), `false` when it was rejected — unsynced trip (`serverID == nil`) or the
+    /// session limit was reached. The caller relies on this to know whether the staged
+    /// chip was actually consumed: a rejected send must keep its chip + caption so the
+    /// user can retry, never silently dropping the photo behind the surfaced error.
+    @discardableResult
+    func submitComposed(image: UIImage, caption: String) -> Bool {
+        let note = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let tripID = journal.serverID else {
+            errorMessage = "This trip isn't synced yet — pull to refresh, then try again."
+            return false
+        }
+        let id = session.enqueue(source: .photo)
+        sourceImages[id] = image
+        photoHashes[id] = image.perceptualHashHex()        // same-photo dedup signal
+        if !note.isEmpty { noteTexts[id] = note }           // caption rides as the fuse/dedup note
+        guard session.beginExtraction(cardID: id) else {
+            // Session-limit guard failed AFTER the enqueue — roll back the phantom card
+            // and its image/metadata so nothing is stranded. The caller keeps the staged
+            // chip on `false`, so without this rollback a retry would enqueue a duplicate.
+            rollbackEnqueued(cardID: id)
+            errorMessage = "Session limit reached — start a new session."
+            return false
+        }
+        Task { await extract(image: image, caption: note.isEmpty ? nil : note, cardID: id, tripID: tripID) }
+        return true
+    }
+
+    /// Undo a just-enqueued photo input when its extraction never started (the session
+    /// LLM-call budget was exhausted, so `beginExtraction` returned `false`). Removes
+    /// the phantom `.intake` card from the session AND clears the in-memory image and
+    /// dedup metadata keyed to it, so a rejected send leaves no trace and a later retry
+    /// enqueues exactly one card — never a duplicate. Mirrors the enqueue side effects
+    /// in `submitPhotos` / `submitComposed` so the two paths stay consistent.
+    private func rollbackEnqueued(cardID: UUID) {
+        session.cancelEnqueued(cardID: cardID)
+        sourceImages[cardID] = nil
+        photoHashes[cardID] = nil
+        noteTexts[cardID] = nil
+        photoAssetIDs[cardID] = nil
     }
 
     // MARK: - Held batch (Done adding → untangle → review)

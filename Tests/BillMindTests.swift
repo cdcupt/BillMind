@@ -1713,6 +1713,212 @@ final class HeldBatchCoordinatorTests: XCTestCase {
     }
 }
 
+// MARK: - Compose (photo + caption sent as one request)
+
+/// A `RecognitionAPI` double that CAPTURES every recognize request so a test can
+/// assert exactly which fields the compose path set, and returns one recognized
+/// card so the captured card reaches `.review`. Untangle is never exercised here.
+actor CaptureRecordingAPI: RecognitionAPI {
+    private(set) var requests: [APICaptureRequest] = []
+    private let cardMerchant: String?
+    private let cardAmount: Decimal?
+
+    init(merchant: String? = "Receipt", amount: Decimal? = Decimal(string: "240")) {
+        self.cardMerchant = merchant
+        self.cardAmount = amount
+    }
+
+    func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse {
+        requests.append(req)
+        let draft = APIBillDraft(merchant: cardMerchant, amount: cardAmount, currencyCode: "JPY",
+                                 categoryRaw: "food", date: Date(timeIntervalSince1970: 1_700_000_000),
+                                 source: "photo")
+        let card = APICard(tripID: req.tripID, draft: draft, gaps: [], canSave: cardAmount != nil)
+        return APICaptureResponse(declined: false, message: nil, card: card, cards: [card])
+    }
+
+    func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse {
+        APIUntangleResponse(declined: false, message: nil,
+                            fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])
+    }
+}
+
+@MainActor
+final class ComposeCaptureTests: XCTestCase {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema(BillMindSchemaV2.models)
+        return try ModelContainer(for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    }
+
+    private func syncedJournal(_ ctx: ModelContext) -> Journal {
+        let j = Journal(name: "Osaka", currency: "JPY")
+        j.serverID = UUID(); j.syncState = .synced
+        ctx.insert(j); try? ctx.save()
+        return j
+    }
+
+    private func waitUntil(_ label: String = "", timeout: TimeInterval = 2,
+                           file: StaticString = #filePath, line: UInt = #line,
+                           _ condition: @MainActor () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            if Date() >= deadline {
+                XCTFail("waitUntil timed out after \(timeout)s\(label.isEmpty ? "" : ": \(label)")",
+                        file: file, line: line)
+                return
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+    }
+
+    /// A staged photo + a caption are sent as ONE recognize request with BOTH the
+    /// image AND the caption set, producing exactly one card. This is the load-bearing
+    /// compose guarantee: the photo and the note arrive together, never as two cards.
+    func testSubmitComposedSendsImageAndCaptionInOneRequest() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        let caption = "the total was 240, lunch"
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        coord.submitComposed(image: docImage, caption: caption)
+        await waitUntil("composed card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)                       // exactly ONE request
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertNotNil(req.imageBase64)                        // the photo is present…
+        XCTAssertFalse(try XCTUnwrap(req.imageBase64).isEmpty)
+        XCTAssertEqual(req.text, caption)                       // …AND so is the caption
+        XCTAssertEqual(req.mimeType, "image/jpeg")
+        XCTAssertEqual(coord.cards.count, 1)                    // one request → one card
+        XCTAssertEqual(coord.cards.first?.draft.source, .photo)
+    }
+
+    /// Photo-only via the compose path: a staged chip with an empty caption still sends
+    /// (one image request, no text), exactly like today's instant photo capture.
+    func testStagedPhotoWithoutCaptionStillSends() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        coord.submitComposed(image: docImage, caption: "   ")  // blank caption
+        await waitUntil("photo-only composed card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertNotNil(req.imageBase64)                       // image present…
+        XCTAssertNil(req.text)                                 // …caption blank → nil (photo-only)
+        XCTAssertEqual(coord.cards.count, 1)                   // one card, the photo alone
+    }
+
+    /// An unsynced trip (`serverID == nil`) must REJECT a composed send: `submitComposed`
+    /// returns false, surfaces a retryable error, and enqueues nothing. This is the exact
+    /// signal `sendComposed` relies on to KEEP the staged chip + its caption instead of
+    /// dropping the photo behind a "try again" error — so nothing is ever lost.
+    func testRejectedComposeKeepsChipsStaged() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        // Unsynced journal: no serverID, so the trip isn't on the server yet.
+        let journal = Journal(name: "Kyoto", currency: "JPY")
+        ctx.insert(journal); try? ctx.save()
+        XCTAssertNil(journal.serverID)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        let accepted = coord.submitComposed(image: docImage, caption: "lunch 240")
+
+        XCTAssertFalse(accepted, "unsynced trip must reject the composed send")
+        XCTAssertTrue(coord.cards.isEmpty, "rejected send must enqueue no card")
+        let error = try XCTUnwrap(coord.errorMessage, "rejection surfaces a retryable error")
+        XCTAssertFalse(error.isEmpty, "the surfaced error is non-empty so the user can retry")
+        let requests = await mock.requests
+        XCTAssertTrue(requests.isEmpty, "nothing reaches the server on a rejected send")
+    }
+
+    /// REGRESSION (Codex-flagged): when the session-limit guard fails, `submitComposed`
+    /// enqueues a card + stores its image BEFORE `beginExtraction` — so a rejected send
+    /// used to strand a phantom `.intake` card and an orphan image. Combined with the
+    /// send loop keeping the rejected chip staged, a retry then enqueued a DUPLICATE.
+    /// The fix rolls the just-enqueued card and its image back on rejection, so:
+    ///   • the rejected send returns false and leaves `session.cards` count unchanged,
+    ///   • `sourceImages` keeps no orphan, and
+    ///   • a later successful submit (capacity restored in a fresh session) enqueues
+    ///     EXACTLY one card — never a duplicate.
+    func testSessionLimitComposeRejectionLeavesNoPhantomCard() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        // Budget of 1: the first composed send consumes the only extraction call, so the
+        // second hits the session limit (`beginExtraction` returns false) — the exact
+        // rejection path the rollback guards.
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx,
+                                      recognizer: mock, llmCallBudget: 1)
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+
+        // First send is accepted and settles to one review card (budget now exhausted).
+        let firstAccepted = coord.submitComposed(image: docImage, caption: "lunch 240")
+        XCTAssertTrue(firstAccepted, "the first composed send is within budget")
+        await waitUntil("first composed card reaches .review") { coord.cards.first?.state == .review }
+        let baselineCount = coord.session.cards.count
+        XCTAssertEqual(baselineCount, 1)
+
+        // Second send hits the session limit: rejected, and NOTHING is stranded.
+        let rejected = coord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertFalse(rejected, "the session-limit send must be rejected")
+        XCTAssertEqual(coord.session.cards.count, baselineCount,
+                       "a rejected send must leave no phantom card behind")
+        XCTAssertEqual(coord.session.cards.count, 1)
+        let surfacedError = try XCTUnwrap(coord.errorMessage, "the rejection surfaces an error")
+        XCTAssertFalse(surfacedError.isEmpty)
+
+        // Retrying the still-staged chip is rejected the same way — and STILL accumulates
+        // no phantom: repeated rejected retries never pile up duplicate intake cards.
+        let retryRejected = coord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertFalse(retryRejected)
+        XCTAssertEqual(coord.session.cards.count, 1,
+                       "repeated rejected retries must not accumulate duplicate phantom cards")
+
+        // Capacity restored (a fresh session, as the rejection error directs): a successful
+        // submit enqueues EXACTLY one card — proof the rollback left no duplicate lurking.
+        let freshCoord = RecordCoordinator(journal: journal, modelContext: ctx,
+                                           recognizer: CaptureRecordingAPI(), llmCallBudget: 1)
+        let resumed = freshCoord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertTrue(resumed, "with capacity restored the send is accepted")
+        await waitUntil("resumed composed card reaches .review") { freshCoord.cards.first?.state == .review }
+        XCTAssertEqual(freshCoord.session.cards.count, 1, "exactly one card — no duplicate")
+    }
+
+    /// The text-only path is untouched by compose: with NO staged photo, submitText
+    /// sends text with no image and produces a card, exactly as before.
+    func testTextOnlyPathUnchanged() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI(merchant: "Ramen", amount: Decimal(string: "2840"))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("ramen 2840")
+        await waitUntil("text card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertEqual(req.text, "ramen 2840")                 // the typed text…
+        XCTAssertNil(req.imageBase64)                          // …with NO image (text-only)
+        XCTAssertEqual(coord.cards.count, 1)
+    }
+}
+
 // MARK: - Untangle review UI snapshot (visual proof)
 
 /// Renders the seeded `.reviewing` review surface (one fuse proposal + one
@@ -1743,6 +1949,27 @@ final class UntangleReviewSnapshotTests: XCTestCase {
             return XCTFail("ImageRenderer produced no PNG")
         }
         let url = URL(fileURLWithPath: "/tmp/untangle_review_ui.png")
+        try data.write(to: url)
+        XCTAssertGreaterThan(data.count, 1000, "PNG should be non-trivial")
+    }
+}
+
+/// Renders the compose input bar (staged chip + caption, terra-ringed active chip)
+/// to /tmp/compose_ui.png — the visual proof of the compose tray styling.
+@MainActor
+final class ComposeBarSnapshotTests: XCTestCase {
+    func testRenderComposeBarToPNG() throws {
+        let view = ComposeBarPreview()
+            .padding(.vertical, 24)
+            .frame(width: 393)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(SketchTheme.cream)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.uiImage, let data = image.pngData() else {
+            return XCTFail("ImageRenderer produced no PNG")
+        }
+        let url = URL(fileURLWithPath: "/tmp/compose_ui.png")
         try data.write(to: url)
         XCTAssertGreaterThan(data.count, 1000, "PNG should be non-trivial")
     }
