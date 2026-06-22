@@ -207,4 +207,29 @@ final class CaptureTests: XCTestCase {
             })
         try await app.asyncShutdown()
     }
+
+    /// A phone photo arrives base64-in-JSON and easily clears the 1mb global cap
+    /// (`defaultMaxBodySize`). The recognition route sets its own 10mb ceiling, so a
+    /// ~2MB payload must succeed (`.ok`) rather than 413 — this is the "413 Payload
+    /// Too Large" fix. The StubRecognizer ignores the image bytes.
+    func testRecognitionAcceptsLargePhotoPayloadOverGlobalCap() async throws {
+        let app = try await makeApp()
+        let (t, trip) = try await signInAndTrip(app)
+
+        // ~2MB of valid base64 chars — over the 1mb global cap, under the 10mb route cap.
+        let bigBase64 = String(repeating: "A", count: 2 * 1024 * 1024)
+        XCTAssertGreaterThan(bigBase64.count, 1 * 1024 * 1024)   // exceeds the global 1mb cap
+
+        try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: {
+                try $0.content.encode(CaptureRequest(tripID: trip.id, imageBase64: bigBase64, mimeType: "image/jpeg"))
+            },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)                  // NOT .payloadTooLarge — route's 10mb limit
+                let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertFalse(r.declined)
+                XCTAssertNotNil(r.card)                          // StubRecognizer returned a card
+            })
+        try await app.asyncShutdown()
+    }
 }

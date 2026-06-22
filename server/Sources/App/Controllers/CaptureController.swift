@@ -20,7 +20,11 @@ struct CaptureController: RouteCollection {
 
     func boot(routes: RoutesBuilder) throws {
         let group = routes.grouped("v1").grouped(UserAuthMiddleware())
-        group.post("recognition", use: recognize)
+        // Receipt photos arrive base64-in-JSON; a single phone photo easily clears
+        // the 1mb global cap and used to 413. Give just this route a 10mb ceiling
+        // (the client also downscales before upload). Other routes keep the tight
+        // global limit set in configure.swift.
+        group.on(.POST, "recognition", body: .collect(maxSize: "10mb"), use: recognize)
     }
 
     func recognize(_ req: Request) async throws -> CaptureResponse {
