@@ -238,8 +238,13 @@ final class RecordCoordinator {
     /// review groups. On error/timeout (or no synced trip) it degrades straight to
     /// review with plain held cards, where per-card Save still works.
     func markDoneAdding() {
-        // Nothing to untangle (a lone clean input takes the fast path) → no-op.
-        guard session.cards.filter({ !$0.state.isTerminal }).count > 1 else { return }
+        // Untangle reasons only over cards that actually reached `.review` (recognized
+        // + held). Placeholder/in-flight cards (intake/extracting/clarifying) and
+        // terminal ones (failed/discarded/recorded) are excluded so a plan is never
+        // built from incomplete drafts. A lone reviewed input takes the fast path → no-op.
+        // (If extractions are still in flight when Done-adding is tapped, only the
+        // already-review cards are sent — acceptable for v1; we don't block on in-flight.)
+        guard session.cards.filter({ $0.state == .review }).count > 1 else { return }
         guard let tripID = journal.serverID else {
             session.markDoneAdding()
             session.degradeToReview()      // can't reach the server → plain review
@@ -251,7 +256,9 @@ final class RecordCoordinator {
     }
 
     private func heldUntangleInputs() -> [APIUntangleInput] {
-        session.cards.filter { !$0.state.isTerminal }.map { card in
+        // Only fully-recognized, held cards feed untangle — never a placeholder/in-flight
+        // draft (intake/extracting/clarifying) or a terminal one (failed/discarded).
+        session.cards.filter { $0.state == .review }.map { card in
             let d = card.draft
             return APIUntangleInput(
                 cardID: card.id,
@@ -295,13 +302,29 @@ final class RecordCoordinator {
     /// persisted. Each row is gated by the existing amount/acknowledge guards; a row
     /// that can't save (e.g. a fused card with `amountTrace == nil` → amount nil) is
     /// left in review and reported, so the user resolves it without losing the rest.
+    ///
+    /// Crucially, cards still **claimed by a pending fuse/duplicate group are never
+    /// persisted** — the money rule (nothing saved/dropped without resolution). Until
+    /// the user resolves a group (combine/split/keepOne/keepBoth), its member cards are
+    /// reported as blocked, so "Save all" effectively blocks until every group is
+    /// touched. Only plain review cards (unclaimed + cards materialized by an accepted
+    /// combine/keepOne/keepBoth) are written here.
     /// Returns the ids of rows that could NOT be saved (empty ⇒ all saved).
     @discardableResult
     func confirmAll(acknowledging: Bool = false) -> [UUID] {
         var blocked: [UUID] = []
-        // Snapshot reviewable ids first; persist() mutates session state as it goes.
+        // Member cards of any still-pending group are NOT saved — block until resolved.
+        // (A discarded/set-aside member is already excluded by activeCardIDs.)
+        let claimed = Set(session.groups.flatMap { $0.memberCardIDs })
+        let claimedReviewable = session.cards
+            .filter { $0.state == .review && claimed.contains($0.id) }
+            .map(\.id)
+        blocked.append(contentsOf: claimedReviewable)
+        // Snapshot the unclaimed plain review ids first; persist() mutates session
+        // state as it goes. `plainReviewCardIDs` is exactly the set no group owns.
+        let plainReviewIDs = Set(session.plainReviewCardIDs)
         let reviewableIDs = session.cards
-            .filter { $0.state == .review }
+            .filter { $0.state == .review && plainReviewIDs.contains($0.id) }
             .map(\.id)
         for id in reviewableIDs {
             if confirm(cardID: id, acknowledging: acknowledging) != .recorded {

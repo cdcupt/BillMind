@@ -1039,6 +1039,9 @@ actor MockUntangleAPI: RecognitionAPI {
     private let mode: Mode
     private(set) var recognizeCount = 0
     private(set) var untangleCount = 0
+    /// Card ids the coordinator actually sent on the last untangle request — lets a
+    /// test assert that in-flight/failed cards are excluded from the inputs.
+    private(set) var lastUntangleInputIDs: [UUID] = []
 
     init(_ mode: Mode) { self.mode = mode }
 
@@ -1049,6 +1052,7 @@ actor MockUntangleAPI: RecognitionAPI {
 
     func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse {
         untangleCount += 1
+        lastUntangleInputIDs = req.inputs.map(\.cardID)
         switch mode {
         case .plan(let r):
             return r
@@ -1191,6 +1195,27 @@ final class HeldBatchSessionTests: XCTestCase {
         XCTAssertEqual(session.plainReviewCardIDs, [a])
     }
 
+    /// FIX 2: after filtering members against live cards, a fuse left with a single
+    /// live member is INVALID (a fuse needs ≥2 sources). The whole group is dropped and
+    /// the surviving live card fails open to a plain review card — never a 1-member fuse.
+    func testInvalidGroupAfterPartitionFailsOpen() {
+        var session = RecordingSession(validator: validator())
+        let a = seedReviewCard(&session, amount: 300, merchant: "Real half")
+        let ghost = UUID()   // a second source the client no longer holds (filtered out)
+        session.markDoneAdding()
+        // Plan fuses [a, ghost]; ghost is stale → only `a` survives filtering → 1 member.
+        session.applyUntangle(APIUntangleResponse(declined: false, message: nil,
+            fuseGroups: [APIFuseGroup(groupID: UUID(), sourceCardIDs: [a, ghost],
+                resolvedDraft: dto(draft(UUID(), amount: 999, merchant: "Fused")),
+                amountTrace: APIAmountTrace(sourceCardID: a, field: "amount"),
+                reason: "x", confidence: 0.9)],
+            duplicateGroups: [], cleanCardIDs: []))
+        // The single-member fuse is dropped; `a` becomes a plain review card (fail open).
+        XCTAssertTrue(session.groups.isEmpty)
+        XCTAssertEqual(session.plainReviewCardIDs, [a])
+        XCTAssertEqual(session.card(a)?.state, .review)
+    }
+
     func testAmountTraceNullBlocksSave() {
         var session = RecordingSession(validator: validator())
         let a = seedReviewCard(&session, amount: nil, merchant: "Half A", source: .photo)
@@ -1329,6 +1354,7 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("Taxi 2000 yen")
         coord.submitText("Hotel 9000 yen")
+        try await Task.sleep(nanoseconds: 200_000_000)   // let both cards reach .review
         XCTAssertEqual(coord.cards.count, 2)
 
         coord.markDoneAdding()
@@ -1344,5 +1370,64 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertTrue(blocked.isEmpty)
         let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
         XCTAssertEqual(bills.count, 2)
+    }
+
+    /// FIX 1: cards still claimed by an UNRESOLVED fuse/duplicate group are never
+    /// persisted by confirmAll — they are reported as blocked (Save-all blocks until
+    /// every group is touched). No hidden grouped member is written before resolution.
+    func testConfirmAllSkipsUnresolvedGroupMembers() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        // The mock fuses ALL inputs into one pending fuse group (with a real amount).
+        let mock = MockUntangleAPI(.fuseAll(amount: Decimal(string: "1500")!, merchant: "Lunch"))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("Lunch 1200 yen")
+        coord.submitText("Same lunch, the drink")
+        try await Task.sleep(nanoseconds: 200_000_000)   // both cards reach .review
+        let memberIDs = Set(coord.cards.map(\.id))
+
+        coord.markDoneAdding()
+        try await Task.sleep(nanoseconds: 200_000_000)   // untangle round-trip
+        XCTAssertEqual(coord.groups.count, 1)            // one PENDING fuse group
+        XCTAssertTrue(coord.plainReviewCards.isEmpty)    // both cards owned by the group
+
+        // Save-all WITHOUT resolving the group: members are blocked, nothing persisted.
+        let blocked = coord.confirmAll()
+        XCTAssertEqual(Set(blocked), memberIDs)          // both grouped members blocked
+        let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(bills.count, 0)                   // hidden grouped members never saved
+    }
+
+    /// FIX 3: only cards that reached `.review` feed the untangle request. A card still
+    /// in flight (extracting) or failed must be excluded from the inputs.
+    func testOnlyReviewCardsSentToUntangle() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = MockUntangleAPI(.plan(APIUntangleResponse(declined: false, message: nil,
+            fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        // Two text cards land in .review via the local fallback (mock returns no card).
+        coord.submitText("Taxi 2000 yen")
+        coord.submitText("Hotel 9000 yen")
+        // A photo card whose recognition returns nothing → it ends in .failed.
+        coord.submitPhotos([UIImage()])
+        try await Task.sleep(nanoseconds: 200_000_000)   // let all three settle
+
+        let reviewIDs = Set(coord.cards.filter { $0.state == .review }.map(\.id))
+        let failedID = coord.session.cards.first { $0.state == .failed }?.id
+        XCTAssertEqual(reviewIDs.count, 2)               // the two text cards
+        XCTAssertNotNil(failedID)                        // the photo card failed
+
+        coord.markDoneAdding()
+        try await Task.sleep(nanoseconds: 200_000_000)   // untangle round-trip
+        let untangleCalls = await mock.untangleCount
+        XCTAssertEqual(untangleCalls, 1)
+        let sent = Set(await mock.lastUntangleInputIDs)
+        XCTAssertEqual(sent, reviewIDs)                  // only .review cards sent
+        XCTAssertFalse(sent.contains(failedID!))         // failed card excluded
     }
 }

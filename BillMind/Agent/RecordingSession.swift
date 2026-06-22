@@ -278,7 +278,10 @@ struct RecordingSession: Sendable {
         for fg in response.fuseGroups {
             // Keep only members still live and not already claimed by an earlier group.
             let members = fg.sourceCardIDs.filter { liveIDs.contains($0) && !accounted.contains($0) }
-            guard members.count >= 1 else { continue }   // nothing left to fuse → fail open
+            // A fuse needs ≥2 source members to mean anything. If filtering left it with
+            // 0 or 1, DROP the whole group and let the surviving live member fail open to
+            // a plain review card (never a one-member fuse).
+            guard members.count >= 2 else { continue }
             let resolved = BillDraft(serverDraft: fg.resolvedDraft,
                                      fallbackCurrency: validator.journalCurrencyCode)
             built.append(.fuseProposed(groupID: fg.groupID, resolvedDraft: resolved,
