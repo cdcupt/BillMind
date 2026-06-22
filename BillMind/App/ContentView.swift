@@ -3,6 +3,22 @@ import AuthenticationServices
 import CryptoKit
 import GoogleSignIn
 
+// MARK: - Welcome-notice presentation flag
+
+/// Whether the first-launch welcome sheet is currently presented over the tabs.
+/// The Record tab reads this to hide its empty-state mascot while the sheet (and
+/// its dimmed backdrop) is up, so nothing peeks above the grab handle.
+private struct WelcomeNoticePresentedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var welcomeNoticePresented: Bool {
+        get { self[WelcomeNoticePresentedKey.self] }
+        set { self[WelcomeNoticePresentedKey.self] = newValue }
+    }
+}
+
 /// Launch gate: a brief splash while tokens resolve, the sign-in screen when
 /// signed out, the main tabs when signed in.
 struct ContentView: View {
@@ -61,6 +77,10 @@ struct MainTabView: View {
                 .tag(3)
         }
         .tint(SketchTheme.dustyRose)
+        // Tell the tabs the welcome notice is up so the Record tab can suppress its
+        // large empty-state mascot, which would otherwise peek above the sheet's
+        // grab handle on the dimmed root and read as a clipped/broken image.
+        .environment(\.welcomeNoticePresented, showWelcome)
         .sheet(isPresented: $showWelcome) {
             WelcomeNoticeView {
                 UserDefaults.standard.set(true, forKey: ContentView.welcomeSeenKey)

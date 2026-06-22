@@ -45,6 +45,12 @@ struct RecordView: View {
     @State private var blockedNote: String?
     @StateObject private var voice = VoiceCapture()
     @FocusState private var inputFocused: Bool
+    /// True while the first-launch welcome sheet is presented over this tab. The
+    /// root is dimmed behind it, so we suppress the large empty-state mascot, which
+    /// would otherwise peek above the sheet's grab handle and read as a clipped
+    /// image. Driven by the actual presentation (via the environment), not a
+    /// persisted flag, so the debug-forced and synced-journal paths behave too.
+    @Environment(\.welcomeNoticePresented) private var welcomeNoticePresented
 
     var body: some View {
         NavigationStack {
@@ -509,7 +515,16 @@ struct RecordView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            EmptyStateView(animal: .cat, title: "No trips yet!", subtitle: "Create a trip first,\nthen record bills into it")
+            // Hide the mascot while the first-launch welcome sheet is up: dimmed
+            // behind a medium sheet, its head peeks over the grab handle and reads
+            // as a clipped/broken image. It returns once the notice is dismissed.
+            if welcomeNoticePresented {
+                Text("No trips yet!")
+                    .font(SketchTheme.headlineFont(22))
+                    .foregroundStyle(SketchTheme.softBrown)
+            } else {
+                EmptyStateView(animal: .cat, title: "No trips yet!", subtitle: "Create a trip first,\nthen record bills into it")
+            }
             Button { showNewJournal = true } label: {
                 HandDrawnButton(title: "Create a Trip", icon: "plus", style: .primary)
             }
