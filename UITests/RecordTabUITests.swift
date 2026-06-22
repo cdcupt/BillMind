@@ -148,6 +148,38 @@ final class RecordTabUITests: XCTestCase {
                       "The Record input bar should still be present after toggling voice")
     }
 
+    // MARK: - 3c. Amount drawer pre-fills the card's current amount (PR #19 regression)
+
+    /// Tapping a card's existing amount opens the "Enter amount" drawer pre-filled
+    /// with that amount — a correction edits the value rather than re-typing from
+    /// an empty "0.00". Captures before/after screenshots for the E2E report.
+    @MainActor
+    func testAmountDrawerPrefillsCurrentValue() throws {
+        let app = launchedApp()
+        createTrip(app, named: "Prefill Trip")
+
+        type(app, "ramen 2840")
+
+        // The review card shows its amount; tap it to open the amount drawer.
+        let amount = app.buttons["card-amount"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 10), "Card should render a tappable amount")
+        amount.tap()
+
+        let field = app.textFields["drawer-amount-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "Tapping the amount should open the amount drawer")
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "amount-drawer-prefilled"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        // The drawer must be seeded with the card's current amount (2840), not empty.
+        let value = (field.value as? String) ?? ""
+        XCTAssertTrue(value.contains("2840"),
+                      "Amount drawer should pre-fill the card's current amount, got '\(value)'")
+        XCTAssertNotEqual(value, "0.00", "Amount drawer must not open empty")
+    }
+
     // MARK: - 4. First-launch notice shows once
 
     @MainActor
