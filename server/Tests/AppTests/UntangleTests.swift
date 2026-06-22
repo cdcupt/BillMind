@@ -368,6 +368,81 @@ final class UntangleTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    /// crossCurrencyMembersAreNotFused — two members with the SAME magnitude but
+    /// DIFFERENT currency (¥50 JPY vs $50 USD) are NOT the same money and must NOT
+    /// fuse; both fall open to the clean set (exactly like a magnitude conflict).
+    func testCrossCurrencyMembersAreNotFused() async throws {
+        let a = UUID(), b = UUID()
+        let plan = UntanglePlan(fuses: [ProposedFuse(
+            sourceCardIDs: [a, b], merchant: "Diner", proposedAmount: 50,
+            currencyCode: "JPY", categoryRaw: "food", date: nil,
+            amountSourceCardID: a, reason: "fuse", confidence: 0.9)])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app)
+        let inputs = [
+            input(a, draftDTO(amount: 50, currency: "JPY")),
+            input(b, draftDTO(amount: 50, currency: "USD")),   // same magnitude, foreign currency
+        ]
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: inputs)) { res in
+            let r = try res.content.decode(UntangleResponse.self)
+            XCTAssertEqual(r.fuseGroups.count, 0)              // refused — currencies differ
+            XCTAssertEqual(Set(r.cleanCardIDs), Set([a, b]))   // both fell open
+        }
+        try await app.asyncShutdown()
+    }
+
+    /// sameCurrencySameAmountStillFuses — regression: two members carrying the SAME
+    /// amount in the SAME currency are not in conflict and still fuse as before. (One
+    /// card supplies the amount; the partial card is completed by the fuse.)
+    func testSameCurrencySameAmountStillFuses() async throws {
+        let a = UUID(), b = UUID()
+        let plan = UntanglePlan(fuses: [ProposedFuse(
+            sourceCardIDs: [a, b], merchant: "Diner", proposedAmount: 50,
+            currencyCode: "USD", categoryRaw: "food", date: nil,
+            amountSourceCardID: a, reason: "fuse", confidence: 0.9)])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app, currency: "USD")
+        let inputs = [
+            input(a, draftDTO(amount: 50, currency: "USD"), hasPhoto: true),
+            input(b, draftDTO(merchant: "Diner", amount: 50, currency: "USD"), note: "diner"),
+        ]
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: inputs)) { res in
+            let r = try res.content.decode(UntangleResponse.self)
+            XCTAssertEqual(r.fuseGroups.count, 1)              // same money ⇒ still fuses
+            XCTAssertEqual(Set(r.fuseGroups[0].sourceCardIDs), Set([a, b]))
+            XCTAssertTrue(r.cleanCardIDs.isEmpty)
+        }
+        try await app.asyncShutdown()
+    }
+
+    /// fusedAmountKeepsItsCurrency — the resolved fuse's currency is the one carried by
+    /// the member that actually supplied the amount, not the model's free-text or an
+    /// unrelated member's. Here only the EUR card carries the amount, so the fused
+    /// draft must be EUR even though the model proposed a different currencyCode.
+    func testFusedAmountKeepsItsCurrency() async throws {
+        let photo = UUID(), note = UUID()
+        let plan = UntanglePlan(fuses: [ProposedFuse(
+            sourceCardIDs: [photo, note], merchant: "Diner", proposedAmount: 75,
+            currencyCode: "JPY",                                // model lies about currency
+            categoryRaw: "food", date: nil,
+            amountSourceCardID: note, reason: "fuse", confidence: 0.9)])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app, currency: "JPY")
+        let inputs = [
+            input(photo, draftDTO(merchant: nil, amount: nil, currency: "JPY"), hasPhoto: true),
+            input(note, draftDTO(merchant: "Diner", amount: 75, currency: "EUR"), note: "diner, €75"),
+        ]
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: inputs)) { res in
+            let r = try res.content.decode(UntangleResponse.self)
+            XCTAssertEqual(r.fuseGroups.count, 1)
+            let g = r.fuseGroups[0]
+            XCTAssertEqual(g.resolvedDraft.amount, Decimal(75))
+            XCTAssertEqual(g.resolvedDraft.currencyCode, "EUR")   // currency rides with the amount
+            XCTAssertEqual(g.amountTrace?.sourceCardID, note)
+        }
+        try await app.asyncShutdown()
+    }
+
     /// Bonus: a model that omits a card entirely (partition violation) fails open —
     /// the unaccounted card lands in cleanCardIDs (never dropped). Covers the §6 risk.
     func testUnaccountedCardFailsOpenToClean() async throws {
