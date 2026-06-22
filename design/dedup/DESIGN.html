@@ -3,27 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BillOwl — F5 Dedup · Design Document</title>
+<title>BillOwl — Smart Multi-Input Capture · Design Document</title>
 <style>
   :root{
-    /* SketchTheme tokens, mirrored from BillMind/Theme/SketchTheme.swift */
+    /* SketchTheme tokens, mirrored exactly from BillMind/Theme/SketchTheme.swift */
     --bg:#F7F4EE;           /* cream — paper / app background */
     --card:#FFFFFF;          /* warmWhite — card surface */
     --ink:#1B201D;           /* softBrown — primary text */
     --muted:#6B675F;         /* lightBrown — muted text / hairline */
     --line:#E4DED2;          /* paperShadow rule */
-    --terra:#C8643C;         /* dustyRose — primary accent */
-    --pine:#1F6F5C;          /* sageGreen — positive / keep */
+    --terra:#C8643C;         /* dustyRose — primary accent / Ollie */
+    --pine:#1F6F5C;          /* sageGreen — positive / keep / save */
     --blue:#2D6CA8;          /* softBlue */
     --sand:#E9C46A;          /* warmOrange */
-    --gate:#B23A3A;          /* mutedRed — destructive / caution */
+    --sandink:#B5852F;       /* readable sand for text/strokes */
+    --gate:#B23A3A;          /* mutedRed — destructive / caution (reserved) */
     --shadow:0 3px 10px rgba(120,90,60,.12);
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     -webkit-font-smoothing:antialiased}
-  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 90px}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 90px}
   header.top{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:8px}
   .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--terra);font-weight:700}
   h1{font-size:clamp(1.6rem,1.1rem+2.4vw,2.4rem);margin:.15em 0 .12em;font-family:Georgia,"Times New Roman",serif}
@@ -31,32 +32,36 @@
   h2{font-size:1.22rem;margin:2.2em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line);font-family:Georgia,serif}
   h3{font-size:1.02rem;margin:1.5em 0 .3em;color:var(--terra)}
   p{margin:.5em 0}
-  /* diagram frame: matches PRD .glance, with horizontal-scroll guard for wide SVGs */
+  /* diagram frame: horizontal-scroll guard for wide SVGs so the page never overflows */
   .glance{background:var(--card);border:1px solid var(--line);border-radius:16px;
     box-shadow:var(--shadow);padding:14px;margin:18px 0 6px;overflow-x:auto}
   .glance svg{display:block;max-width:100%;height:auto;margin:0 auto}
-  .glance.wide svg{min-width:720px}
+  .glance.wide svg{min-width:760px}
   figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
-  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:.6em 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));margin:.6em 0}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
   .card h4{margin:0 0 .35em;font-size:.95rem}
+  .pillarnum{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--terra);color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:22px;margin-right:6px}
   .pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
   .pill.keep{color:var(--pine);border-color:#bcd6bf;background:#e9f2ec}
   .pill.both{color:var(--blue);border-color:#bcccdd;background:#eaf1f7}
   .pill.flag{color:#a8552c;border-color:#e8c8b6;background:#fbece3}
+  .pill.fuse{color:var(--sandink);border-color:#ecd9b3;background:#fff8ec}
   ul{margin:.4em 0 .4em 0;padding-left:1.2em}
   li{margin:.3em 0}
   /* scroll-wrap tables so dense columns never push the page wider than the viewport */
   .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:.6em 0;border-radius:10px}
   table{border-collapse:collapse;width:100%;margin:0;font-size:14.5px}
-  .tscroll table{min-width:480px}
+  .tscroll table{min-width:520px}
   th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
   th{background:#F1EADD}
   code{background:#EFE7D8;border-radius:5px;padding:1px 5px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .note{background:#FFF8EC;border:1px solid #ECD9B3;border-left:4px solid var(--sand);border-radius:10px;padding:10px 14px;margin:.7em 0}
+  .lock{background:#eef4ea;border:1px solid #cfe0c4;border-left:4px solid var(--pine);border-radius:10px;padding:10px 14px;margin:.7em 0}
   .copy{background:#FBF7F0;border:1px dashed var(--muted);border-radius:10px;padding:4px 10px;font-style:italic;color:var(--ink);display:inline-block;margin:2px 0}
   .mock-wrap{display:flex;justify-content:center;margin:18px 0 6px}
   .mock-scroll{overflow-x:auto;max-width:100%;padding:6px}
+  .mocks{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
   .foot{margin-top:46px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
   .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin:.4em 0}
   .legend span{display:inline-flex;align-items:center;gap:6px}
@@ -66,110 +71,132 @@
 <body>
 <div class="wrap">
 <header class="top">
-  <div class="kicker">BillOwl · Design Document · F5</div>
-  <h1>Duplicate-record detection — the confirm experience</h1>
-  <div class="sub">How Ollie flags a likely double-add inside a Record session and lets the user keep one or keep both — inline, lightweight, money-safe. Designed within the 3 locked PM decisions. · v1 · 2026-06-22</div>
+  <div class="kicker">BillOwl · Design Document · Smart Multi-Input Capture (F5+)</div>
+  <h1>Drop everything in — Ollie untangles it, you confirm</h1>
+  <div class="sub">Batch capture with <strong>fuse</strong> (partials that are one bill), <strong>dedup</strong> (the same bill twice), and a <strong>Done-adding → Review</strong> step that holds inputs so the agent can reason over them together — then one Save. Designed within the locked money rule: the agent <em>proposes</em>, the user <em>disposes</em>; nothing merged or dropped silently; a fuse never invents or alters an amount; everything reversible until Save. · v2 · 2026-06-22 · supersedes the F5 dedup-only design (dedup is now Pillar 2)</div>
 </header>
 
 <!-- ============================================================= -->
-<!-- ★ AT A GLANCE — master IA / flow + state map                  -->
+<!-- ★ AT A GLANCE — master untangle flow + state map               -->
 <!-- ============================================================= -->
-<figure class="glance wide" aria-label="At a glance — dedup flow and screen-state map">
-<svg viewBox="0 0 920 470" role="img" aria-label="Recognize, dedup scan, no-dup bypass or inline confirm, save; plus the card state map">
+<figure class="glance wide" aria-label="At a glance — the untangle flow and the card-state map">
+<svg viewBox="0 0 940 560" role="img" aria-label="Add inputs, tap Done adding, agent fuses and dedups, review clean set, save; plus the full card-state map">
   <style>
     .lbl{font:600 13px -apple-system,sans-serif;fill:#1B201D}
     .sm{font:11.5px -apple-system,sans-serif;fill:#6B675F}
     .tag{font:700 11px -apple-system,sans-serif;fill:#C8643C}
   </style>
-  <text x="18" y="24" class="lbl" style="font-size:14px;fill:#C8643C">★ At a glance — recognize → dedup scan → [no-dup bypass] / [inline confirm] → save</text>
+  <text x="18" y="24" class="lbl" style="font-size:14px;fill:#C8643C">★ At a glance — add inputs → <tspan font-style="italic">Done adding</tspan> → Ollie fuses + dedups → review the clean set → save</text>
 
   <!-- row 1: linear flow -->
-  <rect x="18" y="44" width="150" height="78" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  <text x="93" y="68" text-anchor="middle" class="lbl">Recognize</text>
-  <text x="93" y="88" text-anchor="middle" class="sm">each input →</text>
-  <text x="93" y="105" text-anchor="middle" class="sm">a staged card</text>
+  <rect x="18" y="44" width="170" height="100" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="103" y="68" text-anchor="middle" class="lbl">1 · Add inputs</text>
+  <text x="103" y="89" text-anchor="middle" class="sm">📷 receipt (no amount)</text>
+  <text x="103" y="107" text-anchor="middle" class="sm">✏️ “…it was ¥240”</text>
+  <text x="103" y="125" text-anchor="middle" class="sm">📷 📷 more receipts</text>
 
-  <path d="M170 83 H206" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
+  <path d="M190 94 H224" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
 
-  <rect x="210" y="38" width="166" height="90" rx="12" fill="#FFF3E9" stroke="#C8643C" stroke-width="2"/>
-  <text x="293" y="60" text-anchor="middle" class="lbl" style="fill:#C8643C">Dedup scan ✦NEW</text>
-  <text x="293" y="80" text-anchor="middle" class="sm">on card → review</text>
-  <text x="293" y="97" text-anchor="middle" class="sm">same photo, OR</text>
-  <text x="293" y="113" text-anchor="middle" class="sm">merchant+amount+date</text>
+  <!-- done adding control -->
+  <rect x="228" y="58" width="120" height="72" rx="12" fill="#FFF8EC" stroke="#B5852F" stroke-width="2"/>
+  <text x="288" y="84" text-anchor="middle" class="lbl" style="fill:#B5852F">2 · Done adding</text>
+  <text x="288" y="104" text-anchor="middle" class="sm">a BUTTON, never</text>
+  <text x="288" y="120" text-anchor="middle" class="sm">a magic word</text>
 
-  <!-- branch: no dup -->
-  <path d="M378 64 H470 V52" fill="none" stroke="#6B675F" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#c)"/>
-  <text x="500" y="44" text-anchor="middle" class="sm">no match → card stays plain (zero friction)</text>
+  <path d="M350 94 H384" stroke="#C8623A" stroke-width="2.5" marker-end="url(#a)"/>
 
-  <!-- branch: dup -->
-  <path d="M378 104 H410" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
-  <rect x="414" y="62" width="172" height="86" rx="12" fill="#FFF8EC" stroke="#B5852F" stroke-width="2"/>
-  <text x="500" y="86" text-anchor="middle" class="lbl" style="fill:#B5852F">Inline flag</text>
-  <text x="500" y="105" text-anchor="middle" class="sm">cards tethered + a bar:</text>
-  <text x="500" y="122" text-anchor="middle" class="sm">“keep one / keep both”</text>
+  <!-- agent untangles -->
+  <rect x="388" y="46" width="214" height="124" rx="12" fill="#FFF3E9" stroke="#C8643C" stroke-width="2"/>
+  <text x="495" y="68" text-anchor="middle" class="lbl" style="fill:#C8643C">3 · Ollie untangles ✦NEW</text>
+  <line x1="404" y1="80" x2="586" y2="80" stroke="#E8C4AD"/>
+  <text x="406" y="100" class="sm">① FUSE — a partial + a note that</text>
+  <text x="420" y="116" class="sm">complete one bill → propose 1 card</text>
+  <text x="406" y="136" class="sm">② DEDUP — the same bill twice →</text>
+  <text x="420" y="152" class="sm">flag a duplicate group</text>
 
-  <path d="M590 105 H626" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
-  <rect x="630" y="62" width="150" height="86" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  <text x="705" y="86" text-anchor="middle" class="lbl">User resolves</text>
-  <text x="705" y="105" text-anchor="middle" class="sm">keep one (1 tap)</text>
-  <text x="705" y="122" text-anchor="middle" class="sm">or keep both (1 tap)</text>
+  <path d="M604 108 H638" stroke="#C8623A" stroke-width="2.5" marker-end="url(#a)"/>
 
-  <path d="M782 105 H812" stroke="#1F6F5C" stroke-width="2.5" marker-end="url(#b)"/>
-  <rect x="816" y="62" width="86" height="86" rx="12" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="2"/>
-  <text x="859" y="98" text-anchor="middle" class="lbl" style="fill:#1F6F5C">Save</text>
-  <text x="859" y="118" text-anchor="middle" class="sm">clean set</text>
+  <!-- review -->
+  <rect x="642" y="56" width="150" height="104" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.6"/>
+  <text x="717" y="80" text-anchor="middle" class="lbl">4 · Review</text>
+  <text x="717" y="100" text-anchor="middle" class="sm">a clean set of cards</text>
+  <text x="717" y="118" text-anchor="middle" class="sm">fuse: Combine / Split</text>
+  <text x="717" y="136" text-anchor="middle" class="sm">dup: Keep one / both</text>
+  <text x="717" y="154" text-anchor="middle" class="sm" style="fill:#B5852F">every action undoable</text>
 
-  <!-- merge of no-dup branch into save -->
-  <path d="M500 52 H859 V62" fill="none" stroke="#6B675F" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <path d="M794 108 H826" stroke="#1F6F5C" stroke-width="2.5" marker-end="url(#b)"/>
+  <rect x="830" y="64" width="92" height="88" rx="12" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="2"/>
+  <text x="876" y="104" text-anchor="middle" class="lbl" style="fill:#1F6F5C">5 · Save</text>
+  <text x="876" y="124" text-anchor="middle" class="sm">clean bills</text>
+
+  <!-- zero-friction bypass: single clean input skips the untangle -->
+  <path d="M103 144 V198 H717 V160" fill="none" stroke="#6B675F" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#c)"/>
+  <text x="300" y="192" class="sm" style="fill:#6B675F">A6 · a single clean input has nothing to untangle → it stays a normal card, save straight through (zero friction)</text>
+
+  <!-- money rule band -->
+  <rect x="18" y="216" width="904" height="74" rx="12" fill="#FFF8EC" stroke="#ECD9B3"/>
+  <text x="34" y="240" class="lbl" style="fill:#B5852F">The money rule (overrides everything)</text>
+  <text x="34" y="260" class="sm">Ollie <tspan font-weight="600">proposes</tspan> fuses and duplicate-groups; the user <tspan font-weight="600">disposes</tspan>. No bill is ever silently merged or dropped, and a fuse</text>
+  <text x="34" y="278" class="sm">never invents or alters an amount (it is always traceable to the note or photo). Every join/drop is visible and one-tap reversible until Save.</text>
 
   <!-- divider -->
-  <line x1="18" y1="178" x2="902" y2="178" stroke="#E4DED2" stroke-width="1.5"/>
+  <line x1="18" y1="306" x2="922" y2="306" stroke="#E4DED2" stroke-width="1.5"/>
 
   <!-- row 2: card-state map -->
-  <text x="18" y="204" class="lbl" style="fill:#C8643C">Card state map — the new <tspan font-style="italic">flaggedDuplicate</tspan> layer sits over <tspan font-style="italic">review</tspan>, before <tspan font-style="italic">recorded</tspan></text>
+  <text x="18" y="332" class="lbl" style="fill:#C8643C">Card-state map — two new group layers sit over <tspan font-style="italic">review</tspan>: <tspan font-style="italic">fuseProposed</tspan> and <tspan font-style="italic">flaggedDuplicate</tspan></text>
 
-  <!-- existing states (calm) -->
-  <rect x="18" y="220" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  <text x="70" y="240" text-anchor="middle" class="sm">extracting</text>
-  <text x="70" y="256" text-anchor="middle" class="sm" style="fill:#2D6CA8">reading…</text>
+  <!-- recognize → review -->
+  <rect x="18" y="348" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="70" y="368" text-anchor="middle" class="sm">extracting</text>
+  <text x="70" y="384" text-anchor="middle" class="sm" style="fill:#2D6CA8">reading…</text>
+  <path d="M124 370 H150" stroke="#6B675F" stroke-width="1.6" marker-end="url(#c)"/>
+  <rect x="152" y="348" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="204" y="368" text-anchor="middle" class="sm">review</text>
+  <text x="204" y="384" text-anchor="middle" class="sm" style="fill:#1F6F5C">ready</text>
 
-  <path d="M124 242 H150" stroke="#6B675F" stroke-width="1.6" marker-end="url(#c)"/>
+  <path d="M258 370 H286" stroke="#C8643C" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="330" y="338" class="tag">on Done adding, the batch is scanned</text>
 
-  <rect x="152" y="220" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  <text x="204" y="240" text-anchor="middle" class="sm">review</text>
-  <text x="204" y="256" text-anchor="middle" class="sm" style="fill:#1F6F5C">ready</text>
+  <!-- fuseProposed -->
+  <rect x="288" y="338" width="158" height="50" rx="10" fill="#FFF8EC" stroke="#B5852F" stroke-width="2"/>
+  <text x="367" y="358" text-anchor="middle" class="lbl" style="fill:#B5852F">fuseProposed</text>
+  <text x="367" y="376" text-anchor="middle" class="sm">partial + note → 1 card</text>
+  <!-- flaggedDuplicate -->
+  <rect x="288" y="398" width="158" height="50" rx="10" fill="#FFF3E9" stroke="#C8643C" stroke-width="2"/>
+  <text x="367" y="418" text-anchor="middle" class="lbl" style="fill:#C8643C">flaggedDuplicate</text>
+  <text x="367" y="436" text-anchor="middle" class="sm">same bill twice → group</text>
 
-  <path d="M258 242 H284" stroke="#C8643C" stroke-width="1.8" marker-end="url(#a)"/>
-  <text x="312" y="234" class="tag">scan finds a twin</text>
+  <!-- resolutions -->
+  <path d="M446 356 H520" stroke="#1F6F5C" stroke-width="1.7" marker-end="url(#b)"/>
+  <text x="484" y="350" text-anchor="middle" class="sm" style="fill:#1F6F5C">Combine → 1 review card</text>
+  <path d="M446 380 H520" stroke="#6B675F" stroke-width="1.7" marker-end="url(#c)"/>
+  <text x="484" y="396" text-anchor="middle" class="sm" style="fill:#6B675F">Split → both originals back</text>
 
-  <!-- new flagged state -->
-  <rect x="286" y="214" width="150" height="56" rx="10" fill="#FFF8EC" stroke="#B5852F" stroke-width="2"/>
-  <text x="361" y="236" text-anchor="middle" class="lbl" style="fill:#B5852F">flaggedDuplicate</text>
-  <text x="361" y="254" text-anchor="middle" class="sm">grouped + confirm bar</text>
+  <path d="M446 418 H520" stroke="#1F6F5C" stroke-width="1.7" marker-end="url(#b)"/>
+  <text x="484" y="412" text-anchor="middle" class="sm" style="fill:#1F6F5C">Keep both → both review</text>
+  <path d="M446 442 H520" stroke="#B23A3A" stroke-width="1.7" marker-end="url(#d)"/>
+  <text x="484" y="458" text-anchor="middle" class="sm" style="fill:#B23A3A">Keep one → other set aside</text>
 
-  <!-- resolutions out of flagged -->
-  <path d="M436 230 H520" stroke="#1F6F5C" stroke-width="1.8" marker-end="url(#b)"/>
-  <text x="478" y="222" text-anchor="middle" class="sm" style="fill:#1F6F5C">keep both → both review</text>
-  <path d="M436 256 H520" stroke="#B23A3A" stroke-width="1.8" marker-end="url(#d)"/>
-  <text x="478" y="272" text-anchor="middle" class="sm" style="fill:#B23A3A">keep one → loser discarded (explicit)</text>
+  <rect x="522" y="378" width="96" height="40" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="570" y="396" text-anchor="middle" class="sm">review</text>
+  <text x="570" y="411" text-anchor="middle" class="sm" style="fill:#1F6F5C">ready</text>
 
-  <rect x="522" y="220" width="104" height="44" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  <text x="574" y="240" text-anchor="middle" class="sm">review</text>
-  <text x="574" y="256" text-anchor="middle" class="sm" style="fill:#1F6F5C">ready</text>
+  <path d="M620 398 H648" stroke="#1F6F5C" stroke-width="1.7" marker-end="url(#b)"/>
+  <rect x="650" y="378" width="96" height="40" rx="10" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="1.5"/>
+  <text x="698" y="396" text-anchor="middle" class="sm">recorded</text>
+  <text x="698" y="411" text-anchor="middle" class="sm" style="fill:#1F6F5C">saved</text>
 
-  <path d="M628 242 H654" stroke="#1F6F5C" stroke-width="1.8" marker-end="url(#b)"/>
-  <rect x="656" y="220" width="104" height="44" rx="10" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="1.5"/>
-  <text x="708" y="240" text-anchor="middle" class="sm">recorded</text>
-  <text x="708" y="256" text-anchor="middle" class="sm" style="fill:#1F6F5C">saved</text>
+  <!-- amount still missing branch -->
+  <path d="M570 418 V446 H648" fill="none" stroke="#B23A3A" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#d)"/>
+  <rect x="650" y="428" width="180" height="40" rx="10" fill="#FBECE3" stroke="#B23A3A" stroke-width="1.6"/>
+  <text x="740" y="446" text-anchor="middle" class="sm" style="fill:#B23A3A">amount still missing after fuse →</text>
+  <text x="740" y="461" text-anchor="middle" class="sm" style="fill:#B23A3A">“amount required” (A7), as today</text>
 
-  <!-- money-safety band -->
-  <rect x="18" y="300" width="884" height="150" rx="12" fill="#F7F1E8" stroke="#E4DED2"/>
-  <text x="34" y="324" class="lbl" style="fill:#C8643C">Three rules the design must keep</text>
-  <text x="34" y="348" class="sm">① <tspan font-weight="600">Zero friction when clean.</tspan> No match → cards look exactly like today; the dedup layer is invisible. (PRD A4)</text>
-  <text x="34" y="372" class="sm">② <tspan font-weight="600">Nothing auto-removed.</tspan> A card is dropped ONLY after an explicit “keep one” tap that names the survivor. (PRD A5)</text>
-  <text x="34" y="396" class="sm">③ <tspan font-weight="600">Keep both is one tap and safe.</tspan> The escape hatch from a false match is the easiest action; nothing reads as deleted. (PRD A3)</text>
-  <text x="34" y="424" class="sm" style="fill:#B5852F">Inline (not a modal sheet): the confirm lives on the existing staged-card review list, in the same scroll the user already saves from.</text>
-  <text x="34" y="442" class="sm">Why inline → see §2. Why these states → §3. Mockup → §4. Microcopy → §5. Match tolerances (for tech) → §6.</text>
+  <!-- three rules band -->
+  <rect x="18" y="486" width="904" height="66" rx="12" fill="#F7F1E8" stroke="#E4DED2"/>
+  <text x="34" y="508" class="lbl" style="fill:#C8643C">Three rules the design must keep</text>
+  <text x="34" y="528" class="sm">① <tspan font-weight="600">Zero friction when clean</tspan> (A6) — one tidy input never triggers a heavy review.  ② <tspan font-weight="600">A fuse never invents money</tspan> (A7) — amount is traceable to a real input.</text>
+  <text x="34" y="546" class="sm">③ <tspan font-weight="600">Every join/drop is one explicit tap and reversible</tspan> (A5, A7) — Combine, Split, Keep one, Keep both all undo until Save.</text>
 
   <defs>
     <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#C8643C"/></marker>
@@ -178,263 +205,528 @@
     <marker id="d" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#B23A3A"/></marker>
   </defs>
 </svg>
-<figcaption>The dedup layer is inserted at the moment a card turns <code>review</code>-ready; clean cards bypass it entirely. Resolution returns cards to the normal <code>review → recorded</code> path the user already knows.</figcaption>
+<figcaption>One loop: pile inputs in, tap <strong>Done adding</strong>, Ollie fuses partials and flags duplicates, you confirm a clean set, then Save. A single tidy input bypasses the untangle entirely (A6). The state map shows the two new group layers and the money-safe exits.</figcaption>
 </figure>
 
 <!-- ============================================================= -->
-<h2>1 · The decision in one line</h2>
-<p><strong>Confirm happens <em>inline</em> on the existing staged-card review list — not in a dedicated sheet.</strong> When the scan finds a twin, the two cards are visually tethered with a hand-drawn bracket and a single calm "Ollie noticed" bar appears between them carrying two buttons: <span class="pill keep">Keep one</span> and <span class="pill both">Keep both</span>. No new screen, no modal, no interruption of the save rhythm the user already has.</p>
-
-<div class="note"><strong>Why inline beats a sheet.</strong> The locked scope is "the staged cards before save" and the existing grammar (<code>RecordView</code>) is a vertical scroll of cards you save one-by-one. A modal sheet would (a) add a top-level screen the PRD asked us to avoid, (b) yank the user out of the list they're already reading, and (c) risk feeling like a blocking error. Inline keeps the dominant <em>no-duplicate</em> path literally unchanged (A4) and makes the rare duplicate feel like Ollie leaning in to point at two cards, not a guardrail slamming down. The cards being compared stay on screen, side-by-side in the scroll — so "are these really the same?" is answered by looking, not by trusting a summary.</p></div>
+<h2>1 · The three decisions in one line each</h2>
+<div class="grid">
+  <div class="card lock"><h4>Fusion trigger → propose-and-confirm</h4><p>Ollie <strong>proposes</strong> a fuse (never auto-merges, never makes the user manually attach). Pre-selected as one card, but <strong>Split</strong> is one tap and both originals survive intact. This is the only model the money rule allows — see §3.</p></div>
+  <div class="card lock"><h4>Review surface → extend the staged-card list</h4><p>No new screen. The untangle results land as grouped cards <strong>in the same scroll the user already saves from</strong>, gated by a sticky <em>Done adding → Review</em> bar above the input. Justification in §2.</p></div>
+  <div class="card lock"><h4>Single clean input → unchanged</h4><p>If nothing needs untangling, there is nothing to review. The lone card behaves exactly like today and saves straight through. The batch machinery is invisible until there's a reason for it (A6).</p></div>
+</div>
 
 <!-- ============================================================= -->
-<h2>2 · Where it lives in the Record flow</h2>
-<figure class="glance wide" aria-label="Inline placement within the Record scroll">
-<svg viewBox="0 0 760 300" role="img" aria-label="The confirm bar lives between the two tethered cards inside the existing Record scroll">
-  <style>
-    .l{font:600 12px -apple-system,sans-serif;fill:#1B201D}
-    .s{font:11px -apple-system,sans-serif;fill:#6B675F}
-  </style>
-  <!-- phone column -->
-  <rect x="20" y="14" width="300" height="272" rx="20" fill="#F7F4EE" stroke="#E4DED2" stroke-width="2"/>
-  <text x="170" y="36" text-anchor="middle" class="l">Record · scroll (unchanged)</text>
-  <!-- intro card -->
-  <rect x="40" y="46" width="260" height="34" rx="10" fill="#FFFFFF" stroke="#E4DED2"/>
-  <text x="54" y="67" class="s">🦉 “Tell me about a bill…”  (intro)</text>
-  <!-- normal card -->
-  <rect x="40" y="88" width="260" height="36" rx="10" fill="#FFFFFF" stroke="#E4DED2"/>
-  <text x="54" y="110" class="s">Lunch · ¥84 · today   (plain — no twin)</text>
-  <!-- grouped pair -->
-  <rect x="36" y="132" width="268" height="118" rx="12" fill="#FFFBF3" stroke="#B5852F" stroke-width="1.6" stroke-dasharray="6 4"/>
-  <rect x="48" y="142" width="244" height="30" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
-  <text x="60" y="161" class="s">Taxi · ¥240 · today  📷 from photo</text>
-  <!-- the new bar -->
-  <rect x="48" y="178" width="244" height="28" rx="9" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.4"/>
-  <text x="60" y="196" class="s" style="fill:#C8643C">🦉 looks like the same bill — keep…</text>
-  <rect x="48" y="212" width="244" height="30" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
-  <text x="60" y="231" class="s">Taxi · ¥240 · today  ✏️ from text</text>
+<h2>2 · The capture model shift, and where review lives</h2>
+<p><strong>Today</strong> each input becomes its own card the instant it's entered, and you finish a card by editing fields and tapping its own <em>Save</em>. <strong>The shift:</strong> while you're still adding, cards stage but stay <em>held</em>; the agent waits to reason over the whole batch until you tap <strong>Done adding</strong>. Fusion <em>requires</em> this — Ollie can't know a note completes a photo until both are in.</p>
+
+<p><strong>The control is a button, never a parsed trigger word</strong> (locked PM decision). A magic phrase is undiscoverable and would collide with real bill text ("I'm done eating, ramen 240"). The button lives in a <strong>sticky bar above the input</strong> so it's always reachable as the pile grows, and it counts what's waiting ("Review 4").</p>
+
+<div class="lock"><strong>Why extend the list, not build a dedicated review screen.</strong> Three reasons. (1) <strong>A6 — zero friction.</strong> A separate screen forces a transition even when there is nothing to untangle; extending the list lets the clean single-input case stay literally one scroll, one Save. (2) <strong>Continuity.</strong> The committed dedup design already lives inline on this list; fusion is its sibling and belongs in the same visual grammar (tethered cards, a calm Ollie bar, undoable resolutions). Two different surfaces for two sibling actions would fracture the mental model. (3) <strong>Judging by looking.</strong> "Are these really one bill?" / "are these really the same?" is answered by seeing the cards side-by-side in the scroll, not by trusting a summary on a handoff screen. <em>Review mode is a state of the existing list, not a new place.</em></div>
+
+<figure class="glance wide" aria-label="The Done-adding bar and how review mode is a state of the existing list">
+<svg viewBox="0 0 880 300" role="img" aria-label="Adding mode shows held cards and a sticky Done-adding bar; tapping it enters review mode in the same scroll">
+  <style>.l{font:600 12px -apple-system,sans-serif;fill:#1B201D}.s{font:11px -apple-system,sans-serif;fill:#6B675F}</style>
+
+  <!-- ADDING MODE phone -->
+  <rect x="20" y="16" width="250" height="268" rx="20" fill="#F7F4EE" stroke="#E4DED2" stroke-width="2"/>
+  <text x="145" y="38" text-anchor="middle" class="l">Adding · cards held</text>
+  <rect x="38" y="48" width="214" height="28" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
+  <text x="50" y="66" class="s">📷 receipt · ¥— · reading done</text>
+  <rect x="38" y="82" width="214" height="28" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
+  <text x="50" y="100" class="s">✏️ “taxi, it was 240”</text>
+  <rect x="38" y="116" width="214" height="28" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
+  <text x="50" y="134" class="s">📷 ramen · ¥1,480</text>
+  <text x="50" y="166" class="s" style="fill:#6B675F">cards stage but don’t save yet —</text>
+  <text x="50" y="182" class="s" style="fill:#6B675F">no per-card Save while adding</text>
+  <!-- sticky Done bar -->
+  <rect x="38" y="206" width="214" height="34" rx="14" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.8"/>
+  <text x="56" y="227" class="s" style="fill:#C8643C">🦉 Done adding</text>
+  <rect x="198" y="212" width="46" height="22" rx="11" fill="#C8643C"/>
+  <text x="221" y="227" text-anchor="middle" style="font:700 11px -apple-system;fill:#FFFFFF">Review 3</text>
   <!-- input bar -->
-  <rect x="40" y="256" width="260" height="22" rx="11" fill="#FFFFFF" stroke="#E4DED2"/>
-  <text x="54" y="271" class="s">＋ 🎤  Tell Ollie about a bill…</text>
+  <rect x="38" y="250" width="214" height="24" rx="12" fill="#FFFFFF" stroke="#6B675F" stroke-opacity="0.5"/>
+  <text x="52" y="266" class="s">📷 🎤  Tell Ollie about a bill…</text>
+
+  <path d="M274 150 H322" stroke="#C8643C" stroke-width="2.5" marker-end="url(#e)"/>
+  <text x="298" y="142" text-anchor="middle" class="s" style="fill:#C8643C">tap</text>
+
+  <!-- REVIEW MODE phone -->
+  <rect x="326" y="16" width="250" height="268" rx="20" fill="#F7F4EE" stroke="#E4DED2" stroke-width="2"/>
+  <text x="451" y="38" text-anchor="middle" class="l">Review · same scroll</text>
+  <!-- header strip -->
+  <rect x="344" y="46" width="214" height="24" rx="10" fill="#FFF8EC" stroke="#B5852F"/>
+  <text x="356" y="62" class="s" style="fill:#B5852F">🦉 I tidied these — 2 to look at</text>
+  <!-- fuse group -->
+  <rect x="342" y="74" width="218" height="58" rx="12" fill="#FFFBF3" stroke="#B5852F" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="354" y="90" class="s" style="fill:#B5852F">⌥ combined: receipt + note</text>
+  <rect x="352" y="96" width="198" height="28" rx="9" fill="#FFFFFF" stroke="#E4DED2"/>
+  <text x="362" y="114" class="s">Taxi · ¥240 · Combine / Split</text>
+  <!-- dup group -->
+  <rect x="342" y="138" width="218" height="44" rx="12" fill="#FFFBF3" stroke="#B5852F" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="354" y="154" class="s" style="fill:#B5852F">≈ same bill twice</text>
+  <text x="354" y="172" class="s">Ramen · ¥1,480 · Keep one / both</text>
+  <!-- clean card -->
+  <rect x="344" y="188" width="214" height="26" rx="9" fill="#FFFFFF" stroke="#1F6F5C" stroke-opacity="0.5"/>
+  <text x="356" y="205" class="s" style="fill:#1F6F5C">Coffee · ¥520 · ready</text>
+  <!-- save all -->
+  <rect x="344" y="222" width="214" height="30" rx="14" fill="#1F6F5C"/>
+  <text x="451" y="242" text-anchor="middle" style="font:700 12px Georgia,serif;fill:#FFFFFF">Save all to trip</text>
 
   <!-- callouts -->
-  <path d="M310 150 C 360 150, 360 120, 410 120" fill="none" stroke="#6B675F" stroke-width="1.4" marker-end="url(#e)"/>
-  <text x="418" y="116" class="s">Tether bracket = “these two belong together”,</text>
-  <text x="418" y="132" class="s">drawn in the dashed sand/caution stroke (not red).</text>
-
-  <path d="M310 192 C 360 192, 360 196, 410 196" fill="none" stroke="#6B675F" stroke-width="1.4" marker-end="url(#e)"/>
-  <text x="418" y="184" class="s">One affordance bar, in Ollie’s voice, holding the</text>
-  <text x="418" y="200" class="s">two resolution buttons. The per-card Save buttons</text>
-  <text x="418" y="216" class="s">on the grouped pair are paused until resolved.</text>
-
-  <path d="M310 110 C 360 110, 360 90, 410 88" fill="none" stroke="#6B675F" stroke-width="1.4" marker-end="url(#e)"/>
-  <text x="418" y="84" class="s">Cards with no twin are untouched — they keep</text>
-  <text x="418" y="100" class="s">their normal Save / Discard. (Clean path = today.)</text>
+  <path d="M580 100 C 620 100, 620 96, 660 96" fill="none" stroke="#6B675F" stroke-width="1.3" marker-end="url(#e)"/>
+  <text x="666" y="92" class="s">Fuse + dup are tethered the same way —</text>
+  <text x="666" y="108" class="s">one calm Ollie bracket each, never red.</text>
+  <path d="M580 237 C 620 237, 620 232, 660 232" fill="none" stroke="#6B675F" stroke-width="1.3" marker-end="url(#e)"/>
+  <text x="666" y="228" class="s">Review ends in ONE “Save all”.</text>
+  <text x="666" y="244" class="s">Unresolved groups block it until</text>
+  <text x="666" y="260" class="s">touched (a 1-tap default each).</text>
 
   <defs><marker id="e" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#6B675F"/></marker></defs>
 </svg>
-<figcaption>The whole interaction is three rows inserted into the scroll the user is already in. Everything outside the bracket behaves exactly as it does today.</figcaption>
+<figcaption>Review mode is the same vertical scroll, now showing Ollie's proposed fuses and flagged duplicates as tethered groups, with the plain cards untouched, ending in a single <strong>Save all</strong>. Nothing is a new screen.</figcaption>
 </figure>
 
 <!-- ============================================================= -->
-<h2>3 · The full state set</h2>
-<p>The dedup layer adds one card substate, <code>flaggedDuplicate</code>, that wraps a <em>group</em> of two-or-more <code>review</code>-ready cards. Below is every state the user can land in.</p>
+<h2>3 · Pillar 1 — Fuse partials (the new hard part)</h2>
+<p>A photo captures half a bill (amount cut off, or a blurry total); a note supplies the rest ("the total was 240"). Today the note spawns a <em>second</em> card. Fusion combines them into one.</p>
 
-<div class="grid">
-  <div class="card"><h4>(a) No duplicates</h4><p>The common case. No bracket, no bar, no badge. Cards save one-by-one exactly as today. <span class="pill keep">A4: zero friction</span></p></div>
-  <div class="card"><h4>(b) One duplicate pair</h4><p>Two cards tethered; one "Ollie noticed" bar between them with <em>Keep one</em> / <em>Keep both</em>. The centerpiece — see §4.</p></div>
-  <div class="card"><h4>(c) A group of 3+ identical</h4><p>All N cards tethered under one bracket. Bar reads "<em>3 cards look like the same bill</em>". <em>Keep one</em> expands to a tiny chooser (pick the survivor); <em>Keep all</em> is the one-tap escape. No nested pairs — one group, one decision.</p></div>
-  <div class="card"><h4>(d-i) Same-photo dupe</h4><p>Reason chip reads <span class="pill flag">📷 same photo</span>. High confidence — Ollie is sure. Survivor defaults to the first-staged card (they're pixel-identical, so it doesn't matter which).</p></div>
-  <div class="card"><h4>(d-ii) Same-details dupe</h4><p>Reason chip reads <span class="pill flag">≈ same merchant, amount &amp; date</span>. Lower confidence (could be two real £30 coffees). The bar leads with the softer "<em>maybe the same?</em>" wording and shows the matched fields so the user can judge.</p></div>
-  <div class="card"><h4>(e) Keep one</h4><p>User picks the survivor (default pre-selected, see §3.1). The other card animates to a calm "<em>set aside</em>" collapsed strip — <strong>not deleted-red</strong> — with a 1-tap <em>Undo</em>. Survivor returns to normal <code>review</code>.</p></div>
-  <div class="card"><h4>(e') Keep both</h4><p>One tap. Bracket dissolves, both cards return to normal <code>review</code> with their own Save buttons. Nothing is set aside. This is the safe default escape from a false match.</p></div>
-  <div class="card"><h4>(f) After resolution</h4><p>The group is gone; resolved cards are ordinary review cards. Saving proceeds normally. A set-aside card stays visible (collapsed, undoable) until the session is saved, then is simply never written.</p></div>
-</div>
-
-<h3>3.1 · How "keep one" decides the survivor (the default)</h3>
-<p>"Keep one" must pre-select a sensible survivor so the common path is genuinely one tap — but the choice is always overridable and always visible.</p>
+<h3>3.1 · Why propose-and-confirm (not auto, not user-directed)</h3>
 <div class="tscroll"><table>
-  <tr><th>Situation</th><th>Default survivor</th><th>Why</th></tr>
-  <tr><td>Same-photo pair</td><td>First-staged card</td><td>Pixel-identical — the data is the same, so order is the only tiebreak. No real choice to make.</td></tr>
-  <tr><td>Same-details pair, one richer</td><td>The <strong>more complete</strong> card (has merchant + date + line items; fewer carried gaps)</td><td>Keep the card that needs no further fixing. A photo card with line items beats a bare typed "taxi 240".</td></tr>
-  <tr><td>Same-details pair, equal completeness</td><td>The <strong>photo</strong>-sourced card, else first-staged</td><td>A photo carries proof (the receipt image) the user may want later.</td></tr>
+  <tr><th>Model</th><th>What it does</th><th>Verdict</th></tr>
+  <tr><td><strong>Agent-automatic</strong></td><td>Ollie silently merges the photo and note into one card.</td><td><strong>Rejected.</strong> Violates the money rule head-on: a silent merge that pulls "240" onto a receipt is exactly the invisible amount-write the PRD forbids. A wrong guess corrupts a bill with no visible undo.</td></tr>
+  <tr><td><strong>User-directed</strong></td><td>The user manually drags/attaches a note onto a specific card.</td><td><strong>Rejected as the primary path.</strong> Puts the whole burden on the user, defeats "the app sorts it out," and is fiddly on a phone. (Kept as a fallback gesture — §3.4.)</td></tr>
+  <tr><td><strong>Propose-and-confirm</strong></td><td>Ollie detects the pair, builds a <em>proposed</em> fused card, and shows its provenance with <strong>Combine</strong> (accept) / <strong>Split</strong> (reject) — both one tap, both reversible.</td><td><strong>Chosen.</strong> Ollie does the hard reasoning; the human owns the money-bearing decision. Matches the dedup grammar exactly, so the two pillars feel like one feature.</td></tr>
 </table></div>
-<div class="note">The survivor is shown with a <strong>“keep this one”</strong> highlight ring (pine green) and the other with a dimmed "set aside" treatment <em>before</em> the user commits, so picking a different survivor is a single tap on the other card. The amount on the survivor is never touched — it's the same Decimal it always was (A5).</div>
+<div class="lock"><strong>The pick:</strong> <em>propose-and-confirm</em> — Ollie does the matching, the user owns the join. It's the only trigger model where the agent helps <em>and</em> the money rule holds: the fused amount is always shown as coming from a named input, never silently stitched in.</div>
+
+<h3>3.2 · How a fused card shows its provenance</h3>
+<p>A proposed fuse is <strong>one card with a visible seam</strong>: the resolved bill on top, and beneath it a thin <em>"made from"</em> provenance strip showing the two sources as small slips — the <strong>photo thumbnail</strong> and the <strong>note text</strong> — each tagging which field it contributed. The amount carries a "<span class="pill fuse">from your note</span>" trace so it's obvious the number came from the typed "240", not from thin air. Provenance is the whole safety story made literal: you can see what completed the bill, and where the money came from.</p>
+
+<h3>3.3 · How Split works (A5)</h3>
+<p>One tap on <strong>Split</strong> (or the seam) dissolves the fused card back into the <strong>two original cards, intact</strong> — the photo card (still amountless) and the note card (still "taxi 240"). Nothing was destroyed in the proposal: the fuse is a <em>view</em> over two held inputs until Combine is confirmed, so Split is just discarding the proposal. Both survivors return to normal <code>review</code>, and the photo card shows its usual "amount required" gap if it still has one.</p>
+
+<h3>3.4 · Money safety after fuse (A7)</h3>
+<div class="note"><strong>The amount is never invented.</strong> A fuse only carries a number that a real input supplied. Three outcomes: (a) the note supplies the amount → the fused card is <code>review</code>-ready, amount traced to the note; (b) the photo had the amount and the note added merchant/date → same, traced to the photo; (c) <strong>neither</strong> input has a readable amount → the fused card lands in the existing <strong>"amount required"</strong> gap state exactly as a lone card does today (red italic "amount required", Save disabled until entered). Fusion never fabricates a total to "finish" a bill.</div>
+<p><em>Optional power-user fallback:</em> in review, dragging one card onto another offers the same <strong>Combine</strong> proposal — a manual way to fuse a pair Ollie missed. Still propose-and-confirm (a confirm sheet, not an instant merge), still splittable. Out of v1 scope unless cheap.</p>
 
 <!-- ============================================================= -->
-<h2>4 · The mockup — the confirm interaction (PM review surface)</h2>
-<p>SketchTheme cream paper, white cards, hairline brown borders, serif merchant names, monospaced amounts. This is state <strong>(b)</strong>, a same-details pair, in the pre-commit moment: Ollie has pre-selected a survivor (the richer photo card) but nothing has been removed yet.</p>
+<h2>4 · Pillar 2 — Dedup (carried from the committed F5 design)</h2>
+<p>Unchanged in spirit from the prior design — it is the model the fuse grammar copies. When two inputs are the <strong>same</strong> bill (same photo, OR merchant + amount + date all match), Ollie tethers them and offers <span class="pill keep">Keep one</span> / <span class="pill both">Keep both</span>.</p>
+<div class="grid">
+  <div class="card"><h4>Tether, not modal</h4><p>The duplicate pair is bracketed in the dashed sand caution stroke (never red) with one calm "Ollie noticed" bar between them. No new screen.</p></div>
+  <div class="card"><h4>Keep both is the safe one-tap</h4><p>The prominent filled-pine button. The escape from a false match is the <em>easiest</em> action; nothing reads as deleted (A3).</p></div>
+  <div class="card"><h4>Keep one sets aside, never deletes</h4><p>The non-survivor collapses to a dimmed "set aside" strip with <em>Undo</em> — not destructive-red. Removal happens only on the explicit tap, reversible until Save (A1, A7).</p></div>
+  <div class="card"><h4>Survivor pre-picked</h4><p>Same-photo → first card (pixel-identical). Same-details → the richer card (has line items/date), else the photo-sourced one. Always overridable in one tap.</p></div>
+  <div class="card"><h4>Groups of 3+</h4><p>One bracket over all N, one decision: <em>Keep one</em> (with a tiny survivor chooser) or <em>Keep all</em>. No nested pairwise prompts.</p></div>
+  <div class="card"><h4>Two confidence tiers (copy only)</h4><p>Same photo → firm "the same photo twice". Same details → tentative "might be the same bill". Same actions; warmer tone on the looser match.</p></div>
+</div>
 
-<div class="mock-wrap">
-<div class="mock-scroll">
-<svg width="360" height="620" viewBox="0 0 360 620" role="img" aria-label="Phone mockup: a tethered duplicate pair with Ollie's confirm bar, keep one and keep both controls, in BillOwl sketch theme">
+<!-- ============================================================= -->
+<h2>5 · Pillar 3 — The review surface & the full state set</h2>
+<p>The untangle adds two group layers over the existing <code>review</code> state — <code>fuseProposed</code> and <code>flaggedDuplicate</code> — both resolving back to ordinary <code>review</code> cards that flow into <code>recorded</code>. Below is every state the user can land in.</p>
+<div class="grid">
+  <div class="card"><h4>(a) Single clean input</h4><p>Nothing to untangle. The lone card is a normal review card; tapping its Save (or "Save all") writes it. <strong>No Done-adding ceremony forced.</strong> <span class="pill keep">A6: zero friction</span></p></div>
+  <div class="card"><h4>(b) Fuse proposed</h4><p>A receipt + a completing note shown as one card with a "made from" provenance strip. <strong>Combine</strong> / <strong>Split</strong>. The centerpiece — §6 mockup (b).</p></div>
+  <div class="card"><h4>(c) Fuse split</h4><p>One tap on Split → the two originals reappear intact (photo amountless, note "taxi 240"). Both are ordinary review cards again (A5).</p></div>
+  <div class="card"><h4>(d) Duplicate pair</h4><p>Two cards tethered; "Ollie noticed" bar with <em>Keep one</em> / <em>Keep both</em>. §6 mockup (c).</p></div>
+  <div class="card"><h4>(e) Duplicate 3+</h4><p>All N under one bracket; <em>Keep one</em> (survivor chooser) or <em>Keep all</em>. One group, one decision.</p></div>
+  <div class="card"><h4>(f) Fuse AND dup in one batch</h4><p>Both groups render in the same review scroll, each its own tethered bracket, independently resolvable. <strong>Save all</strong> waits until every group is touched. §6 mockup (d).</p></div>
+  <div class="card"><h4>(g) Amount still missing after fuse</h4><p>Neither source had a readable amount → the fused card shows the red "amount required" gap; Save disabled until the user enters it (A7). Fusion never fabricates the number.</p></div>
+</div>
+
+<div class="lock"><strong>How "Save all" stays safe.</strong> Review ends in one Save, but it never saves <em>over</em> an open decision. An unresolved fuse or duplicate group keeps a 1-tap default visible (Combine / Keep both — the non-destructive choices) and gently blocks "Save all" until each group is touched, so the user can't accidentally accept Ollie's guesses wholesale. Clean cards in the same scroll save with it. Everything stays reversible until that final tap.</div>
+
+<!-- ============================================================= -->
+<h2>6 · Mockups — the PM review surface</h2>
+<p>SketchTheme cream paper, white cards, hairline brown borders, serif merchant names, monospaced amounts. Four moments: (a) Done adding, (b) a fuse proposal with provenance, (c) the dedup confirm, (d) the review surface with a fuse <em>and</em> a dup together.</p>
+
+<!-- ---------- (a) DONE ADDING + (b) FUSE PROPOSAL ---------- -->
+<div class="mock-wrap"><div class="mock-scroll"><div class="mocks">
+
+<!-- (a) DONE ADDING MOMENT -->
+<svg width="320" height="600" viewBox="0 0 320 600" role="img" aria-label="Phone mockup (a): adding mode — three held cards and a sticky Done adding bar in BillOwl sketch theme">
   <defs>
-    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#7A5A3C" flood-opacity="0.14"/></filter>
+    <filter id="sa" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#7A5A3C" flood-opacity="0.14"/></filter>
     <style>
-      .ink{fill:#1B201D}.mut{fill:#6B675F}
-      .merch{font:600 16px Georgia,serif;fill:#1B201D}
-      .amt{font:700 17px ui-monospace,SFMono-Regular,Menlo,monospace}
+      .merch{font:600 15px Georgia,serif;fill:#1B201D}
+      .amt{font:700 15px ui-monospace,SFMono-Regular,Menlo,monospace}
       .cap{font:11px -apple-system,sans-serif;fill:#6B675F}
-      .badge{font:700 9px -apple-system,sans-serif;letter-spacing:.06em}
+      .badge{font:700 9px -apple-system,sans-serif;letter-spacing:.05em}
+      .ollie{font:12px -apple-system,sans-serif;fill:#1B201D}
+    </style>
+  </defs>
+  <rect x="0" y="0" width="320" height="600" rx="26" fill="#F7F4EE"/>
+  <text x="160" y="30" text-anchor="middle" class="merch" style="font-size:16px">Record</text>
+  <line x1="18" y1="42" x2="302" y2="42" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="160" y="62" text-anchor="middle" class="cap" style="fill:#B5852F">— Adding bills · nothing saved yet —</text>
+
+  <!-- held card 1: photo, amount read -->
+  <g filter="url(#sa)"><rect x="18" y="74" width="284" height="74" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="86" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="55" y="98" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="286" y="98" text-anchor="end" class="cap">📷 from photo</text>
+  <text x="34" y="124" class="merch">Ichiran Ramen</text>
+  <text x="34" y="140" class="cap">Food · today</text>
+  <text x="286" y="128" text-anchor="end" class="amt" style="fill:#C8643C">¥1,480</text>
+
+  <!-- held card 2: photo, NO amount -->
+  <g filter="url(#sa)"><rect x="18" y="158" width="284" height="74" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="170" width="64" height="16" rx="8" fill="#B23A3A" fill-opacity="0.14"/>
+  <text x="66" y="182" text-anchor="middle" class="badge" style="fill:#B23A3A">NEEDS INFO</text>
+  <text x="286" y="182" text-anchor="end" class="cap">📷 from photo</text>
+  <text x="34" y="208" class="merch">Kyoto MK Taxi</text>
+  <text x="34" y="224" class="cap">Transport · today</text>
+  <text x="286" y="214" text-anchor="end" class="cap" style="fill:#B23A3A;font-style:italic">amount required</text>
+
+  <!-- held card 3: note -->
+  <g filter="url(#sa)"><rect x="18" y="242" width="284" height="62" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="254" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="55" y="266" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="286" y="266" text-anchor="end" class="cap">✏️ from text</text>
+  <text x="34" y="292" class="merch" style="font-size:14px">“taxi, it was 240”</text>
+  <text x="286" y="294" text-anchor="end" class="amt" style="fill:#C8643C">¥240</text>
+
+  <!-- helper -->
+  <text x="160" y="330" text-anchor="middle" class="cap" style="fill:#6B675F">Add as many as you like — photos, notes, voice.</text>
+  <text x="160" y="346" text-anchor="middle" class="cap" style="fill:#6B675F">I’ll sort out what goes together when you’re done.</text>
+
+  <!-- ===== STICKY DONE-ADDING BAR ===== -->
+  <g filter="url(#sa)"><rect x="18" y="496" width="284" height="46" rx="18" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.8"/></g>
+  <circle cx="42" cy="519" r="13" fill="#C8643C" fill-opacity="0.18"/>
+  <text x="42" y="524" text-anchor="middle" style="font-size:14px">🦉</text>
+  <text x="62" y="516" class="ollie" style="font-weight:600">Done adding?</text>
+  <text x="62" y="531" class="cap">I’ll tidy these up.</text>
+  <rect x="206" y="504" width="84" height="30" rx="15" fill="#C8643C"/>
+  <text x="248" y="523" text-anchor="middle" style="font:700 13px Georgia,serif;fill:#FFFFFF">Review 3</text>
+
+  <!-- input bar -->
+  <rect x="18" y="552" width="284" height="32" rx="16" fill="#FFFFFF" stroke="#6B675F" stroke-opacity="0.5" stroke-width="1.6"/>
+  <text x="32" y="572" style="font-size:13px">📷</text>
+  <text x="56" y="572" style="font-size:13px">🎤</text>
+  <text x="78" y="572" class="cap">Tell Ollie about a bill…</text>
+  <circle cx="288" cy="568" r="11" fill="#C8643C"/>
+  <text x="288" y="572" text-anchor="middle" style="font-size:12px;fill:#FFFFFF">↑</text>
+</svg>
+
+<!-- (b) FUSE PROPOSAL CARD -->
+<svg width="320" height="600" viewBox="0 0 320 600" role="img" aria-label="Phone mockup (b): a fuse-proposal card showing photo and note provenance with Combine and Split, in BillOwl sketch theme">
+  <defs>
+    <filter id="sb" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#7A5A3C" flood-opacity="0.14"/></filter>
+    <style>
+      .merch{font:600 16px Georgia,serif;fill:#1B201D}
+      .amt{font:700 18px ui-monospace,SFMono-Regular,Menlo,monospace}
+      .cap{font:11px -apple-system,sans-serif;fill:#6B675F}
+      .badge{font:700 9px -apple-system,sans-serif;letter-spacing:.05em}
       .btn{font:600 13px Georgia,serif}
       .ollie{font:12px -apple-system,sans-serif;fill:#1B201D}
     </style>
   </defs>
+  <rect x="0" y="0" width="320" height="600" rx="26" fill="#F7F4EE"/>
+  <text x="160" y="30" text-anchor="middle" class="merch" style="font-size:16px">Review</text>
+  <line x1="18" y1="42" x2="302" y2="42" stroke="#E4DED2" stroke-width="1.5"/>
 
-  <!-- phone paper bg -->
-  <rect x="0" y="0" width="360" height="620" rx="28" fill="#F7F4EE"/>
-  <!-- nav -->
-  <text x="180" y="34" text-anchor="middle" class="merch" style="font-size:17px">Record</text>
-  <line x1="20" y1="46" x2="340" y2="46" stroke="#E4DED2" stroke-width="1.5"/>
+  <!-- Ollie review header -->
+  <rect x="18" y="54" width="284" height="34" rx="14" fill="#FFF8EC" stroke="#B5852F" stroke-width="1.4"/>
+  <circle cx="40" cy="71" r="12" fill="#B5852F" fill-opacity="0.18"/>
+  <text x="40" y="76" text-anchor="middle" style="font-size:13px">🦉</text>
+  <text x="60" y="75" class="ollie" style="font-weight:600">I combined a receipt with your note.</text>
 
-  <!-- journal chip (dashed, as in RecordView) -->
-  <rect x="20" y="58" width="320" height="40" rx="14" fill="#FFFFFF" stroke="#6B675F" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="4 4"/>
-  <circle cx="42" cy="78" r="13" fill="#E9C46A" fill-opacity="0.5"/>
-  <text x="42" y="82" text-anchor="middle" style="font-size:13px">🦊</text>
-  <text x="64" y="74" class="ink" style="font:600 14px Georgia,serif">Kyoto Trip</text>
-  <text x="64" y="90" class="cap">filing bills here · JPY</text>
-  <text x="328" y="83" text-anchor="end" style="font:12px -apple-system;fill:#2D6CA8">switch ▾</text>
+  <!-- ===== FUSE TETHER BRACKET ===== -->
+  <path d="M28 102 q-9 0 -9 9 V404 q0 9 9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M292 102 q9 0 9 9 V404 q0 9 -9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <!-- fuse tab -->
+  <rect x="38" y="92" width="150" height="22" rx="11" fill="#B5852F"/>
+  <text x="113" y="107" text-anchor="middle" style="font:700 10px -apple-system;fill:#FFFFFF;letter-spacing:.04em">⌥ COMBINED INTO ONE</text>
 
-  <!-- ===== TETHER BRACKET around the pair ===== -->
-  <!-- dashed sand bracket (caution, not destructive red) -->
-  <path d="M30 120 q-9 0 -9 9 V470 q0 9 9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
-  <path d="M330 120 q9 0 9 9 V470 q0 9 -9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <!-- ===== THE RESOLVED BILL (top) ===== -->
+  <g filter="url(#sb)"><rect x="38" y="120" width="244" height="92" rx="16" fill="#FFFFFF" stroke="#1F6F5C" stroke-width="1.8"/></g>
+  <rect x="54" y="134" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="75" y="146" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <rect x="54" y="160" width="38" height="38" rx="10" fill="#C8643C" fill-opacity="0.12"/>
+  <text x="73" y="185" text-anchor="middle" style="font-size:17px">🚕</text>
+  <text x="102" y="172" class="merch">Kyoto MK Taxi</text>
+  <text x="102" y="190" class="cap">Transport · today</text>
+  <text x="266" y="180" text-anchor="end" class="amt" style="fill:#C8643C">¥240</text>
 
-  <!-- ===== CARD 1 — the pre-selected survivor (pine "keep this" ring) ===== -->
-  <g filter="url(#soft)">
-    <rect x="40" y="116" width="280" height="150" rx="18" fill="#FFFFFF" stroke="#1F6F5C" stroke-width="2"/>
-  </g>
-  <!-- keep-this tab -->
-  <rect x="40" y="106" width="118" height="22" rx="11" fill="#1F6F5C"/>
-  <text x="99" y="121" text-anchor="middle" style="font:700 10px -apple-system;fill:#FFFFFF;letter-spacing:.04em">✓ KEEP THIS ONE</text>
-  <!-- badge row -->
-  <rect x="56" y="138" width="58" height="17" rx="8" fill="#1F6F5C" fill-opacity="0.18"/>
-  <text x="85" y="150" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
-  <text x="304" y="150" text-anchor="end" class="cap">📷 from photo</text>
-  <!-- main row -->
-  <rect x="56" y="166" width="40" height="40" rx="10" fill="#C8643C" fill-opacity="0.12"/>
-  <text x="76" y="192" text-anchor="middle" style="font-size:18px">🚕</text>
-  <text x="108" y="180" class="merch">Kyoto MK Taxi</text>
-  <rect x="108" y="188" width="78" height="18" rx="9" fill="#C8643C" fill-opacity="0.14"/>
-  <text x="147" y="201" text-anchor="middle" style="font:11px -apple-system;fill:#C8643C">Transport ▾</text>
-  <text x="194" y="201" class="cap">· today</text>
-  <text x="304" y="194" text-anchor="end" class="amt" style="fill:#C8643C">¥240</text>
-  <!-- line items hint (richer card) -->
-  <line x1="56" y1="222" x2="304" y2="222" stroke="#6B675F" stroke-opacity="0.25" stroke-width="1"/>
-  <text x="56" y="240" class="cap">Base fare</text><text x="304" y="240" text-anchor="end" class="cap">¥180</text>
-  <text x="56" y="256" class="cap">Night surcharge</text><text x="304" y="256" text-anchor="end" class="cap">¥60</text>
+  <!-- ===== "MADE FROM" PROVENANCE STRIP ===== -->
+  <text x="54" y="232" class="cap" style="fill:#B5852F;font-weight:700">made from</text>
+  <!-- source slip 1: PHOTO -->
+  <g filter="url(#sb)"><rect x="54" y="240" width="228" height="48" rx="12" fill="#FBF7F0" stroke="#E4DED2" stroke-width="1.4"/></g>
+  <rect x="64" y="250" width="28" height="28" rx="6" fill="#C8643C" fill-opacity="0.14"/>
+  <text x="78" y="269" text-anchor="middle" style="font-size:13px">📷</text>
+  <text x="102" y="260" class="cap" style="fill:#1B201D;font-weight:600">Receipt photo</text>
+  <text x="102" y="276" class="cap">gave: merchant · category · date</text>
+  <!-- source slip 2: NOTE -->
+  <g filter="url(#sb)"><rect x="54" y="294" width="228" height="48" rx="12" fill="#FBF7F0" stroke="#E4DED2" stroke-width="1.4"/></g>
+  <rect x="64" y="304" width="28" height="28" rx="6" fill="#2D6CA8" fill-opacity="0.14"/>
+  <text x="78" y="323" text-anchor="middle" style="font-size:13px">✏️</text>
+  <text x="102" y="314" class="cap" style="fill:#1B201D;font-weight:600">“taxi, it was 240”</text>
+  <!-- amount trace pill -->
+  <rect x="102" y="320" width="150" height="16" rx="8" fill="#B5852F" fill-opacity="0.16"/>
+  <text x="110" y="332" style="font:9.5px -apple-system;fill:#8A6420">gave the amount → ¥240 from your note</text>
 
-  <!-- ===== OLLIE CONFIRM BAR ===== -->
-  <g filter="url(#soft)">
-    <rect x="40" y="278" width="280" height="92" rx="16" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.6"/>
-  </g>
-  <circle cx="62" cy="300" r="13" fill="#C8643C" fill-opacity="0.18"/>
-  <text x="62" y="305" text-anchor="middle" style="font-size:15px">🦉</text>
-  <text x="82" y="298" class="ollie" style="font-weight:600">These two might be the same bill.</text>
-  <!-- reason chip: same-details -->
-  <rect x="82" y="306" width="200" height="18" rx="9" fill="#C8643C" fill-opacity="0.12"/>
-  <text x="92" y="319" style="font:10.5px -apple-system;fill:#A8552C">≈ same merchant, amount &amp; date</text>
-  <!-- buttons: Keep both (primary-safe) + Keep one -->
-  <rect x="56" y="332" width="124" height="28" rx="13" fill="#1F6F5C"/>
-  <text x="118" y="351" text-anchor="middle" class="btn" style="fill:#FFFFFF">Keep both</text>
-  <rect x="190" y="332" width="114" height="28" rx="13" fill="none" stroke="#6B675F" stroke-width="1.6"/>
-  <text x="247" y="351" text-anchor="middle" class="btn" style="fill:#1B201D">Keep one</text>
+  <!-- ===== COMBINE / SPLIT CONTROLS ===== -->
+  <rect x="54" y="356" width="120" height="34" rx="16" fill="#1F6F5C"/>
+  <text x="114" y="378" text-anchor="middle" class="btn" style="fill:#FFFFFF">✓ Combine</text>
+  <rect x="184" y="356" width="98" height="34" rx="16" fill="none" stroke="#6B675F" stroke-width="1.6"/>
+  <text x="233" y="378" text-anchor="middle" class="btn" style="fill:#1B201D">Split</text>
 
-  <!-- ===== CARD 2 — the would-be set-aside (dimmed, NOT red) ===== -->
-  <g filter="url(#soft)">
-    <rect x="40" y="382" width="280" height="96" rx="18" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5" opacity="0.92"/>
-  </g>
-  <rect x="56" y="398" width="86" height="17" rx="8" fill="#6B675F" fill-opacity="0.16"/>
-  <text x="99" y="410" text-anchor="middle" class="badge" style="fill:#6B675F">SET ASIDE IF KEPT 1</text>
-  <text x="304" y="410" text-anchor="end" class="cap">✏️ from text</text>
-  <rect x="56" y="424" width="36" height="36" rx="9" fill="#C8643C" fill-opacity="0.10"/>
-  <text x="74" y="447" text-anchor="middle" style="font-size:16px">🚕</text>
-  <text x="100" y="436" class="merch" style="fill:#6B675F">Taxi</text>
-  <text x="100" y="455" class="cap">Transport · today · “taxi 240”</text>
-  <text x="304" y="446" text-anchor="end" class="amt" style="fill:#6B675F">¥240</text>
+  <!-- helper -->
+  <text x="160" y="436" text-anchor="middle" class="cap" style="fill:#B5852F">Not one bill? Tap <tspan font-style="italic">Split</tspan> — both come back, untouched.</text>
 
-  <!-- helper line under bracket (two lines so it fits the 360-wide frame) -->
-  <text x="180" y="495" text-anchor="middle" class="cap" style="fill:#B5852F">Nothing removed yet. “Keep both” saves both;</text>
-  <text x="180" y="509" text-anchor="middle" class="cap" style="fill:#B5852F">“Keep one” sets the dimmed card aside (undoable).</text>
+  <!-- a plain ready card below -->
+  <g filter="url(#sb)"><rect x="18" y="456" width="284" height="58" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="468" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="55" y="480" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="34" y="503" class="merch" style="font-size:14px">Ichiran Ramen</text>
+  <text x="286" y="503" text-anchor="end" class="amt" style="fill:#C8643C">¥1,480</text>
 
-  <!-- a plain, untouched card below the group (proof the rest is normal) -->
-  <g filter="url(#soft)">
-    <rect x="20" y="516" width="320" height="58" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
-  </g>
-  <rect x="36" y="528" width="44" height="17" rx="8" fill="#1F6F5C" fill-opacity="0.18"/>
-  <text x="58" y="540" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
-  <text x="36" y="562" class="merch" style="font-size:14px">Ichiran Ramen</text>
-  <text x="324" y="562" text-anchor="end" class="amt" style="fill:#C8643C">¥1,480</text>
-  <!-- its own normal save button -->
-  <rect x="232" y="524" width="92" height="22" rx="11" fill="#1F6F5C"/>
-  <text x="278" y="539" text-anchor="middle" style="font:600 11px Georgia,serif;fill:#FFFFFF">Save to trip</text>
-
-  <!-- input bar -->
-  <rect x="20" y="584" width="320" height="26" rx="13" fill="#FFFFFF" stroke="#6B675F" stroke-opacity="0.5" stroke-width="1.6"/>
-  <text x="34" y="601" style="font-size:13px">📷</text>
-  <text x="58" y="601" style="font-size:13px">🎤</text>
-  <text x="80" y="601" class="cap">Tell Ollie about a bill…</text>
-  <circle cx="326" cy="597" r="11" fill="#C8643C"/>
-  <text x="326" y="601" text-anchor="middle" style="font-size:12px;fill:#FFFFFF">↑</text>
+  <!-- save all -->
+  <rect x="18" y="528" width="284" height="34" rx="16" fill="#1F6F5C"/>
+  <text x="160" y="550" text-anchor="middle" style="font:700 14px Georgia,serif;fill:#FFFFFF">Save all to trip</text>
+  <text x="160" y="582" text-anchor="middle" class="cap" style="fill:#6B675F">Resolve the combined card first (it’s pre-accepted).</text>
 </svg>
-</div>
-</div>
-<figcaption>State (b): a same-details duplicate pair, pre-commit. Survivor pre-picked (pine ring), the other dimmed-but-intact (never red). <strong>Keep both</strong> is the prominent, safe one-tap. The amount on both cards is plainly visible and identical — nothing reads as altered or auto-deleted.</figcaption>
+
+</div></div></div>
+<figcaption>Mockups <strong>(a)</strong> the Done-adding moment — cards held, a sticky Ollie bar; and <strong>(b)</strong> a fuse proposal — one resolved bill over a "made from" strip showing the photo and the note, with the amount visibly traced to the note ("¥240 from your note"). <strong>Combine</strong> is the easy filled-pine accept; <strong>Split</strong> is the quiet escape that brings both originals back intact.</figcaption>
+
+<!-- ---------- (c) DEDUP CONFIRM + (d) MIXED REVIEW ---------- -->
+<div class="mock-wrap"><div class="mock-scroll"><div class="mocks">
+
+<!-- (c) DEDUP CONFIRM (carried) -->
+<svg width="320" height="600" viewBox="0 0 320 600" role="img" aria-label="Phone mockup (c): a tethered duplicate pair with Ollie's confirm bar, Keep one and Keep both, in BillOwl sketch theme">
+  <defs>
+    <filter id="sc" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#7A5A3C" flood-opacity="0.14"/></filter>
+    <style>
+      .merch{font:600 15px Georgia,serif;fill:#1B201D}
+      .amt{font:700 16px ui-monospace,SFMono-Regular,Menlo,monospace}
+      .cap{font:11px -apple-system,sans-serif;fill:#6B675F}
+      .badge{font:700 9px -apple-system,sans-serif;letter-spacing:.05em}
+      .btn{font:600 13px Georgia,serif}
+      .ollie{font:12px -apple-system,sans-serif;fill:#1B201D}
+    </style>
+  </defs>
+  <rect x="0" y="0" width="320" height="600" rx="26" fill="#F7F4EE"/>
+  <text x="160" y="30" text-anchor="middle" class="merch" style="font-size:16px">Review</text>
+  <line x1="18" y1="42" x2="302" y2="42" stroke="#E4DED2" stroke-width="1.5"/>
+
+  <!-- ===== DUP TETHER BRACKET ===== -->
+  <path d="M28 64 q-9 0 -9 9 V452 q0 9 9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <path d="M292 64 q9 0 9 9 V452 q0 9 -9 9" fill="none" stroke="#B5852F" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>
+
+  <!-- CARD 1 — pre-selected survivor (pine ring) -->
+  <rect x="38" y="56" width="120" height="20" rx="10" fill="#1F6F5C"/>
+  <text x="98" y="70" text-anchor="middle" style="font:700 9.5px -apple-system;fill:#FFFFFF;letter-spacing:.03em">✓ KEEP THIS ONE</text>
+  <g filter="url(#sc)"><rect x="38" y="80" width="244" height="120" rx="16" fill="#FFFFFF" stroke="#1F6F5C" stroke-width="1.8"/></g>
+  <rect x="54" y="94" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="75" y="106" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="266" y="106" text-anchor="end" class="cap">📷 from photo</text>
+  <rect x="54" y="120" width="36" height="36" rx="9" fill="#C8643C" fill-opacity="0.12"/>
+  <text x="72" y="143" text-anchor="middle" style="font-size:16px">🚕</text>
+  <text x="100" y="132" class="merch">Kyoto MK Taxi</text>
+  <text x="100" y="149" class="cap">Transport · today</text>
+  <text x="266" y="140" text-anchor="end" class="amt" style="fill:#C8643C">¥240</text>
+  <line x1="54" y1="166" x2="266" y2="166" stroke="#6B675F" stroke-opacity="0.22"/>
+  <text x="54" y="184" class="cap">Base ¥180 · Night surcharge ¥60</text>
+
+  <!-- OLLIE CONFIRM BAR -->
+  <g filter="url(#sc)"><rect x="38" y="210" width="244" height="84" rx="16" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.6"/></g>
+  <circle cx="60" cy="232" r="12" fill="#C8643C" fill-opacity="0.18"/>
+  <text x="60" y="237" text-anchor="middle" style="font-size:14px">🦉</text>
+  <text x="80" y="230" class="ollie" style="font-weight:600">These two might be the same bill.</text>
+  <rect x="80" y="238" width="180" height="16" rx="8" fill="#C8643C" fill-opacity="0.12"/>
+  <text x="89" y="250" style="font:10px -apple-system;fill:#A8552C">≈ same merchant, amount &amp; date</text>
+  <rect x="54" y="262" width="112" height="26" rx="13" fill="#1F6F5C"/>
+  <text x="110" y="280" text-anchor="middle" class="btn" style="fill:#FFFFFF;font-size:12px">Keep both</text>
+  <rect x="176" y="262" width="100" height="26" rx="13" fill="none" stroke="#6B675F" stroke-width="1.6"/>
+  <text x="226" y="280" text-anchor="middle" class="btn" style="fill:#1B201D;font-size:12px">Keep one</text>
+
+  <!-- CARD 2 — would-be set aside (dimmed, NOT red) -->
+  <g filter="url(#sc)"><rect x="38" y="304" width="244" height="88" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5" opacity="0.92"/></g>
+  <rect x="54" y="318" width="96" height="16" rx="8" fill="#6B675F" fill-opacity="0.16"/>
+  <text x="102" y="330" text-anchor="middle" class="badge" style="fill:#6B675F">SET ASIDE IF KEPT 1</text>
+  <text x="266" y="330" text-anchor="end" class="cap">✏️ from text</text>
+  <rect x="54" y="344" width="34" height="34" rx="9" fill="#C8643C" fill-opacity="0.10"/>
+  <text x="71" y="366" text-anchor="middle" style="font-size:15px">🚕</text>
+  <text x="98" y="356" class="merch" style="fill:#6B675F">Taxi</text>
+  <text x="98" y="374" class="cap">Transport · today · “taxi 240”</text>
+  <text x="266" y="364" text-anchor="end" class="amt" style="fill:#6B675F">¥240</text>
+
+  <!-- helper -->
+  <text x="160" y="418" text-anchor="middle" class="cap" style="fill:#B5852F">Nothing removed yet. “Keep both” saves both;</text>
+  <text x="160" y="432" text-anchor="middle" class="cap" style="fill:#B5852F">“Keep one” sets the dimmed card aside (undoable).</text>
+
+  <!-- a plain card below -->
+  <g filter="url(#sc)"><rect x="18" y="452" width="284" height="54" rx="16" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="463" width="42" height="16" rx="8" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="55" y="475" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="34" y="497" class="merch" style="font-size:14px">Ichiran Ramen</text>
+  <text x="286" y="497" text-anchor="end" class="amt" style="fill:#C8643C">¥1,480</text>
+
+  <!-- save all -->
+  <rect x="18" y="520" width="284" height="34" rx="16" fill="#1F6F5C"/>
+  <text x="160" y="542" text-anchor="middle" style="font:700 14px Georgia,serif;fill:#FFFFFF">Save all to trip</text>
+</svg>
+
+<!-- (d) MIXED REVIEW — fuse AND dup -->
+<svg width="320" height="600" viewBox="0 0 320 600" role="img" aria-label="Phone mockup (d): the review surface with a fuse group and a duplicate group both present, ending in one Save all, in BillOwl sketch theme">
+  <defs>
+    <filter id="sd" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#7A5A3C" flood-opacity="0.14"/></filter>
+    <style>
+      .merch{font:600 14px Georgia,serif;fill:#1B201D}
+      .amt{font:700 14px ui-monospace,SFMono-Regular,Menlo,monospace}
+      .cap{font:10.5px -apple-system,sans-serif;fill:#6B675F}
+      .badge{font:700 8.5px -apple-system,sans-serif;letter-spacing:.04em}
+      .grp{font:700 10px -apple-system,sans-serif}
+      .ollie{font:11.5px -apple-system,sans-serif;fill:#1B201D}
+    </style>
+  </defs>
+  <rect x="0" y="0" width="320" height="600" rx="26" fill="#F7F4EE"/>
+  <text x="160" y="30" text-anchor="middle" class="merch" style="font-size:16px">Review</text>
+  <line x1="18" y1="42" x2="302" y2="42" stroke="#E4DED2" stroke-width="1.5"/>
+
+  <!-- Ollie summary header -->
+  <rect x="18" y="52" width="284" height="32" rx="14" fill="#FFF8EC" stroke="#B5852F" stroke-width="1.4"/>
+  <circle cx="40" cy="68" r="11" fill="#B5852F" fill-opacity="0.18"/>
+  <text x="40" y="73" text-anchor="middle" style="font-size:12px">🦉</text>
+  <text x="58" y="72" class="ollie" style="font-weight:600">I tidied 4 inputs into 3 — 2 to look at.</text>
+
+  <!-- ===== GROUP 1: FUSE ===== -->
+  <rect x="18" y="94" width="284" height="116" rx="14" fill="#FFFBF3" stroke="#B5852F" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="28" y="86" width="132" height="18" rx="9" fill="#B5852F"/>
+  <text x="94" y="99" text-anchor="middle" class="grp" style="fill:#FFFFFF">⌥ COMBINED · receipt + note</text>
+  <!-- resolved bill -->
+  <g filter="url(#sd)"><rect x="30" y="110" width="260" height="50" rx="12" fill="#FFFFFF" stroke="#1F6F5C" stroke-width="1.6"/></g>
+  <rect x="42" y="120" width="34" height="36" rx="9" fill="#C8643C" fill-opacity="0.12"/>
+  <text x="59" y="143" text-anchor="middle" style="font-size:15px">🚕</text>
+  <text x="84" y="132" class="merch">Kyoto MK Taxi</text>
+  <text x="84" y="148" class="cap">Transport · ¥240 from your note</text>
+  <text x="278" y="140" text-anchor="end" class="amt" style="fill:#C8643C">¥240</text>
+  <!-- mini provenance + controls -->
+  <text x="42" y="178" class="cap" style="fill:#B5852F">made from 📷 receipt + ✏️ “taxi 240”</text>
+  <rect x="42" y="184" width="84" height="22" rx="11" fill="#1F6F5C"/>
+  <text x="84" y="199" text-anchor="middle" style="font:600 11px Georgia,serif;fill:#FFFFFF">✓ Combine</text>
+  <rect x="134" y="184" width="66" height="22" rx="11" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+  <text x="167" y="199" text-anchor="middle" style="font:600 11px Georgia,serif;fill:#1B201D">Split</text>
+
+  <!-- ===== GROUP 2: DUP ===== -->
+  <rect x="18" y="220" width="284" height="150" rx="14" fill="#FFFBF3" stroke="#B5852F" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="28" y="212" width="118" height="18" rx="9" fill="#B5852F"/>
+  <text x="87" y="225" text-anchor="middle" class="grp" style="fill:#FFFFFF">≈ SAME BILL TWICE</text>
+  <!-- survivor -->
+  <g filter="url(#sd)"><rect x="30" y="236" width="260" height="44" rx="12" fill="#FFFFFF" stroke="#1F6F5C" stroke-width="1.6"/></g>
+  <text x="42" y="258" class="merch">Ichiran Ramen</text>
+  <text x="42" y="272" class="cap">Food · today · 📷 photo</text>
+  <text x="278" y="263" text-anchor="end" class="amt" style="fill:#C8643C">¥1,480</text>
+  <!-- ollie bar -->
+  <rect x="30" y="286" width="260" height="20" rx="10" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.2"/>
+  <text x="42" y="300" class="cap" style="fill:#A8552C">🦉 might be the same — ≈ merchant, amount &amp; date</text>
+  <!-- set-aside -->
+  <g filter="url(#sd)"><rect x="30" y="310" width="260" height="34" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.4" opacity="0.92"/></g>
+  <text x="42" y="331" class="merch" style="fill:#6B675F;font-size:13px">Ramen (typed)</text>
+  <text x="278" y="332" text-anchor="end" class="amt" style="fill:#6B675F;font-size:13px">¥1,480</text>
+  <!-- controls -->
+  <rect x="42" y="350" width="84" height="14" rx="7" fill="#6B675F" fill-opacity="0.14"/>
+  <text x="84" y="361" text-anchor="middle" class="badge" style="fill:#6B675F">SET ASIDE IF KEPT 1</text>
+  <rect x="134" y="349" width="74" height="16" rx="8" fill="#1F6F5C"/>
+  <text x="171" y="361" text-anchor="middle" style="font:600 10px Georgia,serif;fill:#FFFFFF">Keep both</text>
+  <rect x="214" y="349" width="64" height="16" rx="8" fill="none" stroke="#6B675F" stroke-width="1.3"/>
+  <text x="246" y="361" text-anchor="middle" style="font:600 10px Georgia,serif;fill:#1B201D">Keep one</text>
+
+  <!-- ===== PLAIN CARD ===== -->
+  <g filter="url(#sd)"><rect x="18" y="380" width="284" height="48" rx="14" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/></g>
+  <rect x="34" y="390" width="40" height="15" rx="7" fill="#1F6F5C" fill-opacity="0.16"/>
+  <text x="54" y="401" text-anchor="middle" class="badge" style="fill:#1F6F5C">READY</text>
+  <text x="34" y="419" class="merch">Blue Bottle Coffee</text>
+  <text x="286" y="419" text-anchor="end" class="amt" style="fill:#C8643C">¥520</text>
+
+  <!-- progress + save all -->
+  <text x="160" y="452" text-anchor="middle" class="cap" style="fill:#B5852F">2 groups to confirm · pre-set to the safe choice</text>
+  <rect x="18" y="464" width="284" height="40" rx="18" fill="#1F6F5C"/>
+  <text x="160" y="489" text-anchor="middle" style="font:700 15px Georgia,serif;fill:#FFFFFF">Save all to trip · 3 bills</text>
+  <text x="160" y="524" text-anchor="middle" class="cap" style="fill:#6B675F">Combine + Keep both are pre-selected, so</text>
+  <text x="160" y="540" text-anchor="middle" class="cap" style="fill:#6B675F">“Save all” after a glance is two taps total.</text>
+
+  <!-- input still available -->
+  <rect x="18" y="556" width="284" height="30" rx="15" fill="#FFFFFF" stroke="#6B675F" stroke-opacity="0.4" stroke-width="1.4"/>
+  <text x="32" y="575" style="font-size:12px">＋</text>
+  <text x="54" y="575" class="cap">Add one more…  (re-tidies)</text>
+</svg>
+
+</div></div></div>
+<figcaption>Mockups <strong>(c)</strong> the carried dedup confirm — survivor pre-picked (pine ring), the other dimmed-but-intact (never red), <strong>Keep both</strong> the prominent safe one-tap; and <strong>(d)</strong> the mixed review — a fuse group <em>and</em> a duplicate group in the same scroll, each independently resolvable, a plain card flowing through, ending in one <strong>Save all</strong>. Both safe defaults are pre-set, so a clean batch is a glance plus two taps.</figcaption>
 
 <div class="legend">
-  <span><i class="sw" style="background:#1F6F5C"></i> pine — keep / positive / survivor</span>
+  <span><i class="sw" style="background:#1F6F5C"></i> pine — keep / combine / survivor / save</span>
   <span><i class="sw" style="background:#C8643C"></i> terra — Ollie / accent / amount</span>
-  <span><i class="sw" style="background:#B5852F"></i> sand-caution — tether bracket (not destructive)</span>
-  <span><i class="sw" style="background:#6B675F"></i> muted — set-aside (dimmed, undoable)</span>
-  <span><i class="sw" style="background:#B23A3A"></i> gate-red — reserved; never used to flag a dupe</span>
+  <span><i class="sw" style="background:#B5852F"></i> sand-caution — tether bracket + fuse seam (not destructive)</span>
+  <span><i class="sw" style="background:#6B675F"></i> muted — set-aside / split (dimmed, undoable)</span>
+  <span><i class="sw" style="background:#B23A3A"></i> gate-red — reserved; never used to flag a fuse/dup</span>
 </div>
 
-<div class="note"><strong>Money-safety reads, made literal.</strong> (1) <em>Keep both</em> is the filled pine button on the left — the easy, prominent path; <em>Keep one</em> is the quieter outline. (2) The set-aside card is dimmed grey, badged "SET ASIDE IF KEPT 1", and tagged with an <em>Undo</em> after commit — it is never styled in the destructive red BillOwl uses for real deletes. (3) Both amounts stay on screen in the monospaced money font; the survivor's ¥240 is visibly the same value it always had. (4) Nothing is removed at flag time — removal happens only on the explicit "keep one" tap, and even then it's reversible until the session is saved.</div>
+<div class="note"><strong>Money-safety reads, made literal.</strong> (1) The fused amount is tagged "<em>¥240 from your note</em>" — the user sees where the number came from; it is never silently stitched in. (2) <strong>Combine</strong> and <strong>Keep both</strong> (the non-destructive accepts) are the filled-pine, prominent buttons; <strong>Split</strong> and <strong>Keep one</strong> are the quieter outlines. (3) Nothing is removed at proposal time — a split or a set-aside is reversible until "Save all". (4) The bracket and seam use the <em>sand caution</em> stroke, never the destructive gate-red BillOwl reserves for real deletes. (5) If a fuse leaves no readable amount, the card shows the same red "amount required" gap a lone card shows today — Save stays disabled.</div>
 
 <!-- ============================================================= -->
-<h2>5 · Microcopy — Ollie's voice</h2>
-<p>Warm, first-person, never alarming. Ollie <em>notices</em>, never accuses. Wording softens for the lower-confidence same-details case and firms up for an exact same-photo match.</p>
+<h2>7 · Microcopy — Ollie's voice</h2>
+<p>Warm, first-person, never alarming. Ollie <em>notices</em> and <em>tidies</em>, never accuses or auto-acts. Firmer on an exact match, softer on a tentative one.</p>
 <div class="tscroll"><table>
   <tr><th>Moment</th><th>String</th></tr>
-  <tr><td>Pair, same photo (high confidence)</td><td><span class="copy">“This looks like the same photo twice. Keep one, or keep both?”</span></td></tr>
-  <tr><td>Pair, same details (lower confidence)</td><td><span class="copy">“These two might be the same bill. Keep both if they're separate.”</span></td></tr>
-  <tr><td>Reason chip — photo</td><td><span class="copy">📷 same photo</span></td></tr>
-  <tr><td>Reason chip — details</td><td><span class="copy">≈ same merchant, amount &amp; date</span></td></tr>
-  <tr><td>Group of 3+</td><td><span class="copy">“3 cards look like the same bill. Keep one, or keep them all?”</span></td></tr>
-  <tr><td>Primary button (safe)</td><td><span class="copy">Keep both</span> &nbsp;/&nbsp; <span class="copy">Keep all</span> (for 3+)</td></tr>
-  <tr><td>Secondary button</td><td><span class="copy">Keep one</span></td></tr>
-  <tr><td>Survivor tab</td><td><span class="copy">✓ Keep this one</span></td></tr>
-  <tr><td>Set-aside badge (pre-commit)</td><td><span class="copy">Set aside if kept 1</span></td></tr>
-  <tr><td>After “keep one” (collapsed strip)</td><td><span class="copy">“Set aside — not saved.”</span> + <span class="copy">Undo</span></td></tr>
-  <tr><td>After “keep both”</td><td>bracket dissolves silently; both cards just return to normal (no toast needed)</td></tr>
+  <tr><td>Done-adding bar (idle)</td><td><span class="copy">“Done adding? I’ll tidy these up.”</span> + button <span class="copy">Review N</span></td></tr>
+  <tr><td>Review header — work to do</td><td><span class="copy">“I tidied {in} inputs into {out} — {k} to look at.”</span></td></tr>
+  <tr><td>Review header — all clean</td><td><span class="copy">“All set — nothing looked doubled up.”</span> (review auto-collapses to plain cards + Save all)</td></tr>
+  <tr><td>Fuse proposed</td><td><span class="copy">“I combined a receipt with your note — looks like one bill.”</span></td></tr>
+  <tr><td>Fuse tab / seam</td><td><span class="copy">⌥ Combined into one</span> · provenance label <span class="copy">made from</span></td></tr>
+  <tr><td>Amount trace on a fuse</td><td><span class="copy">¥240 from your note</span> &nbsp;/&nbsp; <span class="copy">¥240 read from the receipt</span></td></tr>
+  <tr><td>Fuse buttons</td><td><span class="copy">✓ Combine</span> &nbsp;/&nbsp; <span class="copy">Split</span></td></tr>
+  <tr><td>After Split</td><td><span class="copy">“Split back into two — both kept.”</span> (no toast needed; cards just reappear)</td></tr>
+  <tr><td>Fuse left no amount (A7)</td><td><span class="copy">“I joined these, but neither had a total. What was the amount?”</span> → red <span class="copy">amount required</span></td></tr>
+  <tr><td>Dup pair, same photo (firm)</td><td><span class="copy">“This looks like the same photo twice. Keep one, or keep both?”</span></td></tr>
+  <tr><td>Dup pair, same details (soft)</td><td><span class="copy">“These two might be the same bill. Keep both if they’re separate.”</span></td></tr>
+  <tr><td>Dup reason chips</td><td><span class="copy">📷 same photo</span> &nbsp;/&nbsp; <span class="copy">≈ same merchant, amount &amp; date</span></td></tr>
+  <tr><td>Dup group of 3+</td><td><span class="copy">“3 cards look like the same bill. Keep one, or keep them all?”</span></td></tr>
+  <tr><td>Dup buttons</td><td><span class="copy">Keep both</span> / <span class="copy">Keep all</span> &nbsp;·&nbsp; <span class="copy">Keep one</span> &nbsp;·&nbsp; survivor tab <span class="copy">✓ Keep this one</span></td></tr>
+  <tr><td>Set-aside (pre / post)</td><td><span class="copy">Set aside if kept 1</span> → after: <span class="copy">“Set aside — not saved.”</span> + <span class="copy">Undo</span></td></tr>
+  <tr><td>Save with open groups</td><td><span class="copy">“Take a look at the {k} I flagged first.”</span> (Save all gently waits)</td></tr>
+  <tr><td>Final save</td><td><span class="copy">Save all to trip · {n} bills</span></td></tr>
 </table></div>
-<div class="note">Deliberately avoided words: <em>duplicate</em> (jargon-y, accusatory), <em>delete / remove / merge</em> (reads as destructive/automatic). Ollie says "the same bill", "set aside", "keep" — human, reversible, calm.</div>
+<div class="note">Deliberately avoided words: <em>duplicate</em> (jargon, accusatory), <em>merge / delete / remove</em> (reads destructive/automatic). Ollie says <em>tidy</em>, <em>combined</em>, <em>the same bill</em>, <em>set aside</em>, <em>keep</em>, <em>split</em> — human, reversible, calm. "Combine"/"Split" beat "merge"/"unmerge" — plain words for a plain action.</div>
 
 <!-- ============================================================= -->
-<h2>6 · Match tolerances — recommendations for tech</h2>
-<p>The confirm step is the safety net, so the scan should lean <strong>strict</strong> (minimize false positives — a missed dupe is recoverable later; a noisy false flag erodes trust). Hand-off recommendations:</p>
+<h2>8 · Match &amp; fuse tolerances — recommendations for tech</h2>
+<p>The confirm step is the safety net, so detection should lean <strong>strict</strong>: a missed fuse/dup is recoverable (the user fixes it by hand, as today); a noisy false flag erodes trust. Dedup tolerances carry from F5 unchanged; fusion adds new ones.</p>
 <div class="tscroll"><table>
   <tr><th>Signal</th><th>Recommendation</th><th>Rationale</th></tr>
-  <tr><td><strong>Same photo</strong></td><td>Identity of the picked <code>PhotosPickerItem</code> asset first (same <code>localIdentifier</code> / asset ID); fall back to a perceptual/diff hash of the downscaled JPEG for the case where the same image is added via two different picks. Treat as <em>high confidence</em>.</td><td>Asset identity is exact and free. A hash catches re-encodes. Either way it's the same pixels → safe to flag firmly.</td></tr>
-  <tr><td><strong>Merchant</strong></td><td>Normalized exact match: trim, case-fold, collapse whitespace, strip trailing punctuation. <em>Not</em> fuzzy/substring in v1.</td><td>"Taxi" vs "taxi " should match; fuzzy matching ("MK Taxi" vs "Taxi") risks false flags — confirm can't fully rescue a noisy scan.</td></tr>
-  <tr><td><strong>Amount</strong></td><td>Exact equality on the <code>Decimal</code> (same currency). No tolerance band.</td><td>Money is exact in BillOwl; "close" amounts are genuinely different bills.</td></tr>
-  <tr><td><strong>Date</strong></td><td>Same <strong>calendar day</strong> in the journal's locale. A card with <em>no</em> date does not match on the date signal (it can still match by photo).</td><td>Receipts photographed/typed for the same outing share a day; time-of-day is noise.</td></tr>
-  <tr><td><strong>Combination</strong></td><td>Flag when (same-photo) <strong>OR</strong> (merchant AND amount AND date all match). All three required for the details path.</td><td>Matches the locked rule; "all three" keeps the details path strict so two real ¥30 coffees at different shops never flag.</td></tr>
-  <tr><td><strong>When to scan</strong></td><td>Run the pairwise scan whenever a card enters <code>review</code> (and re-run if an edit changes merchant/amount/date). Operates on the in-memory staged set only — instant on a handful of cards.</td><td>Keeps detection live as the user edits, with no perceptible delay (PRD perf constraint).</td></tr>
+  <tr><td><strong>Dup — same photo</strong></td><td>Asset <code>localIdentifier</code> first; perceptual/diff hash of the downscaled JPEG as fallback. High confidence.</td><td>Asset identity is exact and free; the hash catches re-encodes of the same pixels.</td></tr>
+  <tr><td><strong>Dup — details</strong></td><td>Flag on (merchant normalized-exact) AND (amount exact <code>Decimal</code>, same currency) AND (same calendar day). No fuzzy/substring, no amount band.</td><td>Carried from F5. All three keeps the path strict; two real ¥30 coffees never flag.</td></tr>
+  <tr><td><strong>Fuse — pairing</strong></td><td>Pair a card <em>missing a key field</em> (esp. amount) with a card that <em>supplies exactly that field</em>, when the others are <em>compatible</em>: merchant/category align (or one side is blank) and dates are same-day or one is undated. A note with only an amount + a noun ("taxi 240") pairs with a same-category amountless photo.</td><td>Fusion is "these complete each other," not "these are equal." The complementary-gap signal is what distinguishes a fuse from a dup.</td></tr>
+  <tr><td><strong>Fuse — amount provenance</strong></td><td>The fused amount is taken verbatim from whichever source had it; if both have a (different) amount, do <strong>not</strong> auto-fuse — that's a conflict, leave them separate (or flag as a possible dup if equal).</td><td>Money safety (A7): never reconcile two conflicting numbers silently; never average or pick.</td></tr>
+  <tr><td><strong>Fuse — confidence floor</strong></td><td>Only propose when the complementary match is strong (same category + same-day + one clear gap filled). Below that, leave both cards separate — the user can fuse by hand.</td><td>A false fuse touches money; bias hard toward not proposing over proposing wrongly.</td></tr>
+  <tr><td><strong>When it runs</strong></td><td>On <strong>Done adding</strong>, over the in-memory held set (post-extraction). Re-run if the user adds more after a review or edits a flagged card's key fields.</td><td>Fusion needs the whole batch; Done-adding is the natural barrier. Instant on a handful of cards.</td></tr>
 </table></div>
-<div class="note"><strong>Edge:</strong> a card still <code>clarifying</code> or missing its amount is <em>not</em> eligible for a details-match (you can't compare a gap). It can still match by photo. This avoids flagging two half-read cards as "the same".</div>
+<div class="note"><strong>Edge:</strong> a card still <code>extracting</code> / <code>clarifying</code> isn't eligible for a <em>details</em> dup-match (can't compare a gap), but its gap is exactly what makes it a <em>fuse</em> candidate. Keep the two scans distinct: dup matches on sameness, fuse matches on complementarity.</div>
 
 <!-- ============================================================= -->
-<h2>7 · PRD ambiguities &amp; assumptions</h2>
+<h2>9 · Open questions for tech</h2>
 <ul>
-  <li><strong>Groups of 3+ rendering (PRD open Q).</strong> Assumed: one bracket over all N cards, one decision — <em>keep one</em> (with a survivor chooser) or <em>keep all</em>. Not nested pairwise prompts. Lighter and avoids a combinatorial mess.</li>
-  <li><strong>"Keep one" survivor default (unspecified).</strong> Assumed the rules in §3.1 (photo→first; details→more-complete, then photo-sourced). Always overridable with one tap before commit.</li>
-  <li><strong>Reversibility after "keep one" (unspecified).</strong> Assumed a set-aside card stays visible + <em>Undo</em>-able until the session is saved (then simply never written) — strengthens A5's "explicit tap" with a safety net, no new persistence.</li>
-  <li><strong>Same-details confidence wording (PRD treats both matches the same).</strong> Assumed two confidence tiers in copy only (photo = firm, details = tentative "might be"); the action set is identical. No behavioral change, just tone — keeps false-flag trust intact.</li>
-  <li><strong>Whether the matched-fields reason must be shown (unspecified).</strong> Assumed yes — a small reason chip ("≈ same merchant, amount &amp; date" / "📷 same photo") so the user can judge, satisfying the "show why they matched" intent without a separate detail view.</li>
+  <li><strong>Where fuse/dedup runs — client vs server batch endpoint.</strong> Dedup is cheap and deterministic → fine on-device over the staged cards (as F5 assumed). <strong>Fusion is reasoning</strong> ("does this note complete this photo?") and the agent already lives server-side — a <strong>batch endpoint</strong> (post the whole held set, get back proposed fuses + dup groups) is likely cleaner and keeps the AI-first principle. Tech to decide: one new <code>POST /v1/untangle</code> over the session vs. a client-side heuristic pre-pass with server only for the ambiguous fuses. The PRD explicitly allows a server change here.</li>
+  <li><strong>Match/fuse tolerances</strong> (the exact thresholds in §8) — especially the fuse confidence floor and what "compatible merchant/category" means precisely. Needs a small labelled sample from beta data to tune.</li>
+  <li><strong>Held-state persistence.</strong> If the app is backgrounded mid-batch (before Done adding), are held cards + their source images restored on return? Recommend yes for photos already uploaded; tech to scope against the session model.</li>
+  <li><strong>Re-tidy after adding more.</strong> When the user adds an input <em>after</em> a review, does the whole batch re-scan or only the new card against the set? Recommend incremental (new card vs. existing) to avoid re-proposing already-resolved groups.</li>
+  <li><strong>Provenance after Save.</strong> Does a saved fused bill keep its source links (photo + note) in <code>BillRecord</code> for later inspection, or is provenance review-only? Affects the schema.</li>
 </ul>
 
-<div class="foot">Artifact: <code>design/dedup/DESIGN.html</code> · Pipeline F5 · grounds in <code>BillMind/Views/Record/*</code>, <code>BillMind/Agent/*</code>, <code>BillMind/Theme/SketchTheme.swift</code> · within the 3 locked PM decisions (PRD §4) · next: Gate 1 → Tech Document.</div>
+<!-- ============================================================= -->
+<h2>10 · PRD ambiguities &amp; assumptions</h2>
+<ul>
+  <li><strong>"Done adding" with one input (PRD A6 vs. the batch model).</strong> Assumed: a lone clean card never <em>requires</em> Done-adding — its own Save still works, and the Done bar just collapses the (trivial) review. The batch step is opt-in pressure, not a mandatory gate, so the single-capture path is unchanged. <em>Flagged for PM.</em></li>
+  <li><strong>Whether held cards show per-card Save while adding (unspecified).</strong> Assumed per-card Save is <em>paused</em> in adding mode (you save the whole tidied batch), but a single card with no batch around it keeps its instant Save — preserving today's fast path. Keeps "the agent reasons over the batch" honest without trapping a one-off capture.</li>
+  <li><strong>Conflicting amounts on a fuse candidate (PRD silent).</strong> Assumed: if two inputs both carry a <em>different</em> amount, Ollie does <strong>not</strong> fuse (it's a conflict, not a completion) — leaves them separate. Strictest money-safe reading of A7.</li>
+  <li><strong>Fuse provenance persistence (PRD open).</strong> Assumed review-only for v1 (the seam exists until Save; the saved bill is a normal single bill) unless tech finds keeping the links cheap. Avoids a schema change in v1.</li>
+  <li><strong>Manual fuse gesture (PRD "user-directed" option).</strong> Assumed kept as an <em>optional</em> drag-to-combine fallback, still propose-and-confirm, out of v1 unless cheap — so the primary path stays agent-proposed.</li>
+</ul>
+
+<div class="foot">Artifact: <code>design/dedup/DESIGN.html</code> · Smart Multi-Input Capture (F5+) · grounds in <code>BillMind/Views/Record/*</code> (RecordView, AgentCardView, RecordCoordinator), <code>BillMind/Agent/*</code> (CardState, RecordingSession), <code>BillMind/Theme/SketchTheme.swift</code> · within the locked PM money rule + decisions (PRD §4) · next: Gate 1 → Tech Document.</div>
 </div>
 </body>
 </html>
