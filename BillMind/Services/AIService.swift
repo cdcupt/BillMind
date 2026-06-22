@@ -312,6 +312,91 @@ struct APICaptureResponse: Codable, Sendable {
     var allCards: [APICard] { cards ?? card.map { [$0] } ?? [] }
 }
 
+// MARK: - Untangle (held-batch reasoning hop) — wire DTOs
+//
+// Mirror `server/Sources/App/UntangleDTOs.swift` EXACTLY (the frozen seam). The
+// held batch sends cards the client already holds (no image bytes — only a
+// `photoHash` for same-photo dedup) and gets back a PLAN over those cards: which
+// are one bill (fuse), which are the same bill (dup), which are clean. The save
+// path is unchanged; this returns a plan only.
+
+/// One held card the client asks the server to reason about. Carries the
+/// recognized `draft` plus the optional note/photo provenance signals.
+struct APIUntangleInput: Encodable, Sendable {
+    let cardID: UUID
+    let draft: APIBillDraft
+    let hasPhoto: Bool
+    let noteText: String?
+    let photoHash: String?
+    let photoAssetID: String?
+
+    init(cardID: UUID, draft: APIBillDraft, hasPhoto: Bool = false,
+         noteText: String? = nil, photoHash: String? = nil, photoAssetID: String? = nil) {
+        self.cardID = cardID
+        self.draft = draft
+        self.hasPhoto = hasPhoto
+        self.noteText = noteText
+        self.photoHash = photoHash
+        self.photoAssetID = photoAssetID
+    }
+}
+
+struct APIUntangleRequest: Encodable, Sendable {
+    let tripID: UUID
+    /// The device's local date (yyyy-MM-dd) so the server resolves relative dates
+    /// against the user's calendar, not its own UTC clock.
+    let clientDate: String?
+    let inputs: [APIUntangleInput]
+
+    init(tripID: UUID, clientDate: String? = APICaptureRequest.localDateString(),
+         inputs: [APIUntangleInput]) {
+        self.tripID = tripID
+        self.clientDate = clientDate
+        self.inputs = inputs
+    }
+}
+
+/// Where the (single) amount on a fused card came from. `nil` ⇒ no card supplied
+/// the amount → the client renders "amount required" and never invents one.
+struct APIAmountTrace: Codable, Sendable, Equatable {
+    let sourceCardID: UUID
+    let field: String   // e.g. "amount" — the member-card field the value traces to
+}
+
+/// Several cards that together describe ONE bill (e.g. a partial photo completed
+/// by a note). `resolvedDraft` is assembled field-by-field from member cards; its
+/// amount is byte-equal to one member's amount (or omitted), traced by `amountTrace`.
+struct APIFuseGroup: Codable, Sendable {
+    let groupID: UUID
+    let sourceCardIDs: [UUID]
+    let resolvedDraft: APIBillDraft
+    let amountTrace: APIAmountTrace?
+    let reason: String
+    let confidence: Double
+}
+
+/// Several cards that are the SAME bill (duplicates). `survivorCardID` is the one
+/// to keep; the rest are set aside (never persisted — no delete). `tier` records
+/// how the duplicate was detected ("samePhoto" | "sameDetails").
+struct APIDuplicateGroup: Codable, Sendable {
+    let groupID: UUID
+    let memberCardIDs: [UUID]
+    let survivorCardID: UUID
+    let tier: String
+    let reason: String
+}
+
+/// The untangle plan. Partition invariant: every input cardID appears in EXACTLY
+/// one of fuseGroups / duplicateGroups / cleanCardIDs (the server guarantees it;
+/// the client also validates against its live cards and fails open if not).
+struct APIUntangleResponse: Codable, Sendable {
+    let declined: Bool
+    let message: String?
+    let fuseGroups: [APIFuseGroup]
+    let duplicateGroups: [APIDuplicateGroup]
+    let cleanCardIDs: [UUID]
+}
+
 // Stats
 struct APICategoryTotal: Codable, Sendable {
     let category: String
@@ -456,9 +541,12 @@ protocol SyncAPI: Sendable {
 extension APIClient: SyncAPI {}
 
 /// Server-side capture the Record flow needs, abstracted for testing. APIClient
-/// conforms via its existing `recognize`.
+/// conforms via its existing `recognize` + `untangle`.
 protocol RecognitionAPI: Sendable {
     func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse
+    /// The held-batch reasoning hop: a PLAN over cards the client already holds.
+    /// Text-only (no image bytes); the save path is unchanged.
+    func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse
 }
 
 extension APIClient: RecognitionAPI {}
@@ -552,6 +640,12 @@ actor APIClient {
 
     func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse {
         try await post("v1/recognition", body: req)
+    }
+
+    /// The held-batch reasoning hop. Reuses the same auth/transport as recognition;
+    /// the body is text-only (no image bytes), so the global body cap is fine.
+    func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse {
+        try await post("v1/untangle", body: req)
     }
 
     /// Server-side Mind generation (Gemini image gen with the app's own key).

@@ -19,6 +19,12 @@ final class RecordCoordinator {
     @ObservationIgnored private let sync: SyncCoordinator?
     /// Source images kept in memory for retry; not persisted, not observed.
     @ObservationIgnored private var sourceImages: [UUID: UIImage] = [:]
+    /// Per-card dedup signals supplied to untangle: a perceptual photoHash and/or
+    /// the photo-library asset id for same-photo confirmation, and the raw note text
+    /// for text cards. Merchant/amount/date already ride in the draft. Not observed.
+    @ObservationIgnored private var photoHashes: [UUID: String] = [:]
+    @ObservationIgnored private var photoAssetIDs: [UUID: String] = [:]
+    @ObservationIgnored private var noteTexts: [UUID: String] = [:]
 
     /// User-facing extraction error (e.g. provider failure), shown then cleared.
     var errorMessage: String?
@@ -45,6 +51,39 @@ final class RecordCoordinator {
     /// Visible cards (discarded ones hidden), newest last.
     var cards: [AgentCard] { session.cards.filter { $0.state != .discarded } }
 
+    // MARK: - Held-batch surface (consumed by the review UI slice)
+
+    /// The held-batch phase. `.adding` while inputs are still being dropped;
+    /// `.untangling` during the round-trip; `.reviewing` once a plan (or degrade)
+    /// is in. Drives the "Ollie is tidying…" overlay and the review surface.
+    var batchPhase: BatchPhase { session.batchPhase }
+
+    /// The untangle plan as views over held cards. The UI renders one row per group
+    /// (`FuseProposalView` / `DuplicateGroupView`) and one per `plainReviewCardIDs`.
+    var groups: [UntangleGroup] { session.groups }
+
+    /// Held cards no group claims — rendered as plain `AgentCardView` review rows.
+    var plainReviewCards: [AgentCard] {
+        let ids = Set(session.plainReviewCardIDs)
+        return session.cards.filter { ids.contains($0.id) }
+    }
+
+    /// True while a held batch exists — the per-card "Save" is paused (the user
+    /// saves the whole reviewed batch via `confirmAll`). Single clean inputs stay
+    /// `.adding` and keep their instant per-card Save (the A6 fast path).
+    var isBatchActive: Bool { session.hasActiveBatch }
+
+    /// Whether the UI should offer the instant per-card "Save" on a card. Held while
+    /// a batch exists (save the whole reviewed batch instead); always on otherwise,
+    /// which is what keeps single-capture byte-for-byte unchanged.
+    var allowsPerCardSave: Bool { !session.hasActiveBatch }
+
+    /// Whether the sticky "Done adding" bar should show — only with more than one
+    /// held card still in `.adding`. A lone input never sees it (A6 fast path).
+    var showsDoneAddingBar: Bool {
+        session.batchPhase == .adding && cards.count > 1
+    }
+
     var currencySymbol: String {
         CurrencyInfo.popular.first { $0.code == journal.currency }?.symbol ?? journal.currency
     }
@@ -59,6 +98,7 @@ final class RecordCoordinator {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let id = session.enqueue(source: .text)
+        noteTexts[id] = trimmed   // dedup/fusion signal for untangle
         // No synced trip → can't reach the server; deterministic local fallback.
         guard let tripID = journal.serverID else {
             completeLocally(text: trimmed, cardID: id)
@@ -138,6 +178,7 @@ final class RecordCoordinator {
         for image in images {
             let id = session.enqueue(source: .photo)
             sourceImages[id] = image
+            photoHashes[id] = image.perceptualHashHex()   // same-photo dedup signal
             guard session.beginExtraction(cardID: id) else {
                 errorMessage = "Session limit reached — start a new session."
                 continue
@@ -189,6 +230,110 @@ final class RecordCoordinator {
         Task { await extract(image: image, cardID: cardID, tripID: tripID) }
     }
 
+    // MARK: - Held batch (Done adding → untangle → review)
+
+    /// Commit the held cards to a batch and run the untangle reasoning hop. Gathers
+    /// each held card's draft + dedup signals (photoHash/assetID for photos, noteText
+    /// for text) — no image bytes — calls `RecognitionAPI.untangle`, then builds the
+    /// review groups. On error/timeout (or no synced trip) it degrades straight to
+    /// review with plain held cards, where per-card Save still works.
+    func markDoneAdding() {
+        // Untangle reasons only over cards that actually reached `.review` (recognized
+        // + held). Placeholder/in-flight cards (intake/extracting/clarifying) and
+        // terminal ones (failed/discarded/recorded) are excluded so a plan is never
+        // built from incomplete drafts. A lone reviewed input takes the fast path → no-op.
+        // (If extractions are still in flight when Done-adding is tapped, only the
+        // already-review cards are sent — acceptable for v1; we don't block on in-flight.)
+        guard session.cards.filter({ $0.state == .review }).count > 1 else { return }
+        guard let tripID = journal.serverID else {
+            session.markDoneAdding()
+            session.degradeToReview()      // can't reach the server → plain review
+            return
+        }
+        let inputs = heldUntangleInputs()
+        session.markDoneAdding()
+        Task { await runUntangle(tripID: tripID, inputs: inputs) }
+    }
+
+    private func heldUntangleInputs() -> [APIUntangleInput] {
+        // Only fully-recognized, held cards feed untangle — never a placeholder/in-flight
+        // draft (intake/extracting/clarifying) or a terminal one (failed/discarded).
+        session.cards.filter { $0.state == .review }.map { card in
+            let d = card.draft
+            return APIUntangleInput(
+                cardID: card.id,
+                draft: APIBillDraft(merchant: d.merchant, amount: d.amount,
+                                    currencyCode: d.currencyCode, categoryRaw: d.categoryRaw,
+                                    date: d.date, source: d.source.rawValue),
+                hasPhoto: card.draft.source == .photo,
+                noteText: noteTexts[card.id],
+                photoHash: photoHashes[card.id],
+                photoAssetID: photoAssetIDs[card.id])
+        }
+    }
+
+    private func runUntangle(tripID: UUID, inputs: [APIUntangleInput]) async {
+        do {
+            let response = try await recognizer.untangle(
+                APIUntangleRequest(tripID: tripID, inputs: inputs))
+            if response.declined {
+                declineMessage = response.message ?? "I can only help with travel and money."
+                session.degradeToReview()
+                return
+            }
+            session.applyUntangle(response)
+        } catch {
+            // Degrade: plain held cards, per-card Save still works; surface the error.
+            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            session.degradeToReview()
+        }
+    }
+
+    // MARK: - Group resolution (each returns groups to plain review cards)
+
+    func combine(groupID: UUID) { _ = session.combine(groupID: groupID) }
+    func split(groupID: UUID) { session.split(groupID: groupID) }
+    func keepOne(groupID: UUID, survivor: UUID) { session.keepOne(groupID: groupID, survivor: survivor) }
+    func keepBoth(groupID: UUID) { session.keepBoth(groupID: groupID) }
+
+    /// Save the whole reviewed batch: one `BillRecord` per plain review card and per
+    /// accepted fuse (accepted fuses are already plain review cards by the time this
+    /// runs), via the unchanged `persist` mapping. Set-aside duplicates are not
+    /// persisted. Each row is gated by the existing amount/acknowledge guards; a row
+    /// that can't save (e.g. a fused card with `amountTrace == nil` → amount nil) is
+    /// left in review and reported, so the user resolves it without losing the rest.
+    ///
+    /// Crucially, cards still **claimed by a pending fuse/duplicate group are never
+    /// persisted** — the money rule (nothing saved/dropped without resolution). Until
+    /// the user resolves a group (combine/split/keepOne/keepBoth), its member cards are
+    /// reported as blocked, so "Save all" effectively blocks until every group is
+    /// touched. Only plain review cards (unclaimed + cards materialized by an accepted
+    /// combine/keepOne/keepBoth) are written here.
+    /// Returns the ids of rows that could NOT be saved (empty ⇒ all saved).
+    @discardableResult
+    func confirmAll(acknowledging: Bool = false) -> [UUID] {
+        var blocked: [UUID] = []
+        // Member cards of any still-pending group are NOT saved — block until resolved.
+        // (A discarded/set-aside member is already excluded by activeCardIDs.)
+        let claimed = Set(session.groups.flatMap { $0.memberCardIDs })
+        let claimedReviewable = session.cards
+            .filter { $0.state == .review && claimed.contains($0.id) }
+            .map(\.id)
+        blocked.append(contentsOf: claimedReviewable)
+        // Snapshot the unclaimed plain review ids first; persist() mutates session
+        // state as it goes. `plainReviewCardIDs` is exactly the set no group owns.
+        let plainReviewIDs = Set(session.plainReviewCardIDs)
+        let reviewableIDs = session.cards
+            .filter { $0.state == .review && plainReviewIDs.contains($0.id) }
+            .map(\.id)
+        for id in reviewableIDs {
+            if confirm(cardID: id, acknowledging: acknowledging) != .recorded {
+                blocked.append(id)
+            }
+        }
+        return blocked
+    }
+
     // MARK: - Clarify / edit
 
     func answer(cardID: UUID, field: BillField, value: ClarificationValue) {
@@ -219,6 +364,19 @@ final class RecordCoordinator {
 
     @discardableResult
     func confirm(cardID: UUID, acknowledging: Bool = false) -> ConfirmOutcome {
+        // Money rule: the per-card Save must NOT bypass the batch's group protections.
+        // A card claimed by any still-pending fuse/duplicate group is never persisted
+        // here — the only way to save a grouped member is to resolve its group first
+        // (combine/split/keepOne/keepBoth), which returns it (or a new card) to plain
+        // review. While a batch is active, only current plain-review cards may save via
+        // this path; everything else mirrors how `confirmAll` skips claimed members.
+        // The single-input fast path (no active batch) is unaffected.
+        if session.hasActiveBatch {
+            let claimed = Set(session.groups.flatMap { $0.memberCardIDs })
+            if claimed.contains(cardID) || !session.plainReviewCardIDs.contains(cardID) {
+                return .notReviewable
+            }
+        }
         do {
             let effect = try session.confirm(cardID: cardID, acknowledging: acknowledging)
             if case .persist(let id) = effect, let card = session.card(id) {
@@ -301,5 +459,35 @@ extension UIImage {
         return UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
             draw(in: CGRect(origin: .zero, size: newSize))
         }
+    }
+
+    /// A 64-bit average-hash (aHash) perceptual fingerprint as a 16-char hex string.
+    /// Downscales to 8×8 grayscale and marks each pixel above the mean — robust to
+    /// re-encoding/scaling so two captures of the same receipt hash near-identically.
+    /// This is a *signal only*: the server confirms same-photo; the client never
+    /// decides a duplicate on its own. Returns `nil` if the image can't be rasterized.
+    func perceptualHashHex() -> String? {
+        let side = 8
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let small = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { _ in
+            draw(in: CGRect(x: 0, y: 0, width: side, height: side))
+        }
+        guard let cg = small.cgImage else { return nil }
+
+        let count = side * side
+        var pixels = [UInt8](repeating: 0, count: count)
+        let gray = CGColorSpaceCreateDeviceGray()
+        guard let ctx = CGContext(data: &pixels, width: side, height: side,
+                                  bitsPerComponent: 8, bytesPerRow: side,
+                                  space: gray, bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: side, height: side))
+
+        let mean = pixels.reduce(0) { $0 + Int($1) } / count
+        var bits: UInt64 = 0
+        for (i, p) in pixels.enumerated() where Int(p) >= mean {
+            bits |= (1 << UInt64(i))
+        }
+        return String(format: "%016llx", bits)
     }
 }
