@@ -427,7 +427,8 @@ struct FuseProposalView: View {
 
     private var dateLabel: String { resolved.date?.relativeLabel ?? "no date" }
     private var amountLabel: String {
-        amountMissing ? "amount required" : "\(coordinator.currencySymbol)\(resolved.amount!.formatted2)"
+        guard let amount = resolved.amount else { return "amount required" }
+        return "\(coordinator.currencySymbol)\(amount.formatted2)"
     }
     /// "¥240 from your note" / "¥240 read from the receipt" — Ollie's money-trace copy.
     private var amountTraceLabel: String? {

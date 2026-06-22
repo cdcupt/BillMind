@@ -728,9 +728,14 @@ private struct UntangleReviewPreviewHost: View {
 }
 
 #Preview("Untangle review") {
-    let container = try! ModelContainer(
-        for: Schema(BillMindSchemaV2.models),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container: ModelContainer
+    do {
+        container = try ModelContainer(
+            for: Schema(BillMindSchemaV2.models),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    } catch {
+        fatalError("preview: \(error)")
+    }
     let coordinator = RecordCoordinator.previewReviewing(modelContext: container.mainContext)
     return UntangleReviewPreviewHost(coordinator: coordinator)
 }
