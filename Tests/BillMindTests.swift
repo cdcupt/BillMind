@@ -2031,22 +2031,22 @@ private struct RecordReviewSnapshotView: View {
 /// locale-neutral string that round-trips back through `Decimal(string:)` on Set
 /// (no grouping separators, `.` decimal).
 final class AmountEditorSeedTests: XCTestCase {
-    func testSeedsWholeAmountWithoutGroupingSeparators() {
-        XCTAssertEqual(EditDrawerView.seedString(for: dec("2840")), "2840")
+    func testSeedsWholeAmountWithoutGroupingSeparators() throws {
+        XCTAssertEqual(EditDrawerView.seedString(for: try dec("2840")), "2840")
     }
 
-    func testSeedsFractionalAmount() {
-        XCTAssertEqual(EditDrawerView.seedString(for: dec("12.5")), "12.5")
+    func testSeedsFractionalAmount() throws {
+        XCTAssertEqual(EditDrawerView.seedString(for: try dec("12.5")), "12.5")
     }
 
-    func testSeedRoundTripsBackThroughDecimalString() {
+    func testSeedRoundTripsBackThroughDecimalString() throws {
         for raw in ["2840", "12.5", "0.99", "1000000"] {
-            let amount = dec(raw)
+            let amount = try dec(raw)
             let seed = EditDrawerView.seedString(for: amount)
             XCTAssertEqual(Decimal(string: seed), amount,
                            "seed \"\(seed)\" for \(raw) must parse back to the same Decimal")
         }
     }
-}
 
-private func dec(_ s: String) -> Decimal { Decimal(string: s)! }
+    private func dec(_ s: String) throws -> Decimal { try XCTUnwrap(Decimal(string: s)) }
+}
