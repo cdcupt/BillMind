@@ -311,6 +311,23 @@ struct RecordingSession: Sendable {
         batchPhase = .reviewing
     }
 
+    /// Return the session to a fresh, empty `adding` state after a batch was **fully
+    /// saved**. Drops every now-`recorded` card from the live list (their `BillRecord`s
+    /// are already persisted by the host, so the session no longer needs them — keeping
+    /// them would leave the Record tab showing a blank "Save all · 0 bills" screen), and
+    /// clears the resolved groups. Only the coordinator calls this, and only when
+    /// `confirmAll` reported no blocked rows and no non-terminal cards remain — so a
+    /// partial save (any clarifying/grouped/failed card still pending) never resets.
+    ///
+    /// `discarded` (set-aside) cards are dropped too: they are terminal, never persisted,
+    /// and a fresh `adding` session must start with nothing lingering. Any non-terminal
+    /// card is preserved as a guard — this method is a no-op-on-content when work remains.
+    mutating func resetAfterFullSave() {
+        cards.removeAll { $0.state.isTerminal }
+        groups = []
+        batchPhase = .adding
+    }
+
     /// Held card ids the untangle plan did NOT claim — they render as plain review
     /// rows. This is the fail-open surface: a card that actually reached `.review`
     /// and is unaccounted for by any group lands here. Only `.review` cards qualify

@@ -1607,6 +1607,110 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertEqual(sent, reviewIDs)                  // only .review cards sent
         XCTAssertFalse(sent.contains(failedID))          // failed card excluded
     }
+
+    /// REGRESSION (the "Save all · 0 bills" stuck screen): after a clean, complete
+    /// Save-all the session must RESET to a fresh `.adding` input — not stay parked in
+    /// `.reviewing` with every card now `.recorded` and the savable surface empty. Two
+    /// plain `.review` cards, no groups → `confirmAll` reports nothing blocked, both
+    /// bills persist, and the Record tab returns to empty so the next bill can be added.
+    func testFullSaveResetsToAddingAndClearsCards() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        // No groups: the plan returns clean so both cards stay as plain review rows.
+        let mock = MockUntangleAPI(.plan(APIUntangleResponse(declined: false, message: nil,
+            fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("Taxi 2000 yen")
+        coord.submitText("Hotel 9000 yen")
+        await waitUntil("both cards reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
+        let savedIDs = Set(coord.cards.map(\.id))
+
+        coord.markDoneAdding()
+        await waitUntil("untangle round-trip") { coord.batchPhase == .reviewing }
+        XCTAssertEqual(coord.plainReviewCards.count, 2)
+
+        let blocked = coord.confirmAll(acknowledging: true)
+        XCTAssertTrue(blocked.isEmpty)                              // clean, complete save
+
+        // The session is fresh again: empty input, back in `.adding`.
+        XCTAssertEqual(coord.batchPhase, .adding)
+        XCTAssertTrue(coord.cards.isEmpty)                          // no stale recorded cards linger
+        XCTAssertTrue(coord.reviewSurfaceCards.isEmpty)            // savable/review surface emptied
+        XCTAssertTrue(coord.plainReviewCards.isEmpty)
+        let saved = Set(coord.session.recordedCards.map(\.id))
+        XCTAssertTrue(saved.isDisjoint(with: savedIDs),            // recorded cards removed, not left behind
+                      "saved cards must be dropped from the live session after a full save")
+
+        // …and the bills WERE persisted (2 BillRecords) — the reset never touches the DB.
+        let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(bills.count, 2)
+    }
+
+    /// A PARTIAL save must NOT reset: when `confirmAll` returns blocked ids (here, a
+    /// still-pending fuse group whose members can't save until it's resolved), the batch
+    /// stays in `.reviewing` and the unsaved cards remain visible so the user can finish.
+    func testPartialSaveStaysInReviewing() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        // Fuse both inputs into ONE pending group; leaving it unresolved blocks the save.
+        let fusedAmount = try XCTUnwrap(Decimal(string: "1500"))
+        let mock = MockUntangleAPI(.fuseAll(amount: fusedAmount, merchant: "Lunch"))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("Lunch 1200 yen")
+        coord.submitText("Same lunch, the drink")
+        await waitUntil("both cards reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
+        let memberIDs = Set(coord.cards.map(\.id))
+
+        coord.markDoneAdding()
+        await waitUntil("untangle round-trip") { coord.groups.count == 1 }
+        XCTAssertEqual(coord.groups.count, 1)                      // one PENDING group
+
+        // Save-all WITHOUT resolving the group → members blocked, no reset.
+        let blocked = coord.confirmAll(acknowledging: true)
+        XCTAssertEqual(Set(blocked), memberIDs)                    // grouped members blocked
+        XCTAssertEqual(coord.batchPhase, .reviewing)              // stayed in review, NOT reset
+        XCTAssertEqual(coord.groups.count, 1)                     // group still pending
+        // The unsaved cards are still present and visible to finish.
+        XCTAssertEqual(Set(coord.session.cards.map(\.id)), memberIDs)
+        XCTAssertTrue(try ctx.fetch(FetchDescriptor<BillRecord>()).isEmpty)   // nothing persisted
+    }
+
+    /// Single-input fast path (no batch): a per-card Save records the card and persists
+    /// its bill, and the saved card must not linger in the Record input list — the phase
+    /// stays `.adding`, ready for the next capture, with the input fresh again.
+    func testSingleCardSaveLeavesNoStaleCard() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = MockUntangleAPI(.plan(APIUntangleResponse(declined: false, message: nil,
+            fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("Coffee 480 yen today")
+        await waitUntil("recognize Task settles to .review") { coord.cards.first?.state == .review }
+        let id = try XCTUnwrap(coord.cards.first?.id)
+        XCTAssertEqual(coord.cards.count, 1)
+        XCTAssertTrue(coord.allowsPerCardSave)                     // single input → per-card Save on
+
+        let outcome = coord.confirm(cardID: id)
+        XCTAssertEqual(outcome, .recorded)
+
+        // No stale card lingers in the input; we never left `.adding`.
+        XCTAssertTrue(coord.cards.isEmpty,
+                      "a recorded card must not stay in the Record input after a per-card save")
+        XCTAssertFalse(coord.cards.contains { $0.id == id })
+        XCTAssertEqual(coord.batchPhase, .adding)
+        let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(bills.count, 1)                             // the bill WAS persisted
+    }
 }
 
 // MARK: - Untangle review UI snapshot (visual proof)
