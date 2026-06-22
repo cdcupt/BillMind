@@ -20,7 +20,8 @@ public func configure(_ app: Application) async throws {
         app.logger.warning("DATABASE_URL not set — running without a database (skeleton mode)")
     }
 
-    // Body size cap (receipt uploads get a dedicated, larger route limit later).
+    // Global body cap kept tight; the receipt-upload route (POST /v1/recognition)
+    // sets its own larger 10mb limit in CaptureController for base64 photo payloads.
     app.routes.defaultMaxBodySize = "1mb"
 
     // Outbound HTTP read timeout — Gemini image generation (Minds) can take

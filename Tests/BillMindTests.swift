@@ -317,6 +317,37 @@ final class ExtensionTests: XCTestCase {
     }
 }
 
+// MARK: - Image Downscale Tests (bounds the photo-upload payload — the 413 fix)
+
+final class ImageDownscaleTests: XCTestCase {
+    private func solidImage(_ size: CGSize) -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1   // pixel size == point size, matching the helper
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor.gray.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+        }
+    }
+
+    func testDownscaleBoundsLongestEdgeAndPreservesAspect() {
+        let big = solidImage(CGSize(width: 4000, height: 3000))
+        let small = big.downscaled(maxEdge: 2048)
+
+        // Longest edge is bounded by maxEdge.
+        XCTAssertLessThanOrEqual(max(small.size.width, small.size.height), 2048)
+
+        // Aspect ratio preserved (4000/3000) within a small epsilon (rounding).
+        let expectedRatio = 4000.0 / 3000.0
+        let actualRatio = small.size.width / small.size.height
+        XCTAssertEqual(actualRatio, expectedRatio, accuracy: 0.01)
+
+        // An already-small image is returned unchanged.
+        let alreadySmall = solidImage(CGSize(width: 800, height: 600))
+        let unchanged = alreadySmall.downscaled(maxEdge: 2048)
+        XCTAssertEqual(unchanged.size, CGSize(width: 800, height: 600))
+    }
+}
+
 // MARK: - AppSettings Tests
 
 final class AppSettingsTests: XCTestCase {

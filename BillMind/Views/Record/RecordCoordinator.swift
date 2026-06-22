@@ -147,7 +147,11 @@ final class RecordCoordinator {
     }
 
     private func extract(image: UIImage, cardID: UUID, tripID: UUID) async {
-        guard let data = image.jpegData(compressionQuality: 0.8) else {
+        // Bound the upload: a full-res sensor photo, base64-in-JSON, can exceed the
+        // server's body limit (this was the "413 Payload Too Large"). Downscale to a
+        // max edge before encoding — smaller/faster uploads and lower vision cost,
+        // with no OCR-relevant detail loss.
+        guard let data = image.downscaled(maxEdge: 2048).jpegData(compressionQuality: 0.8) else {
             _ = session.failExtraction(cardID: cardID)
             errorMessage = "Could not read that image."
             return
@@ -277,5 +281,25 @@ extension BillDraft {
             lineItems: [],
             source: DraftSource(rawValue: d.source) ?? .photo
         )
+    }
+}
+
+// MARK: - Image downscale (bound upload payload + vision cost)
+
+extension UIImage {
+    /// Returns a copy whose longest edge is at most `maxEdge` px (no-op if already
+    /// within bounds). Preserves aspect ratio and renders at scale 1, so the pixel
+    /// dimensions match `maxEdge` and the base64 upload payload stays bounded.
+    func downscaled(maxEdge: CGFloat) -> UIImage {
+        let longest = max(size.width, size.height)
+        guard longest > maxEdge, longest > 0 else { return self }
+        let ratio = maxEdge / longest
+        let newSize = CGSize(width: (size.width * ratio).rounded(),
+                             height: (size.height * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 }
