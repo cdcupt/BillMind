@@ -105,6 +105,13 @@ struct RecordView: View {
                         coordinator.errorMessage = nil
                     }
                 }
+                // A calm "I kept these separate" note when the untangle hop couldn't run
+                // (trip unsynced / server failed). Same dismissable banner; cards still saved.
+                if let degrade = coordinator.degradeMessage {
+                    noticeBanner(degrade, icon: "tray.full.fill", tone: SketchTheme.softBlue) {
+                        coordinator.degradeMessage = nil
+                    }
+                }
                 // Sticky "Done adding · Review N" — only while a multi-card pile is held.
                 if coordinator.showsDoneAddingBar {
                     doneAddingBar(coordinator)

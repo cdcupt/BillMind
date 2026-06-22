@@ -30,6 +30,18 @@ final class RecordCoordinator {
     var errorMessage: String?
     /// A calm decline from moderation (intent isn't travel-and-money), shown then cleared.
     var declineMessage: String?
+    /// Set when the "Done adding" untangle hop can't run (trip not synced, or the
+    /// server call failed/offline) and we fall back to saving each card on its own.
+    /// Surfaced in Ollie's calm voice through the same notice banner as the others,
+    /// so the degrade is visible — not silent — without an alarming alert. Shown then
+    /// cleared. See `Self.untangleOfflineNote` / `Self.untangleUnsyncedNote`.
+    var degradeMessage: String?
+
+    /// The trip isn't on the server yet, so there's no plan to reason over — the cards
+    /// still save individually.
+    static let untangleUnsyncedNote = "This trip isn't synced yet, so I kept these as separate bills."
+    /// The untangle round-trip failed or we're offline — the cards still save individually.
+    static let untangleOfflineNote = "Couldn't tidy these right now — saved as separate bills."
     /// Cards whose saved bill is still committing/syncing to the server — drives a
     /// transient "Saving…" state on the card until the sync round-trip completes.
     var savingCardIDs: Set<UUID> = []
@@ -247,7 +259,8 @@ final class RecordCoordinator {
         guard session.cards.filter({ $0.state == .review }).count > 1 else { return }
         guard let tripID = journal.serverID else {
             session.markDoneAdding()
-            session.degradeToReview()      // can't reach the server → plain review
+            session.degradeToReview()      // no synced trip → plain review, cards still save
+            degradeMessage = Self.untangleUnsyncedNote   // make the degrade visible, not silent
             return
         }
         let inputs = heldUntangleInputs()
@@ -283,9 +296,10 @@ final class RecordCoordinator {
             }
             session.applyUntangle(response)
         } catch {
-            // Degrade: plain held cards, per-card Save still works; surface the error.
-            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            // Degrade: plain held cards, per-card Save still works. Surface it calmly in
+            // Ollie's voice (not the raw API error) so the lost tidy-up is visible, not silent.
             session.degradeToReview()
+            degradeMessage = Self.untangleOfflineNote
         }
     }
 
