@@ -15,7 +15,7 @@ Triaged via the `feedback_triage` skill. Status legend: new / routed / in-progre
 |----|-------|----------|------|-------|--------|----------|
 | **F4** | AI recognition dead — "No API key configured" / recognition failed | **broken (P0)** | bug/config | bpl | ✅ **shipped** (PR #5; was a free consequence of F2 — BillImportFlowView was the only caller of the local recognizer) | img-02 |
 | **F3** | Image upload fails — `Server error 413: Payload Too Large` | **broken (P0)** | bug | bpl | ✅ **shipped + deployed** (PR #7; 10mb recognition route + client 2048px downscale; server redeployed) | img-03 |
-| **F5** | Smart multi-input capture (fuse partials + dedup + batch review) — re-scoped from dedup-only | friction / data-integrity | feature | sdd_pipeline | 🟡 **in design** — PRD+DESIGN+TECH done (design/dedup/), awaiting PM checkpoint before build | text #10 + partial-photo case |
+| **F5** | Smart multi-input capture (fuse partials + dedup + batch review) | friction / data-integrity | feature | sdd_pipeline | ✅ **shipped — server LIVE** (PRs #8/#9/#10 + beta fixes #11 currency, #12 degrade; both beta-testers SHIP). Client reaches testers in the next TestFlight build. | text #10 + partial-photo case |
 | **F1** | Rename a trip ("journey") | friction | feature (small) | bpl | ✅ **shipped + deployed** (PR #6; UI + sync push + server PATCH route, IDOR-guarded, tested) | img-01 |
 | **F2** | Remove legacy per-trip "add bill" page; AI-capture-only | friction / tech-debt | ux/refactor | bpl | ✅ **shipped** (PR #5; kept card editing per PM) | img-01, img-02 |
 
