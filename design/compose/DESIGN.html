@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — Compose: photo + caption, sent as one · Design Document</title>
+<style>
+  :root{
+    /* SketchTheme tokens, mirrored exactly from BillMind/Theme/SketchTheme.swift */
+    --bg:#F7F4EE;           /* cream — paper / app background */
+    --card:#FFFFFF;          /* warmWhite — card surface */
+    --ink:#1B201D;           /* softBrown — primary text */
+    --muted:#6B675F;         /* lightBrown — muted text / hairline */
+    --line:#E4DED2;          /* paperShadow rule */
+    --terra:#C8643C;         /* dustyRose — primary accent / Ollie */
+    --pine:#1F6F5C;          /* sageGreen — positive / keep / save */
+    --blue:#2D6CA8;          /* softBlue */
+    --sand:#E9C46A;          /* warmOrange */
+    --sandink:#B5852F;       /* readable sand for text/strokes */
+    --gate:#B23A3A;          /* mutedRed — destructive / caution */
+    --shadow:0 3px 10px rgba(120,90,60,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 90px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:8px}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--terra);font-weight:700}
+  h1{font-size:clamp(1.6rem,1.1rem+2.4vw,2.4rem);margin:.15em 0 .12em;font-family:Georgia,"Times New Roman",serif}
+  .sub{color:var(--muted);font-size:15px}
+  h2{font-size:1.22rem;margin:2.2em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line);font-family:Georgia,serif}
+  h3{font-size:1.02rem;margin:1.5em 0 .3em;color:var(--terra)}
+  p{margin:.5em 0}
+  /* diagram frame: horizontal-scroll guard for wide SVGs so the page never overflows */
+  .glance{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:14px;margin:18px 0 6px;overflow-x:auto}
+  .glance svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .glance.wide svg{min-width:760px}
+  figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));margin:.6em 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 .35em;font-size:.95rem}
+  .pillarnum{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--terra);color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:22px;margin-right:6px}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
+  .pill.stage{color:var(--sandink);border-color:#ecd9b3;background:#fff8ec}
+  .pill.compose{color:var(--blue);border-color:#bcccdd;background:#eaf1f7}
+  .pill.send{color:var(--pine);border-color:#bcd6bf;background:#e9f2ec}
+  .pill.req{color:var(--gate);border-color:#e2b9b9;background:#f7eaea}
+  ul{margin:.4em 0 .4em 0;padding-left:1.2em}
+  li{margin:.3em 0}
+  /* scroll-wrap tables so dense columns never push the page wider than the viewport */
+  .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:.6em 0;border-radius:10px}
+  table{border-collapse:collapse;width:100%;margin:0;font-size:14.5px}
+  .tscroll table{min-width:560px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#F1EADD}
+  code{background:#EFE7D8;border-radius:5px;padding:1px 5px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .note{background:#FFF8EC;border:1px solid #ECD9B3;border-left:4px solid var(--sand);border-radius:10px;padding:10px 14px;margin:.7em 0}
+  .lock{background:#eef4ea;border:1px solid #cfe0c4;border-left:4px solid var(--pine);border-radius:10px;padding:10px 14px;margin:.7em 0}
+  .dep{background:#f7eaea;border:1px solid #e2b9b9;border-left:4px solid var(--gate);border-radius:10px;padding:10px 14px;margin:.7em 0}
+  .copy{background:#FBF7F0;border:1px dashed var(--muted);border-radius:10px;padding:4px 10px;font-style:italic;color:var(--ink);display:inline-block;margin:2px 0}
+  .mock-scroll{overflow-x:auto;max-width:100%;padding:6px}
+  .mocks{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+  .foot{margin-top:46px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin:.4em 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:13px;height:13px;border-radius:4px;display:inline-block;border:1px solid rgba(0,0,0,.12)}
+  .mockcap{text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px;max-width:240px}
+  .mockcol{display:flex;flex-direction:column;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">BillOwl · Design Document · Compose (photo + caption, one send)</div>
+  <h1>Pin a note to the photo — send them as one bill</h1>
+  <div class="sub">A <strong>compose</strong> affordance for the Record input bar: pick a receipt photo, then attach a caption (typed <em>or</em> dictated) to <em>that</em> photo, and send both together as <strong>one</strong> input — so Ollie reads the picture and your sentence as a single bill and the caption fills the photo's gaps (a cut-off total, an unreadable date). This is the <strong>user-directed</strong> complement to F5's agent-proposed fusion: here <em>you</em> say "these belong together," so the agent never has to guess. · v1 · 2026-06-22 · sits beside the F5 Done-adding → untangle flow, doesn't replace it</div>
+</header>
+
+<!-- ============================================================= -->
+<!-- ★ AT A GLANCE — master compose flow                            -->
+<!-- ============================================================= -->
+<figure class="glance wide" aria-label="At a glance — stage a photo, add a caption, send, get one bill">
+<svg viewBox="0 0 940 360" role="img" aria-label="Pick photo to stage a chip, type or speak a caption, send once, one bill drawn from photo plus caption">
+  <style>
+    .lbl{font:600 13px -apple-system,sans-serif;fill:#1B201D}
+    .sm{font:11.5px -apple-system,sans-serif;fill:#6B675F}
+    .tag{font:700 11px -apple-system,sans-serif;fill:#C8643C}
+  </style>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C8643C"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1F6F5C"/></marker>
+  </defs>
+  <text x="18" y="24" class="lbl" style="font-size:14px;fill:#C8643C">★ At a glance — stage the photo → caption it (type or 🎤) → one send → one bill from <tspan font-style="italic">both</tspan></text>
+
+  <!-- 1 stage -->
+  <rect x="18" y="48" width="176" height="118" rx="12" fill="#FFF8EC" stroke="#B5852F" stroke-width="2"/>
+  <text x="106" y="72" text-anchor="middle" class="lbl" style="fill:#B5852F">1 · Stage</text>
+  <text x="106" y="93" text-anchor="middle" class="sm">tap 📷, pick a receipt</text>
+  <text x="106" y="111" text-anchor="middle" class="sm">it parks as a thumbnail</text>
+  <text x="106" y="127" text-anchor="middle" class="sm">CHIP above the field</text>
+  <text x="106" y="149" text-anchor="middle" class="tag">does NOT submit yet</text>
+
+  <path d="M196 108 H232" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- 2 caption -->
+  <rect x="236" y="48" width="200" height="118" rx="12" fill="#EAF1F7" stroke="#2D6CA8" stroke-width="2"/>
+  <text x="336" y="72" text-anchor="middle" class="lbl" style="fill:#2D6CA8">2 · Caption it</text>
+  <text x="336" y="93" text-anchor="middle" class="sm">type the missing bit…</text>
+  <text x="336" y="111" text-anchor="middle" class="sm">“the total was ¥240”</text>
+  <text x="336" y="129" text-anchor="middle" class="sm">…or 🎤 dictate it</text>
+  <text x="336" y="151" text-anchor="middle" class="sm" style="fill:#2D6CA8">the caption sticks to THIS photo</text>
+
+  <path d="M438 108 H474" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- 3 send -->
+  <rect x="478" y="60" width="128" height="96" rx="12" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.6"/>
+  <text x="542" y="86" text-anchor="middle" class="lbl">3 · Send once</text>
+  <text x="542" y="107" text-anchor="middle" class="sm">tap ⬆︎ — photo +</text>
+  <text x="542" y="124" text-anchor="middle" class="sm">caption go up</text>
+  <text x="542" y="141" text-anchor="middle" class="sm" style="fill:#C8643C">as ONE request</text>
+
+  <path d="M608 108 H644" stroke="#C8643C" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- 4 ollie reads both -->
+  <rect x="648" y="48" width="160" height="118" rx="12" fill="#FFF3E9" stroke="#C8643C" stroke-width="2"/>
+  <text x="728" y="72" text-anchor="middle" class="lbl" style="fill:#C8643C">4 · Ollie reads both</text>
+  <text x="728" y="94" text-anchor="middle" class="sm">vision OCRs the photo</text>
+  <text x="728" y="112" text-anchor="middle" class="sm">caption fills the gaps</text>
+  <text x="728" y="130" text-anchor="middle" class="sm">(amount / date / who)</text>
+  <text x="728" y="151" text-anchor="middle" class="tag">no guessing — you bundled it</text>
+
+  <path d="M810 108 H846" stroke="#1F6F5C" stroke-width="2.5" marker-end="url(#b)"/>
+
+  <!-- 5 one bill -->
+  <rect x="850" y="60" width="74" height="96" rx="12" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="2"/>
+  <text x="887" y="98" text-anchor="middle" class="lbl" style="fill:#1F6F5C">5 · One</text>
+  <text x="887" y="116" text-anchor="middle" class="lbl" style="fill:#1F6F5C">bill</text>
+  <text x="887" y="138" text-anchor="middle" class="sm">card to</text>
+  <text x="887" y="151" text-anchor="middle" class="sm">confirm</text>
+
+  <!-- today contrast strip -->
+  <text x="18" y="206" class="lbl" style="fill:#6B675F">Today, for contrast — the gap this closes:</text>
+  <rect x="18" y="220" width="430" height="120" rx="12" fill="#FCF4F4" stroke="#E2B9B9" stroke-width="1.5"/>
+  <text x="34" y="244" class="sm" style="fill:#B23A3A;font-weight:700">Picking a photo submits it INSTANTLY (separate)</text>
+  <text x="34" y="266" class="sm">📷 receipt → its own card (amount unread = blank)</text>
+  <text x="34" y="286" class="sm">✏️ “…it was ¥240” → a SECOND, separate card</text>
+  <text x="34" y="308" class="sm">Ollie must later GUESS they're the same bill</text>
+  <text x="34" y="328" class="sm" style="fill:#B23A3A">(that guess is exactly F5's Done-adding → fuse)</text>
+
+  <rect x="478" y="220" width="446" height="120" rx="12" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="1.6"/>
+  <text x="496" y="244" class="sm" style="fill:#1F6F5C;font-weight:700">Compose — you say it's one, up front</text>
+  <text x="496" y="266" class="sm">📷 receipt staged as a chip (not submitted)</text>
+  <text x="496" y="286" class="sm">✏️/🎤 “…it was ¥240” becomes the chip's NOTE</text>
+  <text x="496" y="306" class="sm">one ⬆︎ → one request → one card, amount filled</text>
+  <text x="496" y="328" class="sm" style="fill:#1F6F5C">no fuse round-trip, no guess to confirm</text>
+</svg>
+<figcaption>Compose turns two separate inputs into one deliberate bill — the caption is read <em>with</em> the photo, not guessed-at afterward.</figcaption>
+</figure>
+
+<h2>1 · The problem, precisely</h2>
+<p>A receipt photo often <strong>doesn't carry everything</strong>: the total is cut off, the print is faded, the date is unreadable, or it's a group meal and only you know the split. Today the input bar's <code>PhotosPicker</code> calls <code>loadPhotos → coordinator.submitPhotos</code> the instant a photo is picked — the photo is recognised <em>alone</em>, and any sentence you type to fix it (<code>send → submitText</code>) becomes a <strong>second, separate card</strong>. The agent then has to <em>infer</em> that the photo and the sentence are the same bill. That inference is exactly what F5's <em>Done adding → untangle → fuse</em> flow does — agent-proposed, and only as good as the guess.</p>
+<p><strong>Compose removes the guess.</strong> The user attaches the sentence to the photo <em>before</em> sending, so the photo and caption arrive as one recognition input and the caption authoritatively fills the photo's gaps.</p>
+
+<div class="lock"><strong>Two flows, deliberately coexisting.</strong> <span class="pill compose">Compose</span> = the user <em>explicitly bundles</em> a photo + caption up front (no guessing). <span class="pill stage">F5 fuse</span> = the agent <em>finds</em> un-bundled inputs that look like one bill, and proposes a merge to confirm. Compose narrows what F5 ever has to reason about; it never replaces it. A user can still drop loose photos and notes and let Ollie untangle them — that path is byte-for-byte unchanged.</div>
+
+<h2>2 · The compose interaction</h2>
+<p>The chosen model is a <strong>staged-photo chip with an inline caption</strong>, sitting in a tray directly above the existing input bar. Picking a photo no longer submits — it <em>stages</em>. The field you already have becomes the caption for the staged photo, and the existing send button (<code>arrow.up.circle.fill</code>) sends the photo + caption as one.</p>
+
+<div class="grid">
+  <div class="card"><h4><span class="pillarnum">1</span>Pick → stage, don't submit</h4><p>Tapping 📷 and choosing a receipt parks it as a <strong>thumbnail chip</strong> in a tray above the field. The bar grows upward to hold the tray; the layout below is untouched. <em>Behaviour change:</em> <code>loadPhotos</code> stages into compose state instead of calling <code>submitPhotos</code>.</p></div>
+  <div class="card"><h4><span class="pillarnum">2</span>The field is now the caption</h4><p>The placeholder swaps to <span class="copy">Add a note for this photo…</span>. Whatever you type rides <em>with</em> the staged photo, not as its own card. Empty caption is allowed — you can still send a photo with no note (same as a plain photo-only capture).</p></div>
+  <div class="card"><h4><span class="pillarnum">3</span>🎤 dictates into the caption</h4><p>The mic now feeds the <em>caption</em> for the staged photo, mirroring the live transcript into the field (the existing <code>voice.transcript</code> binding) instead of submitting on its own. Stop → the transcript stays as the editable caption; you tap send when ready.</p></div>
+  <div class="card"><h4><span class="pillarnum">4</span>One send → one bill</h4><p>The send button sends photo + caption together. The bar returns to its empty resting state. One agent card appears, its fields drawn from <strong>both</strong> the picture and the caption.</p></div>
+</div>
+
+<div class="note"><strong>Why a chip-and-caption tray, not a separate compose screen.</strong> The receipt-fixing moment is small and impatient — the user is staring at a photo with a missing total and wants to add one sentence. A chip that grows the existing bar keeps them in the same place, reuses the field + mic + send they already know, and reads as "this note belongs to this photo" at a glance. A full-screen composer would be heavier than the job.</p></div>
+
+<!-- ============================================================= -->
+<!-- FLOW DIAGRAM — interaction with branches                       -->
+<!-- ============================================================= -->
+<h3>Interaction flow (with the unchanged paths preserved)</h3>
+<figure class="glance wide" aria-label="Compose interaction flow including the unchanged text-only and photo-only paths">
+<svg viewBox="0 0 920 430" role="img" aria-label="Decision flow from input bar through staging, captioning, sending, with text-only and remove branches">
+  <style>
+    .lbl{font:600 12.5px -apple-system,sans-serif;fill:#1B201D}
+    .sm{font:11px -apple-system,sans-serif;fill:#6B675F}
+  </style>
+  <defs>
+    <marker id="c" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6B675F"/></marker>
+    <marker id="d" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1F6F5C"/></marker>
+  </defs>
+
+  <!-- start -->
+  <rect x="20" y="22" width="150" height="54" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.6"/>
+  <text x="95" y="46" text-anchor="middle" class="lbl">Input bar idle</text>
+  <text x="95" y="64" text-anchor="middle" class="sm">📷 🎤 field ⬆︎</text>
+
+  <!-- type only branch -->
+  <path d="M95 76 V120" stroke="#6B675F" stroke-width="1.8" marker-end="url(#c)"/>
+  <rect x="20" y="120" width="150" height="58" rx="10" fill="#F1EADD" stroke="#E4DED2" stroke-width="1.4"/>
+  <text x="95" y="143" text-anchor="middle" class="lbl">Type only, send</text>
+  <text x="95" y="161" text-anchor="middle" class="sm">→ submitText (unchanged)</text>
+  <path d="M95 178 V214" stroke="#1F6F5C" stroke-width="1.8" marker-end="url(#d)"/>
+
+  <!-- pick photo -->
+  <path d="M170 49 H236" stroke="#6B675F" stroke-width="1.8" marker-end="url(#c)"/>
+  <rect x="240" y="22" width="170" height="54" rx="10" fill="#FFF8EC" stroke="#B5852F" stroke-width="1.8"/>
+  <text x="325" y="44" text-anchor="middle" class="lbl" style="fill:#B5852F">Pick photo(s)</text>
+  <text x="325" y="63" text-anchor="middle" class="sm">stage as chip(s) — no submit</text>
+
+  <!-- staged state -->
+  <path d="M325 76 V112" stroke="#6B675F" stroke-width="1.8" marker-end="url(#c)"/>
+  <rect x="240" y="112" width="170" height="70" rx="10" fill="#EAF1F7" stroke="#2D6CA8" stroke-width="1.8"/>
+  <text x="325" y="135" text-anchor="middle" class="lbl" style="fill:#2D6CA8">Staged — caption it</text>
+  <text x="325" y="154" text-anchor="middle" class="sm">type, or 🎤 dictate</text>
+  <text x="325" y="172" text-anchor="middle" class="sm">into THIS chip's note</text>
+
+  <!-- remove branch -->
+  <path d="M410 147 H470" stroke="#B23A3A" stroke-width="1.6" marker-end="url(#c)"/>
+  <rect x="474" y="120" width="150" height="56" rx="10" fill="#FCF4F4" stroke="#E2B9B9" stroke-width="1.6"/>
+  <text x="549" y="143" text-anchor="middle" class="lbl" style="fill:#B23A3A">Tap ✕ on chip</text>
+  <text x="549" y="161" text-anchor="middle" class="sm">un-stage, nothing sent</text>
+
+  <!-- send compose -->
+  <path d="M325 182 V218" stroke="#6B675F" stroke-width="1.8" marker-end="url(#c)"/>
+  <rect x="230" y="218" width="190" height="62" rx="10" fill="#FFF3E9" stroke="#C8643C" stroke-width="1.9"/>
+  <text x="325" y="242" text-anchor="middle" class="lbl" style="fill:#C8643C">Send ⬆︎ — ONE request</text>
+  <text x="325" y="261" text-anchor="middle" class="sm">photo + caption together</text>
+  <text x="325" y="276" text-anchor="middle" class="sm">(per chip, if several)</text>
+
+  <!-- merge to one bill -->
+  <path d="M325 280 V316" stroke="#1F6F5C" stroke-width="1.9" marker-end="url(#d)"/>
+  <path d="M95 214 V336 H226" stroke="#1F6F5C" stroke-width="1.8" marker-end="url(#d)"/>
+  <rect x="230" y="316" width="190" height="64" rx="10" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="1.9"/>
+  <text x="325" y="340" text-anchor="middle" class="lbl" style="fill:#1F6F5C">One agent card to confirm</text>
+  <text x="325" y="359" text-anchor="middle" class="sm">amount/date/who from BOTH</text>
+  <text x="325" y="375" text-anchor="middle" class="sm">missing money → “amount required”</text>
+
+  <!-- photo only (no caption) note -->
+  <rect x="470" y="218" width="200" height="86" rx="10" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.5"/>
+  <text x="570" y="240" text-anchor="middle" class="lbl">Photo only (no caption)</text>
+  <text x="570" y="260" text-anchor="middle" class="sm">send a staged chip with an</text>
+  <text x="570" y="278" text-anchor="middle" class="sm">empty note → same as today's</text>
+  <text x="570" y="296" text-anchor="middle" class="sm">photo-only capture, unchanged</text>
+  <path d="M570 304 V330 H422" stroke="#1F6F5C" stroke-width="1.6" marker-end="url(#d)"/>
+</svg>
+<figcaption>The text-only and photo-only paths still reach the same one-card outcome; compose just adds the bundled photo+caption lane in the middle.</figcaption>
+</figure>
+
+<h2>3 · Multiple photos — each chip gets its own caption</h2>
+<p><strong>Recommendation: per-chip captions, not one caption for the batch.</strong> The picker already allows up to 10 photos. If the user stages several, each appears as its own chip in the tray, and the caption field binds to the <strong>active (selected) chip</strong> — tap a chip to make it active, then type/dictate its note. Send dispatches one request <em>per chip</em> (photo + that chip's caption), producing one bill each.</p>
+<div class="note"><strong>Why per-chip beats one shared caption.</strong> The whole point is to fix a <em>specific</em> photo's gap — "this hotel receipt's total is ¥1,820," "that taxi one is the ¥48 ride." A single caption smeared across three receipts would be ambiguous and re-introduce the very guessing compose exists to remove. Per-chip keeps each note authoritative for exactly one bill. A chip with no caption simply sends photo-only (unchanged). For the common case — one photo, one note — this collapses to the simplest possible interaction with zero extra taps.</div>
+<p>The active chip is shown with a terra ring; others sit muted. A small caption preview line under each chip ("¥240 · the total") reassures the user which note is pinned to which photo before they send.</p>
+
+<h2>4 · States</h2>
+<div class="tscroll">
+<table>
+<thead><tr><th>State</th><th>What the user sees</th><th>Bar / field</th><th>Send</th></tr></thead>
+<tbody>
+<tr><td><span class="pill stage">Staged · no caption</span></td><td>Thumbnail chip(s) above the field; field empty with the note placeholder.</td><td>Placeholder: <em>Add a note for this photo…</em></td><td>Enabled — sends photo-only (allowed).</td></tr>
+<tr><td><span class="pill compose">Composed</span></td><td>Chip + a caption preview line under it; field holds the typed/dictated note.</td><td>Live caption text, editable.</td><td>Enabled — sends photo + caption as one.</td></tr>
+<tr><td><span class="pill compose">Dictating</span></td><td>Active chip pulses; field mirrors the live transcript; mic is a red stop.</td><td>Field shows <em>Listening…</em> then the transcript.</td><td>Disabled mid-dictation (existing guard); enabled on stop.</td></tr>
+<tr><td><span class="pill send">Sent → one bill</span></td><td>Bar resets; one agent card appears, fields from photo + caption.</td><td>Back to idle placeholder.</td><td>Idle.</td></tr>
+<tr><td><span class="pill req">Sent, money still missing</span></td><td>The one card shows the existing <strong>“amount required”</strong> gap — caption didn't supply a total and OCR couldn't read one.</td><td>Idle.</td><td>Card blocks Save until an amount is added (existing money rule).</td></tr>
+<tr><td><span class="pill" style="color:var(--gate);border-color:#e2b9b9;background:#fcf4f4">Remove staged photo</span></td><td>Tap ✕ on a chip → it un-stages; its caption clears if it was the active chip. Nothing was sent.</td><td>Returns to idle (or to the next chip).</td><td>—</td></tr>
+<tr><td><span class="pill" style="color:var(--muted);border-color:#ddd;background:#f3f0ea">Text-only</span></td><td>No chip staged; type and send.</td><td>Default placeholder <em>Tell Ollie about a bill…</em></td><td><code>submitText</code> — unchanged.</td></tr>
+<tr><td><span class="pill" style="color:var(--muted);border-color:#ddd;background:#f3f0ea">Photo-only</span></td><td>Chip staged, caption left empty, send.</td><td>—</td><td>Photo recognised alone — same result as today.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="lock"><strong>The money rule still holds.</strong> A composed photo+caption maps to exactly one bill card. If neither the photo's OCR nor the caption yields a total, that one card shows the existing <strong>“amount required”</strong> block and refuses to Save until the user adds the amount — compose never invents money, and the caption is read as a hint, not an override of a clearly-printed figure.</div>
+
+<!-- ============================================================= -->
+<!-- STATE MAP                                                      -->
+<!-- ============================================================= -->
+<figure class="glance" aria-label="Compose state machine">
+<svg viewBox="0 0 720 260" role="img" aria-label="State transitions: idle, staged, composed, dictating, sent, removed">
+  <style>
+    .s{font:600 12px -apple-system,sans-serif;fill:#1B201D}
+    .e{font:10.5px -apple-system,sans-serif;fill:#6B675F}
+  </style>
+  <defs>
+    <marker id="m" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6B675F"/></marker>
+  </defs>
+  <ellipse cx="90" cy="50" rx="62" ry="30" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.6"/>
+  <text x="90" y="54" text-anchor="middle" class="s">Idle</text>
+
+  <ellipse cx="300" cy="50" rx="66" ry="30" fill="#FFF8EC" stroke="#B5852F" stroke-width="1.8"/>
+  <text x="300" y="54" text-anchor="middle" class="s" style="fill:#B5852F">Staged</text>
+
+  <ellipse cx="540" cy="50" rx="70" ry="30" fill="#EAF1F7" stroke="#2D6CA8" stroke-width="1.8"/>
+  <text x="540" y="46" text-anchor="middle" class="s" style="fill:#2D6CA8">Composed</text>
+  <text x="540" y="62" text-anchor="middle" class="e">caption attached</text>
+
+  <ellipse cx="540" cy="160" rx="70" ry="30" fill="#FCF4F4" stroke="#B23A3A" stroke-width="1.6"/>
+  <text x="540" y="158" text-anchor="middle" class="s" style="fill:#B23A3A">Dictating</text>
+  <text x="540" y="174" text-anchor="middle" class="e">🎤 → caption</text>
+
+  <ellipse cx="300" cy="200" rx="78" ry="32" fill="#E9F2EC" stroke="#1F6F5C" stroke-width="1.8"/>
+  <text x="300" y="197" text-anchor="middle" class="s" style="fill:#1F6F5C">Sent → one bill</text>
+  <text x="300" y="214" text-anchor="middle" class="e">card to confirm</text>
+
+  <path d="M152 50 H232" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)"/>
+  <text x="192" y="42" text-anchor="middle" class="e">pick photo</text>
+
+  <path d="M366 50 H468" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)"/>
+  <text x="417" y="42" text-anchor="middle" class="e">type caption</text>
+
+  <path d="M540 80 V128" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)"/>
+  <text x="576" y="106" class="e">tap 🎤</text>
+  <path d="M508 138 Q470 100 478 74" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)" fill="none"/>
+  <text x="452" y="112" class="e">stop</text>
+
+  <path d="M486 76 Q400 150 360 178" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)" fill="none"/>
+  <text x="430" y="150" class="e">send ⬆︎</text>
+  <path d="M300 80 V168" stroke="#6B675F" stroke-width="1.6" marker-end="url(#m)"/>
+  <text x="336" y="128" class="e">send (no caption)</text>
+
+  <path d="M250 76 Q150 110 130 78" stroke="#B23A3A" stroke-width="1.4" marker-end="url(#m)" fill="none"/>
+  <text x="150" y="118" class="e" style="fill:#B23A3A">✕ remove → idle</text>
+</svg>
+<figcaption>Idle → Staged → Composed → Sent, with Dictating as a caption side-loop and ✕ returning to Idle. One bill out of every send.</figcaption>
+</figure>
+
+<h2>5 · Visual mockup — the input bar with a staged chip + caption</h2>
+<p>SketchTheme cream paper, warmWhite bar, dustyRose accents, hand-drawn dashed strokes — matching the live <code>inputBar</code>. Three moments shown.</p>
+<div class="mock-scroll">
+<div class="mocks">
+
+  <!-- MOCK A: idle (today) -->
+  <div class="mockcol">
+  <svg width="240" height="150" viewBox="0 0 240 150" role="img" aria-label="Input bar idle">
+    <rect x="0" y="0" width="240" height="150" rx="14" fill="#F7F4EE"/>
+    <rect x="12" y="96" width="216" height="42" rx="18" fill="#FFFFFF" stroke="#6B675F" stroke-width="1.8"/>
+    <circle cx="34" cy="117" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="34" y="122" text-anchor="middle" font-size="13" fill="#1B201D">📷</text>
+    <circle cx="66" cy="117" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="66" y="122" text-anchor="middle" font-size="12" fill="#1B201D">🎤</text>
+    <text x="88" y="121" font-size="11" fill="#6B675F">Tell Ollie about a bill…</text>
+    <circle cx="210" cy="117" r="13" fill="#C8643C"/>
+    <path d="M210 111 V123 M205 116 L210 111 L215 116" stroke="#fff" stroke-width="1.6" fill="none"/>
+  </svg>
+  <div class="mockcap">A · Idle — the bar you have today. Picking a photo here submits instantly.</div>
+  </div>
+
+  <!-- MOCK B: staged photo, caption being typed -->
+  <div class="mockcol">
+  <svg width="240" height="200" viewBox="0 0 240 200" role="img" aria-label="Staged photo chip with a typed caption">
+    <rect x="0" y="0" width="240" height="200" rx="14" fill="#F7F4EE"/>
+    <!-- tray with chip -->
+    <rect x="12" y="40" width="216" height="96" rx="16" fill="#FFFFFF" stroke="#C8643C" stroke-width="1.8" stroke-dasharray="5 4"/>
+    <text x="24" y="34" font-size="10.5" fill="#C8643C" font-weight="700">PINNED TO THIS PHOTO</text>
+    <!-- thumbnail -->
+    <rect x="24" y="54" width="56" height="68" rx="9" fill="#F1EADD" stroke="#6B675F" stroke-width="1.3"/>
+    <text x="52" y="86" text-anchor="middle" font-size="9" fill="#6B675F">receipt</text>
+    <line x1="32" y1="98" x2="72" y2="98" stroke="#B5852F" stroke-width="1"/>
+    <line x1="32" y1="106" x2="64" y2="106" stroke="#cbb48a" stroke-width="1"/>
+    <text x="52" y="118" text-anchor="middle" font-size="8" fill="#B23A3A">total cut off</text>
+    <!-- remove x -->
+    <circle cx="78" cy="52" r="9" fill="#FCF4F4" stroke="#B23A3A" stroke-width="1.2"/>
+    <text x="78" y="56" text-anchor="middle" font-size="10" fill="#B23A3A">✕</text>
+    <!-- caption -->
+    <text x="92" y="70" font-size="11" fill="#1B201D" font-weight="600">Your note</text>
+    <rect x="92" y="78" width="124" height="44" rx="9" fill="#FBF7F0" stroke="#E4DED2" stroke-width="1.2"/>
+    <text x="100" y="96" font-size="10.5" fill="#1B201D">the total was</text>
+    <text x="100" y="112" font-size="10.5" fill="#1B201D">¥240, lunch</text>
+    <!-- bar -->
+    <rect x="12" y="148" width="216" height="42" rx="18" fill="#FFFFFF" stroke="#6B675F" stroke-width="1.8"/>
+    <circle cx="34" cy="169" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="34" y="174" text-anchor="middle" font-size="13">📷</text>
+    <circle cx="66" cy="169" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="66" y="174" text-anchor="middle" font-size="12">🎤</text>
+    <text x="88" y="173" font-size="10.5" fill="#6B675F">Add a note for this photo…</text>
+    <circle cx="210" cy="169" r="13" fill="#C8643C"/>
+    <path d="M210 163 V175 M205 168 L210 163 L215 168" stroke="#fff" stroke-width="1.6" fill="none"/>
+  </svg>
+  <div class="mockcap">B · Composed — receipt staged as a chip (total cut off), caption typed as its note. One ⬆︎ sends both.</div>
+  </div>
+
+  <!-- MOCK C: multiple chips, one active -->
+  <div class="mockcol">
+  <svg width="240" height="200" viewBox="0 0 240 200" role="img" aria-label="Two staged photo chips, one active for captioning">
+    <rect x="0" y="0" width="240" height="200" rx="14" fill="#F7F4EE"/>
+    <text x="24" y="34" font-size="10.5" fill="#C8643C" font-weight="700">2 PHOTOS · TAP ONE TO NOTE IT</text>
+    <!-- chip 1 active -->
+    <rect x="16" y="44" width="92" height="92" rx="13" fill="#FFFFFF" stroke="#C8643C" stroke-width="2"/>
+    <rect x="28" y="56" width="40" height="50" rx="7" fill="#F1EADD" stroke="#6B675F" stroke-width="1.2"/>
+    <text x="48" y="84" text-anchor="middle" font-size="8" fill="#6B675F">hotel</text>
+    <circle cx="98" cy="50" r="8" fill="#FCF4F4" stroke="#B23A3A" stroke-width="1.1"/>
+    <text x="98" y="53.5" text-anchor="middle" font-size="9" fill="#B23A3A">✕</text>
+    <text x="24" y="124" font-size="9" fill="#1F6F5C">¥1,820 · the total</text>
+    <!-- chip 2 muted -->
+    <rect x="120" y="48" width="92" height="84" rx="13" fill="#FFFFFF" stroke="#E4DED2" stroke-width="1.4" opacity="0.85"/>
+    <rect x="132" y="60" width="40" height="50" rx="7" fill="#F1EADD" stroke="#6B675F" stroke-width="1.1" opacity="0.8"/>
+    <text x="152" y="88" text-anchor="middle" font-size="8" fill="#6B675F">taxi</text>
+    <circle cx="202" cy="54" r="8" fill="#FCF4F4" stroke="#B23A3A" stroke-width="1.1"/>
+    <text x="202" y="57.5" text-anchor="middle" font-size="9" fill="#B23A3A">✕</text>
+    <text x="128" y="122" font-size="9" fill="#6B675F">no note yet</text>
+    <!-- bar -->
+    <rect x="12" y="148" width="216" height="42" rx="18" fill="#FFFFFF" stroke="#6B675F" stroke-width="1.8"/>
+    <circle cx="34" cy="169" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="34" y="174" text-anchor="middle" font-size="13">📷</text>
+    <circle cx="66" cy="169" r="15" fill="none" stroke="#6B675F" stroke-width="1.5"/>
+    <text x="66" y="174" text-anchor="middle" font-size="12">🎤</text>
+    <text x="88" y="173" font-size="10" fill="#6B675F">Noting the hotel one…</text>
+    <circle cx="210" cy="169" r="13" fill="#C8643C"/>
+    <path d="M210 163 V175 M205 168 L210 163 L215 168" stroke="#fff" stroke-width="1.6" fill="none"/>
+  </svg>
+  <div class="mockcap">C · Two chips — the active one (terra ring) takes the caption; send dispatches one request per chip = two bills.</div>
+  </div>
+
+</div>
+</div>
+
+<h2>6 · Microcopy — in Ollie's voice</h2>
+<div class="grid">
+  <div class="card"><h4>Caption placeholder</h4><p class="copy">Add a note for this photo…</p><p class="sm" style="color:var(--muted)">Swaps in the moment a photo is staged; reverts to <span class="copy">Tell Ollie about a bill…</span> when nothing is staged.</p></div>
+  <div class="card"><h4>Chip hint label</h4><p class="copy">Pinned to this photo</p><p class="sm" style="color:var(--muted)">Tiny terra label over the tray so the bundling is legible.</p></div>
+  <div class="card"><h4>Multi-photo prompt</h4><p class="copy">Tap a photo to note it</p></div>
+  <div class="card"><h4>Active-chip field hint</h4><p class="copy">Noting the hotel one…</p><p class="sm" style="color:var(--muted)">Uses the merchant if read, else "this one."</p></div>
+  <div class="card"><h4>Sent confirmation (card sub-line)</h4><p class="copy">Read your note with the photo 🦉</p></div>
+  <div class="card"><h4>Amount still missing</h4><p class="copy">Couldn't find the total — pop it in?</p><p class="sm" style="color:var(--muted)">Reuses the existing "amount required" gap UI.</p></div>
+  <div class="card"><h4>Voice on Simulator</h4><p class="copy">Voice input needs a real device.</p><p class="sm" style="color:var(--muted)">Existing VoiceCapture copy — unchanged; see §7.</p></div>
+</div>
+
+<h2>7 · Voice caption — device-only</h2>
+<p>The mic dictates straight into the staged photo's caption: the existing live-transcript binding (<code>voice.transcript → field</code>) now targets the caption rather than a standalone submit. On <strong>stop</strong>, the transcript stays as the editable caption — the user reviews it and taps send when ready (no auto-submit, so a misheard amount can be fixed first).</p>
+<div class="note"><strong>Simulator has no microphone.</strong> <code>VoiceCapture.beginSession</code> already hard-fails on the Simulator (<em>"Voice input needs a real device — the Simulator has no microphone."</em>). Voice captioning is therefore <strong>device-only</strong>; on the Simulator the chip + typed caption path is fully testable, but the 🎤 path must be verified on hardware. Flagging this so QA screenshots of the voice-caption state come from a device, not the Simulator.</div>
+
+<h2>8 · Server-contract dependency (for Tech)</h2>
+<div class="dep"><strong>Recognition must accept an image and accompanying text in the same request.</strong> Today <code>APICaptureRequest</code> (BillMind/Services/AIService.swift:255) carries <em>both</em> <code>text</code> and <code>imageBase64</code> as optionals, but the two client paths only ever set one: <code>submitText</code> sends <code>text</code> with <code>imageBase64: nil</code> (RecordCoordinator.swift:140), and <code>extract(image:)</code> sends <code>imageBase64</code> with <code>text: nil</code> (RecordCoordinator.swift:225). The server's <code>/v1/recognition</code> endpoint correspondingly treats it as an EITHER/OR. <strong>Compose needs the server to read photo + caption together</strong> — vision OCR <em>plus</em> the caption as authoritative gap-fill (the caption supplies the total/date/who when the image can't), returning <strong>one</strong> card. The client change is small (a new <code>submitComposed(image:caption:)</code> that populates both fields in one <code>APICaptureRequest</code>); the load-bearing change is server-side: the recognition prompt/handler must accept and jointly reason over image + text, with the caption taking precedence for a stated amount over an unreadable one — and never inventing money if neither yields a total.</div>
+<p>No new endpoint is required if <code>/v1/recognition</code> simply stops assuming exclusivity and handles the both-present case. F5's <code>untangle</code> endpoint is untouched — compose pre-bundles, so there's nothing for untangle to fuse.</p>
+
+<h2>9 · What must NOT change</h2>
+<ul>
+  <li><strong>Text-only path:</strong> type → send → <code>submitText</code>. Byte-for-byte unchanged when no photo is staged.</li>
+  <li><strong>Photo-only path:</strong> staging a photo and sending with an empty caption recognises the photo alone — same result as today's instant submit, just one tap later.</li>
+  <li><strong>F5 Done-adding → untangle → fuse:</strong> still available for loose, un-bundled inputs. Compose reduces how often it's needed but never disables it.</li>
+  <li><strong>The money rule:</strong> one bill per composed send; amount never invented; "amount required" still gates Save.</li>
+</ul>
+
+<h2>10 · Open question + assumption</h2>
+<div class="note"><strong>Ambiguity:</strong> the brief says "pick the photo, then add a caption." With multiple staged photos, must the user caption each before sending, or can they send a mixed batch (some captioned, some not)? <strong>Assumption (documented above):</strong> mixed batches are allowed — each chip sends with whatever caption it has (including none), one bill per chip. This keeps the common one-photo case trivial and never forces busywork on a batch where only one receipt was actually broken. If the PM wants a stricter "caption everything first" gate, that's a small follow-up on the send guard.</div>
+
+<div class="legend">
+  <span><span class="sw" style="background:#FFF8EC;border-color:#B5852F"></span> Staged</span>
+  <span><span class="sw" style="background:#EAF1F7;border-color:#2D6CA8"></span> Composed / caption</span>
+  <span><span class="sw" style="background:#FFF3E9;border-color:#C8643C"></span> Ollie / one request</span>
+  <span><span class="sw" style="background:#E9F2EC;border-color:#1F6F5C"></span> Sent → one bill</span>
+  <span><span class="sw" style="background:#FCF4F4;border-color:#B23A3A"></span> Remove / money-required</span>
+</div>
+
+<div class="foot">BillOwl · Compose design · grounded in BillMind/Views/Record/RecordView.swift (input bar), RecordCoordinator.swift (submitText/submitPhotos), AIService.swift (APICaptureRequest), SketchTheme.swift. The user-directed complement to the F5 untangle/fuse flow. · v1 · 2026-06-22</div>
+
+</div>
+</body>
+</html>
