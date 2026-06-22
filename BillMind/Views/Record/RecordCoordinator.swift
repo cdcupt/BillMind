@@ -60,8 +60,13 @@ final class RecordCoordinator {
         self.session = RecordingSession(validator: validator)
     }
 
-    /// Visible cards (discarded ones hidden), newest last.
-    var cards: [AgentCard] { session.cards.filter { $0.state != .discarded } }
+    /// Visible cards in the Record input, newest last. Terminal cards are hidden:
+    /// `.discarded` (set aside, never saved) and `.recorded` (already persisted to the
+    /// trip). Hiding `.recorded` is what keeps the single-input fast path clean — once a
+    /// lone card is saved it leaves the input immediately, so a stale "saved" card never
+    /// lingers in the "Tell Ollie about a bill" list. The batch path additionally resets
+    /// the whole session via `resetAfterFullSave()`; this filter covers the per-card case.
+    var cards: [AgentCard] { session.cards.filter { !$0.state.isTerminal } }
 
     // MARK: - Held-batch surface (consumed by the review UI slice)
 
@@ -355,6 +360,16 @@ final class RecordCoordinator {
             if confirm(cardID: id, acknowledging: acknowledging) != .recorded {
                 blocked.append(id)
             }
+        }
+        // Clean, complete save → return the Record tab to its fresh "Tell Ollie about a
+        // bill" input. The batch is fully resolved only when nothing was blocked, no
+        // group is still pending, and no non-terminal card lingers (a clarifying/failed/
+        // still-extracting card means the user has more to finish — stay in `.reviewing`
+        // so it never collapses to a blank "Save all · 0 bills" screen). The saved bills
+        // are already persisted via `confirm`/`persist`; this only resets session state.
+        if blocked.isEmpty && session.groups.isEmpty
+            && !session.cards.contains(where: { !$0.state.isTerminal }) {
+            session.resetAfterFullSave()
         }
         return blocked
     }
