@@ -364,6 +364,19 @@ final class RecordCoordinator {
 
     @discardableResult
     func confirm(cardID: UUID, acknowledging: Bool = false) -> ConfirmOutcome {
+        // Money rule: the per-card Save must NOT bypass the batch's group protections.
+        // A card claimed by any still-pending fuse/duplicate group is never persisted
+        // here — the only way to save a grouped member is to resolve its group first
+        // (combine/split/keepOne/keepBoth), which returns it (or a new card) to plain
+        // review. While a batch is active, only current plain-review cards may save via
+        // this path; everything else mirrors how `confirmAll` skips claimed members.
+        // The single-input fast path (no active batch) is unaffected.
+        if session.hasActiveBatch {
+            let claimed = Set(session.groups.flatMap { $0.memberCardIDs })
+            if claimed.contains(cardID) || !session.plainReviewCardIDs.contains(cardID) {
+                return .notReviewable
+            }
+        }
         do {
             let effect = try session.confirm(cardID: cardID, acknowledging: acknowledging)
             if case .persist(let id) = effect, let card = session.card(id) {

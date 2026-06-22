@@ -1125,12 +1125,12 @@ final class HeldBatchSessionTests: XCTestCase {
         XCTAssertEqual(session.batchPhase, .reviewing)
     }
 
-    func testGroupsAreViewsNotMutations() {
+    func testGroupsAreViewsNotMutations() throws {
         var session = RecordingSession(validator: validator())
         let a = seedReviewCard(&session, amount: 1200, merchant: "Photo half")
         let b = seedReviewCard(&session, amount: 1200, merchant: "Note half")
-        let beforeA = session.card(a)!.draft
-        let beforeB = session.card(b)!.draft
+        let beforeA = try XCTUnwrap(session.card(a)).draft
+        let beforeB = try XCTUnwrap(session.card(b)).draft
 
         let gid = UUID()
         let resolved = draft(UUID(), amount: 1200, merchant: "Fused")
@@ -1146,8 +1146,8 @@ final class HeldBatchSessionTests: XCTestCase {
         // Split is a pure discard — the two member drafts restore byte-identical.
         session.split(groupID: gid)
         XCTAssertTrue(session.groups.isEmpty)
-        XCTAssertEqual(session.card(a)!.draft, beforeA)
-        XCTAssertEqual(session.card(b)!.draft, beforeB)
+        XCTAssertEqual(try XCTUnwrap(session.card(a)).draft, beforeA)
+        XCTAssertEqual(try XCTUnwrap(session.card(b)).draft, beforeB)
         XCTAssertEqual(Set(session.plainReviewCardIDs), [a, b])
 
         // Keep-both on a dup group is likewise a pure discard.
@@ -1159,8 +1159,8 @@ final class HeldBatchSessionTests: XCTestCase {
             cleanCardIDs: []))
         session.keepBoth(groupID: dupID)
         XCTAssertTrue(session.groups.isEmpty)
-        XCTAssertEqual(session.card(a)!.draft, beforeA)
-        XCTAssertEqual(session.card(b)!.draft, beforeB)
+        XCTAssertEqual(try XCTUnwrap(session.card(a)).draft, beforeA)
+        XCTAssertEqual(try XCTUnwrap(session.card(b)).draft, beforeB)
     }
 
     func testKeepOneSetsAsideReversibly() {
@@ -1216,7 +1216,7 @@ final class HeldBatchSessionTests: XCTestCase {
         XCTAssertEqual(session.card(a)?.state, .review)
     }
 
-    func testAmountTraceNullBlocksSave() {
+    func testAmountTraceNullBlocksSave() throws {
         var session = RecordingSession(validator: validator())
         let a = seedReviewCard(&session, amount: nil, merchant: "Half A", source: .photo)
         let b = seedReviewCard(&session, amount: nil, merchant: "Half B", source: .text)
@@ -1228,10 +1228,9 @@ final class HeldBatchSessionTests: XCTestCase {
                 resolvedDraft: dto(draft(UUID(), amount: nil, merchant: "Fused no amount")),
                 amountTrace: nil, reason: "fused without a money source", confidence: 0.8)],
             duplicateGroups: [], cleanCardIDs: []))
-        let newID = session.combine(groupID: gid)
-        XCTAssertNotNil(newID)
+        let newID = try XCTUnwrap(session.combine(groupID: gid))
         // The fused card has no amount → confirm blocks with amountRequired (never minted).
-        XCTAssertThrowsError(try session.confirm(cardID: newID!)) { error in
+        XCTAssertThrowsError(try session.confirm(cardID: newID)) { error in
             XCTAssertEqual(error as? ConfirmError, .amountRequired)
         }
     }
@@ -1285,7 +1284,8 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         let ctx = ModelContext(container)
         let journal = syncedJournal(ctx)
         // The mock fuses ALL inputs into one resolved card with a real amount.
-        let mock = MockUntangleAPI(.fuseAll(amount: Decimal(string: "1500")!, merchant: "Lunch"))
+        let fusedAmount = try XCTUnwrap(Decimal(string: "1500"))
+        let mock = MockUntangleAPI(.fuseAll(amount: fusedAmount, merchant: "Lunch"))
         let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
 
         coord.submitText("Lunch 1200 yen")
@@ -1349,8 +1349,7 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("Coffee 480 yen today")
         await waitUntil("recognize Task settles to .review") { coord.cards.first?.state == .review }
-        let id = coord.cards.first?.id
-        XCTAssertNotNil(id)
+        let id = try XCTUnwrap(coord.cards.first?.id)
         XCTAssertEqual(coord.cards.first?.state, .review)
         XCTAssertTrue(coord.allowsPerCardSave)           // per-card Save stays on
         XCTAssertFalse(coord.showsDoneAddingBar)         // no batch bar for a lone input
@@ -1362,7 +1361,7 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertEqual(untangleCalls, 0)
 
         // The instant per-card Save still works (the lone input writes one bill).
-        let outcome = coord.confirm(cardID: id!)
+        let outcome = coord.confirm(cardID: id)
         XCTAssertEqual(outcome, .recorded)
         let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
         XCTAssertEqual(bills.count, 1)
@@ -1405,7 +1404,8 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         let ctx = ModelContext(container)
         let journal = syncedJournal(ctx)
         // The mock fuses ALL inputs into one pending fuse group (with a real amount).
-        let mock = MockUntangleAPI(.fuseAll(amount: Decimal(string: "1500")!, merchant: "Lunch"))
+        let fusedAmount = try XCTUnwrap(Decimal(string: "1500"))
+        let mock = MockUntangleAPI(.fuseAll(amount: fusedAmount, merchant: "Lunch"))
         let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
 
         coord.submitText("Lunch 1200 yen")
@@ -1425,6 +1425,49 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertEqual(Set(blocked), memberIDs)          // both grouped members blocked
         let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
         XCTAssertEqual(bills.count, 0)                   // hidden grouped members never saved
+    }
+
+    /// FIX 1 (per-card path): the per-card `confirm` must NOT bypass the batch's group
+    /// protections. A card claimed by a still-pending fuse/duplicate group is refused
+    /// (.notReviewable) and never persisted via the per-card Save — closing the hole
+    /// where a grouped member could be saved before its group is resolved. The only way
+    /// to save it is to resolve the group first (here: combine), then save the result.
+    func testPerCardConfirmRefusesGroupedMember() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let fusedAmount = try XCTUnwrap(Decimal(string: "1500"))
+        let mock = MockUntangleAPI(.fuseAll(amount: fusedAmount, merchant: "Lunch"))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("Lunch 1200 yen")
+        coord.submitText("Same lunch, the drink")
+        await waitUntil("both cards reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
+
+        coord.markDoneAdding()
+        await waitUntil("untangle round-trip") { coord.groups.count == 1 }
+        XCTAssertEqual(coord.groups.count, 1)            // one PENDING fuse group
+        XCTAssertTrue(coord.plainReviewCards.isEmpty)    // both cards owned by the group
+
+        // Try to save a grouped member directly via the per-card path: REFUSED, no bill.
+        let groupedMemberID = try XCTUnwrap(coord.groups.first?.memberCardIDs.first)
+        let refused = coord.confirm(cardID: groupedMemberID)
+        XCTAssertEqual(refused, .notReviewable)          // claimed member cannot be saved
+        XCTAssertTrue(try ctx.fetch(FetchDescriptor<BillRecord>()).isEmpty)  // nothing persisted
+
+        // Resolve the group (combine) → one plain review card; now the per-card Save works.
+        let groupID = try XCTUnwrap(coord.groups.first?.id)
+        coord.combine(groupID: groupID)
+        XCTAssertTrue(coord.groups.isEmpty)
+        XCTAssertEqual(coord.plainReviewCards.count, 1)
+        let resolvedID = try XCTUnwrap(coord.plainReviewCards.first?.id)
+        let outcome = coord.confirm(cardID: resolvedID)
+        XCTAssertEqual(outcome, .recorded)               // saving works only after resolution
+        let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
+        XCTAssertEqual(bills.count, 1)                   // exactly the resolved card
+        XCTAssertEqual(bills.first?.amount, Decimal(string: "1500"))
     }
 
     /// FIX 3: only cards that reached `.review` feed the untangle request. A card still
@@ -1449,9 +1492,8 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         }
 
         let reviewIDs = Set(coord.cards.filter { $0.state == .review }.map(\.id))
-        let failedID = coord.session.cards.first { $0.state == .failed }?.id
+        let failedID = try XCTUnwrap(coord.session.cards.first { $0.state == .failed }?.id)
         XCTAssertEqual(reviewIDs.count, 2)               // the two text cards
-        XCTAssertNotNil(failedID)                        // the photo card failed
 
         coord.markDoneAdding()
         // Untangle completes → the batch reaches .reviewing (the observable side effect).
@@ -1460,6 +1502,6 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertEqual(untangleCalls, 1)
         let sent = Set(await mock.lastUntangleInputIDs)
         XCTAssertEqual(sent, reviewIDs)                  // only .review cards sent
-        XCTAssertFalse(sent.contains(failedID!))         // failed card excluded
+        XCTAssertFalse(sent.contains(failedID))          // failed card excluded
     }
 }
