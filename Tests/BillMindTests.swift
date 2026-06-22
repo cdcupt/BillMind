@@ -1713,6 +1713,131 @@ final class HeldBatchCoordinatorTests: XCTestCase {
     }
 }
 
+// MARK: - Compose (photo + caption sent as one request)
+
+/// A `RecognitionAPI` double that CAPTURES every recognize request so a test can
+/// assert exactly which fields the compose path set, and returns one recognized
+/// card so the captured card reaches `.review`. Untangle is never exercised here.
+actor CaptureRecordingAPI: RecognitionAPI {
+    private(set) var requests: [APICaptureRequest] = []
+    private let cardMerchant: String?
+    private let cardAmount: Decimal?
+
+    init(merchant: String? = "Receipt", amount: Decimal? = Decimal(string: "240")) {
+        self.cardMerchant = merchant
+        self.cardAmount = amount
+    }
+
+    func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse {
+        requests.append(req)
+        let draft = APIBillDraft(merchant: cardMerchant, amount: cardAmount, currencyCode: "JPY",
+                                 categoryRaw: "food", date: Date(timeIntervalSince1970: 1_700_000_000),
+                                 source: "photo")
+        let card = APICard(tripID: req.tripID, draft: draft, gaps: [], canSave: cardAmount != nil)
+        return APICaptureResponse(declined: false, message: nil, card: card, cards: [card])
+    }
+
+    func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse {
+        APIUntangleResponse(declined: false, message: nil,
+                            fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])
+    }
+}
+
+@MainActor
+final class ComposeCaptureTests: XCTestCase {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema(BillMindSchemaV2.models)
+        return try ModelContainer(for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    }
+
+    private func syncedJournal(_ ctx: ModelContext) -> Journal {
+        let j = Journal(name: "Osaka", currency: "JPY")
+        j.serverID = UUID(); j.syncState = .synced
+        ctx.insert(j); try? ctx.save()
+        return j
+    }
+
+    private func waitUntil(_ label: String = "", timeout: TimeInterval = 2,
+                           file: StaticString = #filePath, line: UInt = #line,
+                           _ condition: @MainActor () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            if Date() >= deadline {
+                XCTFail("waitUntil timed out after \(timeout)s\(label.isEmpty ? "" : ": \(label)")",
+                        file: file, line: line)
+                return
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+    }
+
+    /// A staged photo + a caption are sent as ONE recognize request with BOTH the
+    /// image AND the caption set, producing exactly one card. This is the load-bearing
+    /// compose guarantee: the photo and the note arrive together, never as two cards.
+    func testSubmitComposedSendsImageAndCaptionInOneRequest() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        let caption = "the total was 240, lunch"
+        coord.submitComposed(image: UIImage(systemName: "doc")!, caption: caption)
+        await waitUntil("composed card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)                       // exactly ONE request
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertNotNil(req.imageBase64)                        // the photo is present…
+        XCTAssertFalse(try XCTUnwrap(req.imageBase64).isEmpty)
+        XCTAssertEqual(req.text, caption)                       // …AND so is the caption
+        XCTAssertEqual(req.mimeType, "image/jpeg")
+        XCTAssertEqual(coord.cards.count, 1)                    // one request → one card
+        XCTAssertEqual(coord.cards.first?.draft.source, .photo)
+    }
+
+    /// Photo-only via the compose path: a staged chip with an empty caption still sends
+    /// (one image request, no text), exactly like today's instant photo capture.
+    func testStagedPhotoWithoutCaptionStillSends() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitComposed(image: UIImage(systemName: "doc")!, caption: "   ")  // blank caption
+        await waitUntil("photo-only composed card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertNotNil(req.imageBase64)                       // image present…
+        XCTAssertNil(req.text)                                 // …caption blank → nil (photo-only)
+        XCTAssertEqual(coord.cards.count, 1)                   // one card, the photo alone
+    }
+
+    /// The text-only path is untouched by compose: with NO staged photo, submitText
+    /// sends text with no image and produces a card, exactly as before.
+    func testTextOnlyPathUnchanged() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI(merchant: "Ramen", amount: Decimal(string: "2840"))
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        coord.submitText("ramen 2840")
+        await waitUntil("text card reaches .review") { coord.cards.first?.state == .review }
+
+        let requests = await mock.requests
+        XCTAssertEqual(requests.count, 1)
+        let req = try XCTUnwrap(requests.first)
+        XCTAssertEqual(req.text, "ramen 2840")                 // the typed text…
+        XCTAssertNil(req.imageBase64)                          // …with NO image (text-only)
+        XCTAssertEqual(coord.cards.count, 1)
+    }
+}
+
 // MARK: - Untangle review UI snapshot (visual proof)
 
 /// Renders the seeded `.reviewing` review surface (one fuse proposal + one
@@ -1743,6 +1868,27 @@ final class UntangleReviewSnapshotTests: XCTestCase {
             return XCTFail("ImageRenderer produced no PNG")
         }
         let url = URL(fileURLWithPath: "/tmp/untangle_review_ui.png")
+        try data.write(to: url)
+        XCTAssertGreaterThan(data.count, 1000, "PNG should be non-trivial")
+    }
+}
+
+/// Renders the compose input bar (staged chip + caption, terra-ringed active chip)
+/// to /tmp/compose_ui.png — the visual proof of the compose tray styling.
+@MainActor
+final class ComposeBarSnapshotTests: XCTestCase {
+    func testRenderComposeBarToPNG() throws {
+        let view = ComposeBarPreview()
+            .padding(.vertical, 24)
+            .frame(width: 393)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(SketchTheme.cream)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.uiImage, let data = image.pngData() else {
+            return XCTFail("ImageRenderer produced no PNG")
+        }
+        let url = URL(fileURLWithPath: "/tmp/compose_ui.png")
         try data.write(to: url)
         XCTAssertGreaterThan(data.count, 1000, "PNG should be non-trivial")
     }

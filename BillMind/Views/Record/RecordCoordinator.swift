@@ -215,7 +215,11 @@ final class RecordCoordinator {
         }
     }
 
-    private func extract(image: UIImage, cardID: UUID, tripID: UUID) async {
+    /// Recognize one image (optionally with a `caption` from the compose path). When a
+    /// caption is present it rides in the SAME request as the image (both fields set), so
+    /// the server reads the photo + sentence as one bill — that is the only difference
+    /// from the plain photo-only path.
+    private func extract(image: UIImage, caption: String? = nil, cardID: UUID, tripID: UUID) async {
         // Bound the upload: a full-res sensor photo, base64-in-JSON, can exceed the
         // server's body limit (this was the "413 Payload Too Large"). Downscale to a
         // max edge before encoding — smaller/faster uploads and lower vision cost,
@@ -227,7 +231,7 @@ final class RecordCoordinator {
         }
         do {
             let response = try await recognizer.recognize(APICaptureRequest(
-                text: nil, tripID: tripID, imageBase64: data.base64EncodedString(), mimeType: "image/jpeg"))
+                text: caption, tripID: tripID, imageBase64: data.base64EncodedString(), mimeType: "image/jpeg"))
             if response.declined {
                 _ = session.failExtraction(cardID: cardID)
                 declineMessage = response.message ?? "I can only help with travel and money."
@@ -256,6 +260,31 @@ final class RecordCoordinator {
             return
         }
         Task { await extract(image: image, cardID: cardID, tripID: tripID) }
+    }
+
+    /// Compose path — the user staged a photo and attached a caption to it, then sent
+    /// both as **one** input. Mirrors `submitPhotos`' single-image path exactly, but
+    /// carries the caption into the same `APICaptureRequest` (both `imageBase64` AND
+    /// `text` set), so the server reads the picture and the sentence as one bill and the
+    /// caption fills the photo's gaps. One request → one `.photo` card. An empty caption
+    /// degrades to the byte-for-byte photo-only path. The money rule is unchanged: the
+    /// amount stays nil if neither OCR nor the caption yields one (never invented), and
+    /// the local validator's "amount required" gate still applies.
+    func submitComposed(image: UIImage, caption: String) {
+        let note = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let tripID = journal.serverID else {
+            errorMessage = "This trip isn't synced yet — pull to refresh, then try again."
+            return
+        }
+        let id = session.enqueue(source: .photo)
+        sourceImages[id] = image
+        photoHashes[id] = image.perceptualHashHex()        // same-photo dedup signal
+        if !note.isEmpty { noteTexts[id] = note }           // caption rides as the fuse/dedup note
+        guard session.beginExtraction(cardID: id) else {
+            errorMessage = "Session limit reached — start a new session."
+            return
+        }
+        Task { await extract(image: image, caption: note.isEmpty ? nil : note, cardID: id, tripID: tripID) }
     }
 
     // MARK: - Held batch (Done adding → untangle → review)
