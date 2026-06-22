@@ -322,6 +322,21 @@ struct RecordingSession: Sendable {
         return cards.filter { $0.state == .review && !claimed.contains($0.id) }.map(\.id)
     }
 
+    /// The cards the review surface must RENDER (distinct from the savable
+    /// `plainReviewCardIDs`). A held card that hit any validation gap is parked in
+    /// `.clarifying` (or is still `.validating`/`.extracting`/`.intake`, or
+    /// `.failed`), so it is NOT in `plainReviewCardIDs` — yet the user still needs to
+    /// SEE it and finish it. This surface is every non-terminal held card no group
+    /// claims: `.intake`/`.extracting`/`.validating`/`.clarifying`/`.review`/`.failed`.
+    /// Each renders its own state via `AgentCardView` (clarify chips, thinking, ready,
+    /// retry); resolving a card mutates it into `.review`, which makes it savable.
+    /// Over-narrowing this to `.review` only is exactly what made finished-but-
+    /// unresolved batches vanish into a blank "0 bills" review screen.
+    var reviewSurfaceCardIDs: [UUID] {
+        let claimed = Set(groups.flatMap { $0.memberCardIDs })
+        return cards.filter { !$0.state.isTerminal && !claimed.contains($0.id) }.map(\.id)
+    }
+
     /// Resolve a fuse group by ACCEPTING it. Injects the resolved draft as ONE new
     /// held card (run through the same validator gate as any card), sets aside the
     /// member cards it subsumes, and drops the group. The new card then saves as a

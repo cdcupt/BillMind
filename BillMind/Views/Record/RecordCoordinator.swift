@@ -74,9 +74,20 @@ final class RecordCoordinator {
     /// (`FuseProposalView` / `DuplicateGroupView`) and one per `plainReviewCardIDs`.
     var groups: [UntangleGroup] { session.groups }
 
-    /// Held cards no group claims — rendered as plain `AgentCardView` review rows.
+    /// Held cards no group claims that are in `.review` — the SAVABLE set. Drives the
+    /// "Save all · N bills" count and `confirmAll` (you can only save a `.review` card).
     var plainReviewCards: [AgentCard] {
         let ids = Set(session.plainReviewCardIDs)
+        return session.cards.filter { ids.contains($0.id) }
+    }
+
+    /// Held cards no group claims that the review surface must RENDER — every
+    /// non-terminal card, including `.clarifying`/`.validating`/`.failed` ones that
+    /// `plainReviewCards` (savable-only) excludes. This is what the user SEES so a
+    /// batch with unfinished cards never collapses to a blank "0 bills" screen; each
+    /// card shows its own state UI and becomes savable once resolved into `.review`.
+    var reviewSurfaceCards: [AgentCard] {
+        let ids = Set(session.reviewSurfaceCardIDs)
         return session.cards.filter { ids.contains($0.id) }
     }
 
