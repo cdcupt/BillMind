@@ -18,6 +18,29 @@ struct BillDraftDTO: Content {
         self.date = d.date
         self.source = d.source.rawValue
     }
+
+    init(merchant: String?, amount: Decimal?, currencyCode: String,
+         categoryRaw: String?, date: Date?, source: String) {
+        self.merchant = merchant
+        self.amount = amount
+        self.currencyCode = currencyCode
+        self.categoryRaw = categoryRaw
+        self.date = date
+        self.source = source
+    }
+
+    /// Rebuild a core `BillDraft` from the wire DTO so the existing `BillValidator`
+    /// can gate a resolved fused draft exactly as the recognition path does.
+    func asDraft() -> BillDraft {
+        BillDraft(
+            merchant: merchant,
+            amount: amount,
+            currencyCode: currencyCode,
+            date: date,
+            categoryRaw: categoryRaw,
+            source: DraftSource(rawValue: source) ?? .manual
+        )
+    }
 }
 
 /// A validation gap → the chip-answerable clarification the client renders.
@@ -29,11 +52,25 @@ struct GapDTO: Content {
 }
 
 /// The server-rendered capture card. `canSave` is the hard gate: amount present.
+///
+/// `clientCardID` is a per-session UUID the client assigns to each held card so
+/// the untangle plan (POST /v1/untangle) can reference cards by a stable id. It is
+/// additive and optional: older clients omit it and the field decodes as nil, so
+/// the recognition contract is unchanged.
 struct CardDTO: Content {
     let tripID: UUID
     let draft: BillDraftDTO
     let gaps: [GapDTO]
     let canSave: Bool
+    let clientCardID: UUID?
+
+    init(tripID: UUID, draft: BillDraftDTO, gaps: [GapDTO], canSave: Bool, clientCardID: UUID? = nil) {
+        self.tripID = tripID
+        self.draft = draft
+        self.gaps = gaps
+        self.canSave = canSave
+        self.clientCardID = clientCardID
+    }
 }
 
 /// Recognition result: a list of cards to confirm (one per recognized bill — a

@@ -51,6 +51,11 @@ public func configure(_ app: Application) async throws {
     try app.register(collection: AgentController(agent: AgentService(
         llm: GeminiLLMClient(model: models.gemini), moderation: moderationService, quota: QuotaService()
     )))
+    // Untangle (held-batch fuse + dedup) reasons over cards the client already holds;
+    // it re-recognizes nothing and adds no free-text, so no moderation is wired here.
+    try app.register(collection: UntangleController(
+        reasoner: GeminiUntangleReasoner(model: models.gemini)
+    ))
     try app.register(collection: MindController(generator: GeminiMindGenerator(model: models.geminiImage)))
     try app.register(collection: SyncController())
     try app.register(collection: ReportController())
