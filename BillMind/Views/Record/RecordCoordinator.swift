@@ -270,11 +270,18 @@ final class RecordCoordinator {
     /// degrades to the byte-for-byte photo-only path. The money rule is unchanged: the
     /// amount stays nil if neither OCR nor the caption yields one (never invented), and
     /// the local validator's "amount required" gate still applies.
-    func submitComposed(image: UIImage, caption: String) {
+    ///
+    /// Returns `true` when the photo+caption was accepted (enqueued and extraction
+    /// started), `false` when it was rejected — unsynced trip (`serverID == nil`) or the
+    /// session limit was reached. The caller relies on this to know whether the staged
+    /// chip was actually consumed: a rejected send must keep its chip + caption so the
+    /// user can retry, never silently dropping the photo behind the surfaced error.
+    @discardableResult
+    func submitComposed(image: UIImage, caption: String) -> Bool {
         let note = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let tripID = journal.serverID else {
             errorMessage = "This trip isn't synced yet — pull to refresh, then try again."
-            return
+            return false
         }
         let id = session.enqueue(source: .photo)
         sourceImages[id] = image
@@ -282,9 +289,10 @@ final class RecordCoordinator {
         if !note.isEmpty { noteTexts[id] = note }           // caption rides as the fuse/dedup note
         guard session.beginExtraction(cardID: id) else {
             errorMessage = "Session limit reached — start a new session."
-            return
+            return false
         }
         Task { await extract(image: image, caption: note.isEmpty ? nil : note, cardID: id, tripID: tripID) }
+        return true
     }
 
     // MARK: - Held batch (Done adding → untangle → review)

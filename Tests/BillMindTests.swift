@@ -1783,7 +1783,8 @@ final class ComposeCaptureTests: XCTestCase {
         let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
 
         let caption = "the total was 240, lunch"
-        coord.submitComposed(image: UIImage(systemName: "doc")!, caption: caption)
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        coord.submitComposed(image: docImage, caption: caption)
         await waitUntil("composed card reaches .review") { coord.cards.first?.state == .review }
 
         let requests = await mock.requests
@@ -1806,7 +1807,8 @@ final class ComposeCaptureTests: XCTestCase {
         let mock = CaptureRecordingAPI()
         let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
 
-        coord.submitComposed(image: UIImage(systemName: "doc")!, caption: "   ")  // blank caption
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        coord.submitComposed(image: docImage, caption: "   ")  // blank caption
         await waitUntil("photo-only composed card reaches .review") { coord.cards.first?.state == .review }
 
         let requests = await mock.requests
@@ -1815,6 +1817,31 @@ final class ComposeCaptureTests: XCTestCase {
         XCTAssertNotNil(req.imageBase64)                       // image present…
         XCTAssertNil(req.text)                                 // …caption blank → nil (photo-only)
         XCTAssertEqual(coord.cards.count, 1)                   // one card, the photo alone
+    }
+
+    /// An unsynced trip (`serverID == nil`) must REJECT a composed send: `submitComposed`
+    /// returns false, surfaces a retryable error, and enqueues nothing. This is the exact
+    /// signal `sendComposed` relies on to KEEP the staged chip + its caption instead of
+    /// dropping the photo behind a "try again" error — so nothing is ever lost.
+    func testRejectedComposeKeepsChipsStaged() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        // Unsynced journal: no serverID, so the trip isn't on the server yet.
+        let journal = Journal(name: "Kyoto", currency: "JPY")
+        ctx.insert(journal); try? ctx.save()
+        XCTAssertNil(journal.serverID)
+        let mock = CaptureRecordingAPI()
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
+
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+        let accepted = coord.submitComposed(image: docImage, caption: "lunch 240")
+
+        XCTAssertFalse(accepted, "unsynced trip must reject the composed send")
+        XCTAssertTrue(coord.cards.isEmpty, "rejected send must enqueue no card")
+        let error = try XCTUnwrap(coord.errorMessage, "rejection surfaces a retryable error")
+        XCTAssertFalse(error.isEmpty, "the surfaced error is non-empty so the user can retry")
+        let requests = await mock.requests
+        XCTAssertTrue(requests.isEmpty, "nothing reaches the server on a rejected send")
     }
 
     /// The text-only path is untouched by compose: with NO staged photo, submitText

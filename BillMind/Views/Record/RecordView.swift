@@ -537,17 +537,32 @@ struct RecordView: View {
     }
 
     /// Dispatch every staged chip as a composed photo + caption (one request → one bill
-    /// each), then reset the tray and field. A chip with an empty caption sends as
-    /// photo-only (unchanged from today's instant photo capture).
+    /// each). A chip with an empty caption sends as photo-only (unchanged from today's
+    /// instant photo capture).
+    ///
+    /// `submitComposed` can REJECT a send (unsynced trip → `serverID == nil`, or the
+    /// session limit was reached) and surface a retryable `errorMessage`. We must NOT
+    /// clear a chip that wasn't accepted, or the photo + its caption are lost while the
+    /// user is told to try again. So we keep only the chips that `submitComposed`
+    /// accepted; any rejected chip stays staged (with its caption preserved) and the
+    /// active selection re-binds to a surviving chip so the user can retry. When the trip
+    /// is unsynced every chip is rejected and nothing is lost.
     private func sendComposed(_ coordinator: RecordCoordinator) {
         commitFieldToActiveChip()       // fold the in-progress note into its chip first
-        let chips = stagedChips
-        stagedChips = []
-        activeChipID = nil
-        inputText = ""
-        inputFocused = false
-        for chip in chips {
-            coordinator.submitComposed(image: chip.image, caption: chip.caption)
+        let previousActiveID = activeChipID
+        let surviving = stagedChips.filter { chip in
+            !coordinator.submitComposed(image: chip.image, caption: chip.caption)
+        }
+        stagedChips = surviving
+        if surviving.isEmpty {
+            activeChipID = nil
+            inputText = ""
+            inputFocused = false
+        } else {
+            // Keep the previously active chip selected if it was rejected; otherwise
+            // re-bind to the first surviving chip so its caption stays editable.
+            activeChipID = surviving.contains { $0.id == previousActiveID } ? previousActiveID : surviving.first?.id
+            inputText = surviving.first(where: { $0.id == activeChipID })?.caption ?? ""
         }
     }
 
