@@ -95,21 +95,32 @@ struct UntangleController: RouteCollection {
             let members = orderedUnique(fuse.sourceCardIDs).filter { byID[$0] != nil && !claimed.contains($0) }
             guard members.count >= 2 else { continue }
 
-            // GUARD ②: never fuse cards whose amounts disagree. Distinct member
-            // amounts ⇒ refuse the fuse entirely (those cards stay for the clean set).
-            let memberAmounts = members.compactMap { byID[$0]?.draft.amount }
-            if hasConflictingAmounts(memberAmounts) { continue }
+            // GUARD ②: never fuse cards whose MONEY disagrees. Money is (magnitude AND
+            // currency): two members are only non-conflicting if BOTH match. So distinct
+            // magnitudes — OR equal magnitudes in DIFFERENT currencies (a €50 card and a
+            // $50 card) — refuse the fuse entirely (those cards stay for the clean set).
+            // Cards with no amount don't carry money and don't gate this check.
+            let memberMoney = members.compactMap { id -> (Decimal, String)? in
+                guard let amount = byID[id]?.draft.amount else { return nil }
+                return (amount, byID[id]?.draft.currencyCode ?? currency)
+            }
+            if hasConflictingAmounts(memberMoney) { continue }
 
             // GUARD ①: the resolved amount must be byte-equal (Decimal-equal) to a
             // member card's amount, and the cited trace card must actually carry it.
             // Anything else (a minted amount, a value from no card) is dropped and the
-            // trace is nulled — the client then shows "amount required".
-            let (resolvedAmount, trace) = resolveAmount(fuse: fuse, members: members, byID: byID)
+            // trace is nulled — the client then shows "amount required". The resolved
+            // currency comes from that same amount-carrying member, so amount↔currency
+            // can never desync.
+            let (resolvedAmount, resolvedCurrency, trace) = resolveAmount(fuse: fuse, members: members, byID: byID)
 
             let resolvedDraft = BillDraftDTO(
                 merchant: fuse.merchant ?? firstNonNil(members, byID) { $0.draft.merchant },
                 amount: resolvedAmount,
-                currencyCode: fuse.currencyCode ?? firstNonNil(members, byID) { $0.draft.currencyCode } ?? currency,
+                // When an amount survived the guard, its currency MUST be the one that
+                // member carried — never the model's free-text or an unrelated member's.
+                currencyCode: resolvedCurrency
+                    ?? fuse.currencyCode ?? firstNonNil(members, byID) { $0.draft.currencyCode } ?? currency,
                 categoryRaw: fuse.categoryRaw ?? firstNonNil(members, byID) { $0.draft.categoryRaw },
                 date: fuse.date ?? firstNonNil(members, byID) { $0.draft.date },
                 source: members.compactMap { byID[$0]?.draft.source }.first ?? DraftSource.manual.rawValue
@@ -156,44 +167,49 @@ struct UntangleController: RouteCollection {
 
     // MARK: - money guard helpers
 
-    /// The verbatim-amount post-check. Returns (amount, trace) only when the resolved
-    /// amount is Decimal-equal to a member card's amount AND the trace card carries
-    /// that exact value; otherwise (nil, nil) — the model cannot mint or move money.
+    /// The verbatim-amount post-check. Returns (amount, currency, trace) only when the
+    /// resolved amount is Decimal-equal to a member card's amount AND the trace card
+    /// carries that exact value; otherwise (nil, nil, nil) — the model cannot mint or
+    /// move money. The currency is taken from that same amount-carrying member so a
+    /// fused amount can never be paired with a foreign currency.
     static func resolveAmount(fuse: ProposedFuse, members: [UUID],
-                              byID: [UUID: UntangleInput]) -> (Decimal?, AmountTraceDTO?) {
-        // The set of amounts the user actually provided across the member cards.
-        let memberAmountByCard: [(UUID, Decimal)] = members.compactMap { id in
-            byID[id]?.draft.amount.map { (id, $0) }
+                              byID: [UUID: UntangleInput]) -> (Decimal?, String?, AmountTraceDTO?) {
+        // The money (amount + currency) the user actually provided across member cards.
+        let memberAmountByCard: [(id: UUID, amount: Decimal, currency: String?)] = members.compactMap { id in
+            byID[id]?.draft.amount.map { (id, $0, byID[id]?.draft.currencyCode) }
         }
-        guard !memberAmountByCard.isEmpty else { return (nil, nil) }   // no card supplies it → omit
+        guard !memberAmountByCard.isEmpty else { return (nil, nil, nil) }   // no card supplies it → omit
 
         // Prefer the model's proposed amount, but ONLY if it's byte-equal to a member's.
         if let proposed = fuse.proposedAmount,
-           let match = memberAmountByCard.first(where: { $0.1 == proposed }) {
+           let match = memberAmountByCard.first(where: { $0.amount == proposed }) {
             // Honour the model's cited source iff that card truly carries this amount;
-            // otherwise fall back to the matching member we found.
+            // otherwise fall back to the matching member we found. The currency rides
+            // along with whichever member supplies the amount.
             if let cited = fuse.amountSourceCardID,
                let citedAmount = byID[cited]?.draft.amount, citedAmount == proposed,
                members.contains(cited) {
-                return (proposed, AmountTraceDTO(sourceCardID: cited))
+                return (proposed, byID[cited]?.draft.currencyCode, AmountTraceDTO(sourceCardID: cited))
             }
-            return (proposed, AmountTraceDTO(sourceCardID: match.0))
+            return (proposed, match.currency, AmountTraceDTO(sourceCardID: match.id))
         }
 
         // Model proposed no amount (or a minted one we just rejected). If exactly one
         // distinct amount exists across members, that's an unambiguous trace; use it.
-        let distinct = Set(memberAmountByCard.map { $0.1 })
+        let distinct = Set(memberAmountByCard.map { $0.amount })
         if distinct.count == 1, let only = memberAmountByCard.first {
-            return (only.1, AmountTraceDTO(sourceCardID: only.0))
+            return (only.amount, only.currency, AmountTraceDTO(sourceCardID: only.id))
         }
         // Ambiguous (shouldn't reach here — conflicts are filtered earlier) → omit.
-        return (nil, nil)
+        return (nil, nil, nil)
     }
 
-    /// True when ≥2 DISTINCT amounts are present across member cards (a money conflict
-    /// → must not fuse). Cards with no amount don't count as a conflict on their own.
-    static func hasConflictingAmounts(_ amounts: [Decimal]) -> Bool {
-        Set(amounts).count > 1
+    /// True when ≥2 DISTINCT money values are present across member cards (a money
+    /// conflict → must not fuse). Money is keyed on (magnitude AND currency): equal
+    /// magnitudes in different currencies (e.g. €50 vs $50) ARE a conflict, so they
+    /// never fuse. Cards with no amount don't count as a conflict on their own.
+    static func hasConflictingAmounts(_ money: [(Decimal, String)]) -> Bool {
+        Set(money.map { "\($0.0)|\($0.1)" }).count > 1
     }
 
     // MARK: - small pure helpers
