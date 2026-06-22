@@ -73,7 +73,7 @@
     <ul>
       <li>On launch, if <code>UserDefaults.standard.bool(forKey: "hasSeenFirstLaunchNotice")</code> is <code>false</code>, present the notice as a sheet over the root (<code>ContentView</code>).</li>
       <li>Tapping <strong>Get started</strong> sets the flag <code>true</code> and dismisses. It never appears again.</li>
-      <li>Purely informational — it does <strong>not</strong> block recording or viewing, and it does <strong>not</strong> grant AI consent. the new <code>hasSeenFirstLaunchNotice</code> flag ≠ <code>hasConsentedToAIDataSharing</code>; the AI consent sheet still appears before the first AI call, unchanged.</li>
+      <li>Purely informational — it does <strong>not</strong> block recording or viewing. <em>(Updated 2026-06: the 2.0 Record flow is server-backed and no longer shows a separate on-device AI-consent sheet; the old <code>AIDataConsentView</code> was removed and <code>hasConsentedToAIDataSharing</code> is now a dormant field. The <code>hasSeenFirstLaunchNotice</code> flag remains independent of it.)</em></li>
     </ul>
 
     <h2><span class="n">2</span>Storage — no schema change</h2>
