@@ -1385,7 +1385,7 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         // Wait for the untangle Task to throw and degrade to reviewing.
         await waitUntil("untangle throws → degrade to reviewing") { coord.batchPhase == .reviewing }
         XCTAssertEqual(coord.batchPhase, .reviewing)
-        XCTAssertNotNil(coord.errorMessage)              // surfaced the error
+        XCTAssertEqual(coord.degradeMessage, RecordCoordinator.untangleOfflineNote)  // calm degrade note
         XCTAssertEqual(coord.groups.count, 0)            // no groups → plain cards
         XCTAssertEqual(coord.plainReviewCards.count, 2)
 
@@ -1394,6 +1394,66 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertTrue(blocked.isEmpty)
         let bills = try ctx.fetch(FetchDescriptor<BillRecord>())
         XCTAssertEqual(bills.count, 2)
+    }
+
+    /// Beta-tester gap: when "Done adding" CANNOT untangle, the degrade must be VISIBLE
+    /// (a calm user-facing notice in Ollie's voice), not silent — and the cards must
+    /// still be saveable individually. Covers both reasons:
+    ///   • server error / offline (untangle throws) → `untangleOfflineNote`
+    ///   • trip not synced yet (no serverID, never hits the wire) → `untangleUnsyncedNote`
+    func testDegradeSetsVisibleNoticeAndCardsStillSave() async throws {
+        // ── Reason 1: server/offline. untangle throws → calm offline note + cards save. ──
+        let throwContainer = try makeContainer()
+        let throwCtx = ModelContext(throwContainer)
+        let syncedJ = syncedJournal(throwCtx)
+        let throwMock = MockUntangleAPI(.throwTransport)
+        let throwCoord = RecordCoordinator(journal: syncedJ, modelContext: throwCtx, recognizer: throwMock)
+
+        throwCoord.submitText("Taxi 2000 yen")
+        throwCoord.submitText("Hotel 9000 yen")
+        await waitUntil("both cards reach .review") {
+            throwCoord.cards.count == 2 && throwCoord.cards.allSatisfy { $0.state == .review }
+        }
+        throwCoord.markDoneAdding()
+        await waitUntil("untangle throws → degrade to reviewing") { throwCoord.batchPhase == .reviewing }
+        // The degrade is surfaced (non-nil) in the calm offline voice — not silent.
+        XCTAssertNotNil(throwCoord.degradeMessage)
+        XCTAssertEqual(throwCoord.degradeMessage, RecordCoordinator.untangleOfflineNote)
+        XCTAssertEqual(throwCoord.groups.count, 0)              // no plan → plain cards
+        XCTAssertEqual(throwCoord.plainReviewCards.count, 2)
+        // …and the cards are still saveable individually (the fuse/dedup tidy-up is lost,
+        // never the bills). confirmAll writes one per card.
+        let throwBlocked = throwCoord.confirmAll()
+        XCTAssertTrue(throwBlocked.isEmpty)
+        XCTAssertEqual(try throwCtx.fetch(FetchDescriptor<BillRecord>()).count, 2)
+
+        // ── Reason 2: trip not synced. No serverID → never hits the wire; unsynced note. ──
+        let unsyncedContainer = try makeContainer()
+        let unsyncedCtx = ModelContext(unsyncedContainer)
+        let unsyncedJ = Journal(name: "Kyoto", currency: "JPY")   // no serverID → unsynced
+        unsyncedCtx.insert(unsyncedJ); try unsyncedCtx.save()
+        XCTAssertNil(unsyncedJ.serverID)
+        let unsyncedMock = MockUntangleAPI(.throwTransport)       // must never be called
+        let unsyncedCoord = RecordCoordinator(journal: unsyncedJ, modelContext: unsyncedCtx, recognizer: unsyncedMock)
+
+        // Unsynced trips extract locally, so both cards still reach .review without the wire.
+        unsyncedCoord.submitText("Taxi 2000 yen")
+        unsyncedCoord.submitText("Hotel 9000 yen")
+        await waitUntil("both cards reach .review (local extraction)") {
+            unsyncedCoord.cards.count == 2 && unsyncedCoord.cards.allSatisfy { $0.state == .review }
+        }
+        unsyncedCoord.markDoneAdding()                            // synchronous degrade (no Task)
+        XCTAssertEqual(unsyncedCoord.batchPhase, .reviewing)
+        XCTAssertNotNil(unsyncedCoord.degradeMessage)
+        XCTAssertEqual(unsyncedCoord.degradeMessage, RecordCoordinator.untangleUnsyncedNote)
+        let unsyncedUntangleCalls = await unsyncedMock.untangleCount
+        XCTAssertEqual(unsyncedUntangleCalls, 0)                  // never reached the server
+        XCTAssertEqual(unsyncedCoord.groups.count, 0)
+        XCTAssertEqual(unsyncedCoord.plainReviewCards.count, 2)
+        // Cards still save individually.
+        let unsyncedBlocked = unsyncedCoord.confirmAll()
+        XCTAssertTrue(unsyncedBlocked.isEmpty)
+        XCTAssertEqual(try unsyncedCtx.fetch(FetchDescriptor<BillRecord>()).count, 2)
     }
 
     /// FIX 1: cards still claimed by an UNRESOLVED fuse/duplicate group are never
