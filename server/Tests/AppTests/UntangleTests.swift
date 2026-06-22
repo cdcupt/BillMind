@@ -322,6 +322,29 @@ final class UntangleTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    /// duplicateCardIDsRejected — a batch with two inputs sharing one cardID is
+    /// rejected at the boundary (400) instead of trapping the `byID` lookup. The
+    /// arriving response (not a crash) is itself the proof the endpoint survived.
+    func testDuplicateCardIDsRejected() async throws {
+        // The reasoner would happily fuse the pair; the controller must reject the
+        // batch BEFORE ever consulting it (duplicate cardID ⇒ 400, no trap/crash).
+        let dup = UUID()
+        let plan = UntanglePlan(fuses: [ProposedFuse(
+            sourceCardIDs: [dup, dup], merchant: "Diner", proposedAmount: 1000,
+            currencyCode: "JPY", categoryRaw: "food", date: nil,
+            amountSourceCardID: dup, reason: "fuse", confidence: 0.9)])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app)
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: [
+            input(dup, draftDTO(amount: 1000)),
+            input(dup, draftDTO(amount: 2000)),   // SAME cardID — duplicate
+        ])) { res in
+            // A response arriving at all proves the process did not trap/crash.
+            XCTAssertEqual(res.status, .badRequest)
+        }
+        try await app.asyncShutdown()
+    }
+
     /// clientCardIDRoundTrips — the per-session cardIDs the client sends come back
     /// verbatim in the plan (so the client can map groups onto its live cards).
     func testClientCardIDRoundTrips() async throws {

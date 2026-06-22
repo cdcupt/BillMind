@@ -40,6 +40,14 @@ struct UntangleController: RouteCollection {
         else { throw Abort(.notFound, reason: "trip not found") }
 
         let inputs = body.inputs
+        // Client-supplied cardIDs must be unique. Duplicates would later trap the
+        // `byID` lookup (Dictionary(uniqueKeysWithValues:)), so a malformed/malicious
+        // batch could crash the endpoint — reject at the boundary instead (DoS guard).
+        let cardIDs = inputs.map(\.cardID)
+        guard Set(cardIDs).count == cardIDs.count else {
+            throw Abort(.badRequest, reason: "duplicate cardID")
+        }
+
         // Empty or single-input batches need no reasoning: the lone (or zero) card is
         // clean by definition. This also matches the A6 fast path — a single input is
         // never grouped.
@@ -66,7 +74,10 @@ struct UntangleController: RouteCollection {
     /// guard and the partition invariant. Pure (no DB / network) so the critical
     /// path is unit-tested directly.
     static func assemble(plan: UntanglePlan, inputs: [UntangleInput], trip: Trip) -> UntangleResponse {
-        let byID = Dictionary(uniqueKeysWithValues: inputs.map { ($0.cardID, $0) })
+        // Collision-tolerant by construction (keep first) — the controller already
+        // rejects duplicate cardIDs at the boundary, but this keeps the pure assembler
+        // from ever trapping if it's reached another way (defense-in-depth).
+        let byID = Dictionary(inputs.map { ($0.cardID, $0) }, uniquingKeysWith: { first, _ in first })
         let currency = trip.currencyCode
         let validator = BillValidator(
             knownCategoryRaws: Set(BillCategory.allCases.map(\.rawValue)),
