@@ -12,11 +12,9 @@
 		0EB0119CFB893E254B1CBFD0 /* SketchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D7FA0F51018664CEDB7993 /* SketchTheme.swift */; };
 		115BFAB66CD8654C1403AD99 /* BillFileCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21E95F1508B8F85247F0DFD5 /* BillFileCleanup.swift */; };
 		11D525E0799066A8A7E72C99 /* RecordCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266C448AE735C842A3A4D576 /* RecordCoordinator.swift */; };
-		19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F26146454BEE1E65D41784BE /* BillImportFlowView.swift */; };
 		1DAEEC4DDBAAE9FFBF63E982 /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */; };
 		2562E411BDB4D6F142AF91A2 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D426D4BB5B1FB9005D2170 /* SyncEngine.swift */; };
 		287A6C49F56CBF95BC0EA2EF /* BillDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D43D8B9368A0828C39DE04 /* BillDraft.swift */; };
-		31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9206CA5104CF74D505113E7 /* AddBillManualView.swift */; };
 		3B7BC72D4A529B4C46E02507 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F053CD704FCBA523E27F24D9 /* Validation.swift */; };
 		469E593309C4DB7735F4F4C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B2A264893EE938283B7450 /* SettingsView.swift */; };
 		46C28F0A9E5425B65670230A /* DraftExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B65ACC86E9347A36E6E2D1 /* DraftExtractor.swift */; };
@@ -79,7 +77,7 @@
 		0F2DC87E5FCBEA45DC9DC09E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0FC74283E52A503FB0A17A5A /* AIRecognitionMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionMapper.swift; sourceTree = "<group>"; };
 		12D7FA0F51018664CEDB7993 /* SketchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchTheme.swift; sourceTree = "<group>"; };
-		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13241D7F1AD186DBBDAC600E /* BillMind.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillMind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		166CBE10EC2FF76A53B34FF0 /* Prompts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prompts.swift; sourceTree = "<group>"; };
 		17E76A2BD5243EED8B530996 /* MindsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindsView.swift; sourceTree = "<group>"; };
 		1D375A2E6F928AAF5B16B8E8 /* AgentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCardView.swift; sourceTree = "<group>"; };
@@ -112,14 +110,12 @@
 		AABE92B8953FECBA3750EF2A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B07DB150C234A230A577B903 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		B509ACFCC4A7A51DD5A88980 /* BillMindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillMindTests.swift; sourceTree = "<group>"; };
-		C9206CA5104CF74D505113E7 /* AddBillManualView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBillManualView.swift; sourceTree = "<group>"; };
 		CB72CB16912304251F5D8C73 /* BillRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillRecord.swift; sourceTree = "<group>"; };
 		CFD7A300525D4BBCD37F1DBC /* ConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigService.swift; sourceTree = "<group>"; };
 		D46BDD202C9D7D9D5E3D80B9 /* BillMind.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BillMind.entitlements; sourceTree = "<group>"; };
 		E41242E1F9D15E98AA77C37F /* RecordTabUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTabUITests.swift; sourceTree = "<group>"; };
 		E6F1B3F7B4D8F9E374DE2E66 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F053CD704FCBA523E27F24D9 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
-		F26146454BEE1E65D41784BE /* BillImportFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillImportFlowView.swift; sourceTree = "<group>"; };
 		F5A9FC21069D618E9F6A7E4C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillDetailView.swift; sourceTree = "<group>"; };
 		FFB02A2B75453C3C4BC4225B /* AIRecognitionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecognitionResult.swift; sourceTree = "<group>"; };
@@ -308,9 +304,7 @@
 		B85719D5414B59C2DAB236A2 /* Bill */ = {
 			isa = PBXGroup;
 			children = (
-				C9206CA5104CF74D505113E7 /* AddBillManualView.swift */,
 				FA2450E7ADDD2DC63D4D0D0E /* BillDetailView.swift */,
-				F26146454BEE1E65D41784BE /* BillImportFlowView.swift */,
 			);
 			path = Bill;
 			sourceTree = "<group>";
@@ -473,14 +467,12 @@
 				0166EF69038B5C8EF9B2FACD /* AIRecognitionMapper.swift in Sources */,
 				D53F8A5389B0BD00ABA3EE2E /* AIRecognitionResult.swift in Sources */,
 				8625C1845463B1DAC256E0C2 /* AIService.swift in Sources */,
-				31210A3146FD47E592B9F4B0 /* AddBillManualView.swift in Sources */,
 				B34DED4DF0A6F40E3CFF93C9 /* AgentCardView.swift in Sources */,
 				DD7BDDC9E56FD4D4E32E2206 /* AnimalMascotView.swift in Sources */,
 				C5303E4A5F006C38F3BB88BB /* AppSettings.swift in Sources */,
 				8E7EC3CD6269E6208B2D54DA /* BillDetailView.swift in Sources */,
 				287A6C49F56CBF95BC0EA2EF /* BillDraft.swift in Sources */,
 				115BFAB66CD8654C1403AD99 /* BillFileCleanup.swift in Sources */,
-				19041C62D5FA61E07FE72A50 /* BillImportFlowView.swift in Sources */,
 				4E62DE46F7140E7FE26A0787 /* BillMindApp.swift in Sources */,
 				521CF057CC63E35FE5891597 /* BillMindSchema.swift in Sources */,
 				4B4E7CDE36FDC62149F4639D /* BillRecord.swift in Sources */,
@@ -654,7 +646,6 @@
 				CODE_SIGN_ENTITLEMENTS = BillMind/BillMind.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = NK3U2C365Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BillOwl;
@@ -763,7 +754,6 @@
 				CODE_SIGN_ENTITLEMENTS = BillMind/BillMind.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = NK3U2C365Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BillMind/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BillOwl;
