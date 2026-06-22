@@ -37,3 +37,6 @@ BillMind_config.json
 # secrets
 .env
 server/deploy/.env
+
+# user feedback evidence — real financial screenshots, keep local only
+feedback/raw/
