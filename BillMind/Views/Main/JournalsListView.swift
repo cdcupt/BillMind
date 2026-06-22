@@ -10,6 +10,9 @@ struct JournalsListView: View {
     @State private var navigationPath = NavigationPath()
     @State private var journalToDelete: Journal?
     @State private var showDeleteAlert = false
+    @State private var journalToRename: Journal?
+    @State private var renameText = ""
+    @State private var showRenameAlert = false
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -36,6 +39,13 @@ struct JournalsListView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
+                                    Button {
+                                        renameText = journal.name
+                                        journalToRename = journal
+                                        showRenameAlert = true
+                                    } label: {
+                                        Label("Rename Trip", systemImage: "pencil")
+                                    }
                                     Button(role: .destructive) {
                                         journalToDelete = journal
                                         showDeleteAlert = true
@@ -108,6 +118,26 @@ struct JournalsListView: View {
                 }
             } message: {
                 Text("This will permanently delete \"\(journalToDelete?.name ?? "")\" and all its bills.")
+            }
+            .alert("Rename Trip", isPresented: $showRenameAlert) {
+                TextField("Trip name", text: $renameText)
+                Button("Cancel", role: .cancel) { journalToRename = nil }
+                Button("Save") {
+                    if let journal = journalToRename {
+                        let trimmed = renameText.trimmingCharacters(in: .whitespaces)
+                        if !trimmed.isEmpty {
+                            // Mark the row pending so SyncEngine.pushRenamedTrips PATCHes the
+                            // rename to the server (LWW); without this the edit only ever
+                            // lived on-device. Mirrors BillDetailView.saveBill.
+                            journal.name = trimmed
+                            journal.syncState = .local
+                            journal.updatedAt = Date()
+                            try? modelContext.save()
+                            Task { await sync.sync() }
+                        }
+                    }
+                    journalToRename = nil
+                }
             }
         }
     }

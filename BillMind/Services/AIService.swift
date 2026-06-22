@@ -213,6 +213,10 @@ struct APICreateTripRequest: Encodable, Sendable {
     let mascot: String?
 }
 
+struct APIUpdateTripRequest: Encodable, Sendable {
+    let name: String
+}
+
 struct APIBill: Codable, Sendable, Identifiable {
     let id: UUID
     let tripID: UUID
@@ -443,6 +447,7 @@ enum APIError: LocalizedError, Equatable {
 /// pushes bills only), so trips can be made offline and created on reconnect.
 protocol SyncAPI: Sendable {
     func createTrip(_ req: APICreateTripRequest) async throws -> APITrip
+    func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip
     func deleteTrip(_ id: UUID) async throws
     func syncPull(since cursor: Double) async throws -> APISyncDelta
     func syncPush(_ push: APISyncPush) async throws -> APISyncPushResult
@@ -518,6 +523,12 @@ actor APIClient {
 
     func createTrip(_ req: APICreateTripRequest) async throws -> APITrip {
         try await post("v1/trips", body: req)
+    }
+
+    /// Rename a trip on the server (LWW); the returned rowVersion must be stored
+    /// so change-detection stays correct on the next sync.
+    func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip {
+        try await patch("v1/trips/\(id.uuidString)", body: req)
     }
 
     /// Soft-delete a trip and its bills on the server (tombstones propagate on sync).
@@ -671,6 +682,13 @@ actor APIClient {
     private func post<B: Encodable, R: Decodable>(_ path: String, body: B, authed: Bool = true) async throws -> R {
         let data = try await dataWithRetry(authed: authed) {
             try await self.makeRequest("POST", path, body: body, authed: authed)
+        }
+        return try decode(data)
+    }
+
+    private func patch<B: Encodable, R: Decodable>(_ path: String, body: B, authed: Bool = true) async throws -> R {
+        let data = try await dataWithRetry(authed: authed) {
+            try await self.makeRequest("PATCH", path, body: body, authed: authed)
         }
         return try decode(data)
     }

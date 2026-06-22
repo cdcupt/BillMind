@@ -38,6 +38,7 @@ actor SyncEngine {
         let context = ModelContext(container)
         try await pushDeletedTrips(context)                     // remove trips the user deleted
         let createdTrips = try await pushPendingTrips(context)   // trips must exist before their bills
+        try await pushRenamedTrips(context)                     // send local renames up before the pull clobbers them
         let pushed = try await pushPendingBills(context)
         let pulled = try await pullDeltas(context)
         return SyncOutcome(createdTrips: createdTrips,
@@ -80,6 +81,25 @@ actor SyncEngine {
         }
         if created > 0 { try context.save() }
         return created
+    }
+
+    // MARK: - Push trip renames (PATCH /v1/trips/:id; the sync contract pushes bills only)
+
+    private func pushRenamedTrips(_ context: ModelContext) async throws {
+        // Trips already on the server but edited locally (name changed). serverID is
+        // non-nil, syncState is .local, and the trip isn't tombstoned. The PATCH bumps
+        // row_version; we store the returned value so LWW change-detection stays correct.
+        let localRaw = SyncState.local.rawValue
+        let pending = try context.fetch(FetchDescriptor<Journal>(
+            predicate: #Predicate { $0.serverID != nil && $0.syncStateRaw == localRaw && $0.isDeleted == false }))
+        guard !pending.isEmpty else { return }
+        for journal in pending {
+            guard let serverID = journal.serverID else { continue }
+            let trip = try await api.updateTrip(serverID, APIUpdateTripRequest(name: journal.name))
+            journal.rowVersion = trip.rowVersion
+            journal.syncState = .synced
+        }
+        try context.save()
     }
 
     // MARK: - Push (bills only; trips are created via /v1/trips)

@@ -8,6 +8,13 @@ struct CreateTripRequest: Content {
     let mascot: String?
 }
 
+/// Rename payload for `PATCH /v1/trips/:tripID`. Only the trip name is editable
+/// through this route; the server trims + validates it (non-empty, length cap)
+/// and bumps `row_version` so the rename wins last-write-wins on every device.
+struct UpdateTripRequest: Content {
+    let name: String
+}
+
 struct TripDTO: Content {
     let id: UUID
     let name: String

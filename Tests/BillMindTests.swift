@@ -736,6 +736,7 @@ actor MockSyncAPI: SyncAPI {
     private let pushResult: APISyncPushResult
     private(set) var pushedBills: [APIBillUpsert] = []
     private(set) var createdTripNames: [String] = []
+    private(set) var renamedTrips: [(id: UUID, name: String)] = []
     private(set) var deletedTripIDs: [UUID] = []
     private(set) var pullCount = 0
     private(set) var pushCount = 0
@@ -750,6 +751,12 @@ actor MockSyncAPI: SyncAPI {
         createdTripNames.append(req.name)
         return APITrip(id: UUID(), name: req.name, currencyCode: req.currencyCode,
                        exchangeRate: 1, mascot: req.mascot, rowVersion: 1)
+    }
+
+    func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip {
+        renamedTrips.append((id: id, name: req.name))
+        return APITrip(id: id, name: req.name, currencyCode: "JPY",
+                       exchangeRate: 1, mascot: nil, rowVersion: 2)
     }
 
     func deleteTrip(_ id: UUID) async throws { deletedTripIDs.append(id) }
