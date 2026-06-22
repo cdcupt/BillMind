@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — F5 Dedup · PRD</title>
+<style>
+  :root{
+    --bg:#faf6ef; --ink:#3a2f28; --muted:#8a7a6c; --line:#e4d8c8;
+    --accent:#c8623a; --accent2:#5a7a50; --warn:#b5852f; --card:#fffdf9;
+    --shadow:0 2px 10px rgba(120,90,60,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:28px 20px 80px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:8px}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:clamp(1.7rem,1.2rem+2.4vw,2.5rem);margin:.15em 0 .1em}
+  .sub{color:var(--muted);font-size:15px}
+  h2{font-size:1.25rem;margin:2.1em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.4em 0 .3em;color:var(--accent)}
+  p{margin:.5em 0}
+  .glance{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:14px;margin:18px 0 6px;overflow-x:auto}
+  .glance svg{display:block;min-width:680px;max-width:100%;height:auto;margin:0 auto}
+  figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:.6em 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 .3em;font-size:.95rem}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
+  .pill.in{color:var(--accent2);border-color:#bcd0b0;background:#eef4ea}
+  .pill.out{color:#a85a3a;border-color:#e6c3b3;background:#fbece4}
+  ul{margin:.4em 0 .4em 0;padding-left:1.2em}
+  li{margin:.28em 0}
+  table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f4ece0}
+  code{background:#f1e7d8;border-radius:5px;padding:1px 5px;font-size:13.5px}
+  .lock{background:#fff8ec;border:1px solid #ecd9b3;border-left:4px solid var(--warn)}
+  .foot{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">BillOwl · Product Requirements · F5</div>
+  <h1>Duplicate-record detection in a capture session</h1>
+  <div class="sub">When a user submits several photos/notes at once, the same bill can land twice. Catch it before save — and let the user decide. · v1 · 2026-06-22</div>
+</header>
+
+<!-- ★ AT A GLANCE -->
+<figure class="glance" aria-label="At a glance">
+<svg viewBox="0 0 920 360" role="img" aria-label="F5 dedup product loop and scope">
+  <style>
+    .lbl{font:600 13px -apple-system,sans-serif;fill:#3a2f28}
+    .sm{font:11.5px -apple-system,sans-serif;fill:#8a7a6c}
+    .stp{font:700 12px -apple-system,sans-serif;fill:#fff}
+    .box{fill:#fffdf9;stroke:#e4d8c8;stroke-width:1.5;rx:12}
+  </style>
+  <!-- title strip -->
+  <text x="20" y="26" class="lbl" style="font-size:14px;fill:#c8623a">★ At a glance — the capture loop, with the new dedup step</text>
+
+  <!-- stage 1: multi-input -->
+  <rect x="20" y="50" width="150" height="92" rx="12" class="box"/>
+  <text x="95" y="74" text-anchor="middle" class="lbl">1 · One session</text>
+  <text x="95" y="98" text-anchor="middle" class="sm">📷 📷 ✏️ multiple</text>
+  <text x="95" y="116" text-anchor="middle" class="sm">photos + notes</text>
+
+  <!-- arrow -->
+  <path d="M176 96 H210" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- stage 2: recognize -->
+  <rect x="214" y="50" width="150" height="92" rx="12" class="box"/>
+  <text x="289" y="74" text-anchor="middle" class="lbl">2 · Recognize</text>
+  <text x="289" y="98" text-anchor="middle" class="sm">each input →</text>
+  <text x="289" y="116" text-anchor="middle" class="sm">a staged card</text>
+
+  <path d="M370 96 H404" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- stage 3: dedup scan (NEW) -->
+  <rect x="408" y="44" width="166" height="104" rx="12" fill="#fff3e9" stroke="#c8623a" stroke-width="2"/>
+  <text x="491" y="68" text-anchor="middle" class="lbl" style="fill:#c8623a">3 · Dedup scan ✦NEW</text>
+  <text x="491" y="90" text-anchor="middle" class="sm">match by:</text>
+  <text x="491" y="108" text-anchor="middle" class="sm">• same photo</text>
+  <text x="491" y="124" text-anchor="middle" class="sm">• merchant+amount+date</text>
+
+  <path d="M580 96 H614" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- stage 4: confirm -->
+  <rect x="618" y="50" width="150" height="92" rx="12" fill="#fff8ec" stroke="#b5852f" stroke-width="2"/>
+  <text x="693" y="74" text-anchor="middle" class="lbl" style="fill:#b5852f">4 · Confirm</text>
+  <text x="693" y="98" text-anchor="middle" class="sm">“same bill?”</text>
+  <text x="693" y="116" text-anchor="middle" class="sm">keep one / keep both</text>
+
+  <path d="M774 96 H808" stroke="#5a7a50" stroke-width="2.5" marker-end="url(#b)"/>
+
+  <!-- stage 5: save -->
+  <rect x="812" y="50" width="92" height="92" rx="12" fill="#eef4ea" stroke="#5a7a50" stroke-width="2"/>
+  <text x="858" y="84" text-anchor="middle" class="lbl" style="fill:#5a7a50">5 · Save</text>
+  <text x="858" y="106" text-anchor="middle" class="sm">clean set</text>
+
+  <!-- no-dup bypass -->
+  <path d="M491 148 V196 H858 V148" fill="none" stroke="#8a7a6c" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#c)"/>
+  <text x="674" y="214" text-anchor="middle" class="sm">no duplicates → straight to Save (zero friction)</text>
+
+  <!-- scope + decisions band -->
+  <rect x="20" y="244" width="884" height="96" rx="12" fill="#f7f1e8" stroke="#e4d8c8"/>
+  <text x="36" y="268" class="lbl" style="fill:#c8623a">Scope</text>
+  <text x="36" y="288" class="sm">IN: staged cards in THIS session, before save · a confirm sheet · the match logic (client-side)</text>
+  <text x="36" y="306" class="sm">OUT: dedup vs already-saved bills · cross-session/device · auto-merge without asking · server-side dedup</text>
+  <text x="36" y="330" class="sm" style="fill:#b5852f">Money rule: a bill is NEVER removed without the user's explicit tap. Confirm protects against false matches.</text>
+
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#c8623a"/></marker>
+    <marker id="b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5a7a50"/></marker>
+    <marker id="c" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8a7a6c"/></marker>
+  </defs>
+</svg>
+<figcaption>The dedup step (3–4) is inserted between recognition and save; sessions with no duplicates flow straight through.</figcaption>
+</figure>
+
+<h2>1 · Problem</h2>
+<p>BillOwl lets a user capture <strong>several bills in one Record session</strong> — drop a stack of receipt photos, type a few notes, mix both. Each input is recognized into its own staged card, then the user saves them all. But people <strong>re-submit the same bill</strong>: they photograph a receipt twice, or type a bill they also snapped. Today every card is saved as a separate bill, so the trip total is <strong>silently inflated</strong> and the ledger gets messy — and the user only notices later, if at all.</p>
+
+<h2>2 · Users &amp; the moment</h2>
+<div class="grid">
+  <div class="card"><h4>The batch capturer</h4><p>Back at the hotel after a day out, dumping a handful of receipts into the Record tab at once. Most likely to double-add.</p></div>
+  <div class="card"><h4>The belt-and-suspenders user</h4><p>Types “taxi 240” <em>and</em> photographs the taxi receipt to be safe — now it’s two cards for one ride.</p></div>
+  <div class="card"><h4>The fat-finger</h4><p>Taps a photo into the session twice without noticing.</p></div>
+</div>
+
+<h2>3 · Goal</h2>
+<p>Before the user saves a multi-input session, <strong>detect cards that look like the same bill</strong> and let the user resolve each pair (<strong>keep one</strong> or <strong>keep both</strong>) — so no accidental double-counting, and <strong>nothing is ever removed without an explicit tap</strong>. Sessions with no duplicates feel exactly as they do today (no new friction).</p>
+
+<h2>4 · Locked decisions (PM)</h2>
+<div class="grid">
+  <div class="card lock"><h4>Match rule</h4><p><strong>Same photo OR same details.</strong> Flag a pair when it’s literally the same image, <em>or</em> when merchant + amount + date match. (Exact matching tolerances are a design/tech detail — the confirm step is the safety net against over-matching.)</p></div>
+  <div class="card lock"><h4>Action</h4><p><strong>Flag &amp; confirm — never silent.</strong> Surface “these look like the same bill — keep one / keep both.” Consistent with BillOwl’s never-guess-money principle.</p></div>
+  <div class="card lock"><h4>Scope</h4><p><strong>Current session only.</strong> Compare the cards staged in this capture session, before save. Does not touch already-saved bills, other sessions, or other devices.</p></div>
+</div>
+
+<h2>5 · Scope</h2>
+<p><span class="pill in">IN</span></p>
+<ul>
+  <li>Duplicate <strong>detection across staged cards</strong> in one Record session, run before save.</li>
+  <li>A <strong>confirm interaction</strong> (keep one / keep both) for each detected duplicate group.</li>
+  <li>The <strong>match logic</strong>: same source photo, or matching merchant + amount + date.</li>
+  <li>Client-side (the staged session lives in the app).</li>
+</ul>
+<p><span class="pill out">OUT (v1)</span></p>
+<ul>
+  <li>Dedup against <strong>already-saved</strong> bills in the trip.</li>
+  <li>Cross-session or cross-device duplicate detection.</li>
+  <li><strong>Auto-merge</strong> / silent removal.</li>
+  <li>Server-side dedup or any change to the recognition API contract (unless tech finds it necessary — escalate if so).</li>
+</ul>
+
+<h2>6 · Success criteria (acceptance)</h2>
+<table>
+  <tr><th>#</th><th>Given</th><th>Then</th></tr>
+  <tr><td>A1</td><td>The same photo is submitted twice in one session</td><td>The pair is flagged as a duplicate; user can keep one with one tap</td></tr>
+  <tr><td>A2</td><td>A typed bill and a photo of the <em>same</em> bill (merchant+amount+date match) are staged</td><td>The pair is flagged; user resolves it</td></tr>
+  <tr><td>A3</td><td>Two genuinely distinct bills with identical details (e.g. two £30 coffees, same shop, same day)</td><td>They may be flagged, but <strong>“keep both” is one tap</strong>; nothing is auto-removed</td></tr>
+  <tr><td>A4</td><td>A session with no duplicates</td><td><strong>No prompt, no added friction</strong> — saves exactly as today</td></tr>
+  <tr><td>A5</td><td>Any duplicate resolution</td><td>A bill is only ever dropped after an explicit user tap; the kept bill’s amount is never altered</td></tr>
+</table>
+
+<h2>7 · Constraints</h2>
+<ul>
+  <li><strong>Money safety first</strong> — never silently drop or merge money; the kept card’s amount/fields are untouched.</li>
+  <li>Fits the existing <strong>Record tab / staged-card session</strong> flow and the sketch theme; no new top-level screens unless design justifies it.</li>
+  <li>iOS (SwiftUI). Server/API changes are out of scope unless tech proves them necessary.</li>
+  <li>Performance: detection runs on a handful of staged cards — must be instant, no perceptible delay before the confirm/save step.</li>
+</ul>
+
+<h2>8 · Open questions for design / tech</h2>
+<ul>
+  <li>Exact <strong>match tolerances</strong>: merchant string (exact vs normalized/case-insensitive?), amount (exact?), date (same calendar day?). Lean strict to minimize false positives, since confirm catches the rest.</li>
+  <li><strong>Same-photo</strong> detection mechanism (image hash vs identity of the picked asset).</li>
+  <li>Confirm <strong>UX shape</strong>: inline on the review list vs a dedicated sheet; how groups of 3+ are shown.</li>
+</ul>
+
+<div class="foot">Artifact: <code>design/dedup/PRD.html</code> · Pipeline F5 · next: Design Document → Gate 1. Source: beta feedback item F5 (see <code>feedback/BACKLOG.md</code>).</div>
+</div>
+</body>
+</html>
