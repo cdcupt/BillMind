@@ -185,6 +185,54 @@ final class LedgerTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    func testRenameTripUpdatesNameAndBumpsRowVersion() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t, name: "Osaka")
+        let before = trip.rowVersion
+
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "New Name")) },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let renamed = try res.content.decode(TripDTO.self)
+                XCTAssertEqual(renamed.name, "New Name")
+                XCTAssertGreaterThan(renamed.rowVersion, before, "a rename must bump row_version so it wins LWW on sync")
+            })
+        try await app.asyncShutdown()
+    }
+
+    func testRenameTripRejectsEmptyName() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t)
+
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "   ")) },
+            afterResponse: { res async in XCTAssertEqual(res.status, .unprocessableEntity) })
+        try await app.asyncShutdown()
+    }
+
+    /// IDOR guard: user B cannot rename user A's trip (404).
+    func testRenameTripForOtherUserIs404() async throws {
+        let app = try await makeApp(subject: "u1")
+        let a = try await signIn(app)
+        let tripA = try await createTrip(app, a)
+        let b = try await signInSecondUser(app)
+
+        try await app.test(.PATCH, "v1/trips/\(tripA.id)", headers: bearer(b),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "Hijacked")) },
+            afterResponse: { res async in XCTAssertEqual(res.status, .notFound) })
+
+        // A's trip name is untouched.
+        try await app.test(.GET, "v1/trips", headers: bearer(a),
+            afterResponse: { res async throws in
+                let trips = try res.content.decode([TripDTO].self)
+                XCTAssertEqual(trips.first { $0.id == tripA.id }?.name, "Osaka")
+            })
+        try await app.asyncShutdown()
+    }
+
     func testUpdateRejectsZeroAmountAndUnknownCategory() async throws {
         let app = try await makeApp(subject: "u1")
         let t = try await signIn(app)

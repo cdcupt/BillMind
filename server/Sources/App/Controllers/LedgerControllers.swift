@@ -9,7 +9,39 @@ struct TripController: RouteCollection {
         trips.post(use: create)
         trips.get(use: list)
         trips.get(":tripID", "bills", use: bills)
+        trips.patch(":tripID", use: update)
         trips.delete(":tripID", use: delete)
+    }
+
+    /// A trip name ceiling consistent with BillController's merchant cap: blocks
+    /// absurd input while clearing any realistic trip title.
+    private static let maxTripNameLength = 200
+
+    /// PATCH /v1/trips/:tripID — rename a trip. Bumps `row_version` so the rename
+    /// wins last-write-wins on every other device via sync. Scoped to the owner;
+    /// another user's id returns 404, never their data. An empty/whitespace-only
+    /// name is rejected (a rename never blanks the title).
+    func update(_ req: Request) async throws -> TripDTO {
+        let user = try req.auth.require(User.self)
+        let uid = try user.requireID()
+        guard let tripID = req.parameters.get("tripID", as: UUID.self) else { throw Abort(.badRequest) }
+        guard let trip = try await Trip.query(on: req.db)
+            .filter(\.$id == tripID).filter(\.$owner.$id == uid).first()
+        else { throw Abort(.notFound) }
+
+        let body = try req.content.decode(UpdateTripRequest.self)
+        let name = body.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            throw Abort(.unprocessableEntity, reason: "trip name must not be empty")
+        }
+        guard name.count <= Self.maxTripNameLength else {
+            throw Abort(.unprocessableEntity, reason: "trip name is too long")
+        }
+
+        trip.name = name
+        trip.rowVersion += 1
+        try await trip.save(on: req.db)
+        return try TripDTO(trip)
     }
 
     /// DELETE /v1/trips/:tripID — soft-delete the trip AND all its bills (tombstones),

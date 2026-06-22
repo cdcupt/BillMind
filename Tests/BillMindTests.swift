@@ -736,6 +736,7 @@ actor MockSyncAPI: SyncAPI {
     private let pushResult: APISyncPushResult
     private(set) var pushedBills: [APIBillUpsert] = []
     private(set) var createdTripNames: [String] = []
+    private(set) var renamedTrips: [(id: UUID, name: String)] = []
     private(set) var deletedTripIDs: [UUID] = []
     private(set) var pullCount = 0
     private(set) var pushCount = 0
@@ -750,6 +751,12 @@ actor MockSyncAPI: SyncAPI {
         createdTripNames.append(req.name)
         return APITrip(id: UUID(), name: req.name, currencyCode: req.currencyCode,
                        exchangeRate: 1, mascot: req.mascot, rowVersion: 1)
+    }
+
+    func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip {
+        renamedTrips.append((id: id, name: req.name))
+        return APITrip(id: id, name: req.name, currencyCode: "JPY",
+                       exchangeRate: 1, mascot: nil, rowVersion: 2)
     }
 
     func deleteTrip(_ id: UUID) async throws { deletedTripIDs.append(id) }
@@ -897,6 +904,34 @@ final class SyncEngineTests: XCTestCase {
         let journal = try ctx.fetch(FetchDescriptor<Journal>()).first
         XCTAssertNotNil(journal?.serverID)
         XCTAssertEqual(journal?.syncState, .synced)
+    }
+
+    func testLocalRenamePushesToServerAndMarksSynced() async throws {
+        SyncCursor.reset()
+        let container = try makeContainer()
+        let serverID = UUID()
+        let seed = ModelContext(container)
+        // A trip already on the server, renamed locally (serverID set, syncState .local).
+        let renamed = Journal(name: "Kyoto", currency: "JPY")
+        renamed.serverID = serverID; renamed.rowVersion = 1; renamed.syncState = .local
+        // A clean .synced trip with no local edit must NOT generate a spurious PATCH.
+        let clean = Journal(name: "Tokyo", currency: "JPY")
+        clean.serverID = UUID(); clean.rowVersion = 1; clean.syncState = .synced
+        seed.insert(renamed); seed.insert(clean); try seed.save()
+
+        let mock = MockSyncAPI(delta: APISyncDelta(trips: [], bills: [], cursor: 0))
+        try await SyncEngine(container: container, api: mock).sync()
+
+        let renames = await mock.renamedTrips
+        XCTAssertEqual(renames.count, 1)                         // only the dirty trip is PATCHed
+        XCTAssertEqual(renames.first?.id, serverID)
+        XCTAssertEqual(renames.first?.name, "Kyoto")
+
+        let ctx = ModelContext(container)
+        let pushed = try ctx.fetch(FetchDescriptor<Journal>(
+            predicate: #Predicate { $0.serverID == serverID })).first
+        XCTAssertEqual(pushed?.syncState, .synced)              // now reconciled
+        XCTAssertEqual(pushed?.rowVersion, 2)                   // stored from the server's response
     }
 }
 
