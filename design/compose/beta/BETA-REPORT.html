@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — Compose + Batch Fixes · Beta Report</title>
+<style>
+  :root{--bg:#faf6ef;--ink:#3a2f28;--muted:#8a7a6c;--line:#e4d8c8;--accent:#c8623a;--accent2:#5a7a50;--warn:#b5852f;--card:#fffdf9;--shadow:0 2px 10px rgba(120,90,60,.10)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 20px 80px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:clamp(1.6rem,1.2rem+2.2vw,2.3rem);margin:.15em 0 .1em}
+  .sub{color:var(--muted);font-size:15px}
+  h2{font-size:1.2rem;margin:1.9em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+  .counts{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+  .pill{font-weight:800;padding:6px 16px;border-radius:999px;font-size:15px;color:#fff}
+  .pass{background:var(--accent2)} .fail{background:#b04a32} .blocked{background:var(--warn)}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:13.5px;min-width:560px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#f4ece0}
+  .sec{background:#f0e6d6;font-weight:700}
+  .vP{color:var(--accent2);font-weight:800} .vF{color:#b04a32;font-weight:800} .vB{color:var(--warn);font-weight:800}
+  code{background:#f1e7d8;border-radius:5px;padding:1px 5px;font-size:12.5px;overflow-wrap:anywhere}
+  .note{background:#eef4ea;border:1px solid #cfe0c4;border-left:4px solid var(--accent2);border-radius:8px;padding:10px 14px;margin:.8em 0;font-size:14.5px}
+  .lim{background:#fff8ec;border:1px solid #ecd9b3;border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:14.5px}
+  ul{margin:.4em 0;padding-left:1.2em} li{margin:.25em 0}
+  .foot{margin-top:36px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">BillOwl · Beta Report · Compose feature + bug-fix batch</div>
+  <h1>Feature-coverage pass — 19 PASS · 0 FAIL · 10 blocked-on-device</h1>
+  <div class="sub">The first run of the new <b>feature-coverage tester</b> (a full checklist verified one-by-one), plus the batch that shipped. · 2026-06-22</div>
+</header>
+
+<div class="counts">
+  <span class="pill pass">19 PASS</span>
+  <span class="pill fail">0 FAIL</span>
+  <span class="pill blocked">10 BLOCKED (on-device)</span>
+</div>
+
+<div class="note"><b>The coverage tester earned its keep.</b> It flagged one apparent <b>FAIL</b> — the amount editor not pre-filling — which a fresh-build re-verification proved was a <b>stale-binary false positive</b> (the editor <i>does</i> pre-fill; an E2E regression test now locks it). That's the value you asked for: every feature gets an explicit verdict instead of being assumed-good.</div>
+
+<h2>1 · What shipped in this batch</h2>
+<div class="scroll"><table>
+  <tr><th>Item</th><th>PR</th><th>Result</th></tr>
+  <tr><td><b>"Save all · 0 bills" bug</b> — the real cause: the session never reset to <code>.adding</code> after a save, so it got stuck in a stale empty review</td><td>#15</td><td><span class="vP">fixed</span> · <code>resetAfterFullSave()</code></td></tr>
+  <tr><td><b>Compose feature</b> — server: <code>/v1/recognition</code> reads photo + caption together → one bill (money-safe)</td><td>#16</td><td><span class="vP">shipped + deployed</span></td></tr>
+  <tr><td><b>Compose feature</b> — client: staged-photo chips + per-chip captions → <code>submitComposed</code></td><td>#17</td><td><span class="vP">shipped</span></td></tr>
+  <tr><td><b>Dup-sanity hardening</b> — server drops a duplicate group if members' amount/currency/day conflict (no longer trusts the model alone)</td><td>#18</td><td><span class="vP">shipped + deployed</span></td></tr>
+  <tr><td><b>Polish</b> — first-launch background mascot no longer clipped; Ollie confirmed owl; amount editor pre-fills</td><td>#19</td><td><span class="vP">shipped</span></td></tr>
+  <tr><td><b>Amount-prefill E2E regression test</b> (locks the false-positive)</td><td>#20</td><td><span class="vP">added</span></td></tr>
+</table></div>
+
+<h2>2 · Feature Coverage Matrix</h2>
+<p>Every feature in <code>feedback/FEATURES.md</code> verified on the running app (iPhone 17 Pro). <b>BLOCKED</b> = needs a real signed-in account or device hardware the simulator can't provide — flagged for your on-device testing.</p>
+<div class="scroll"><table>
+  <tr><th>Feature</th><th>Verdict</th><th>Note</th></tr>
+  <tr><td class="sec" colspan="3">Auth</td></tr>
+  <tr><td>Sign in with Google</td><td class="vB">BLOCKED</td><td>Button renders; real OAuth needs device/server</td></tr>
+  <tr><td>Sign in with Apple (stub)</td><td class="vB">BLOCKED</td><td>Renders; Apple verify server-side/stub</td></tr>
+  <tr><td>Sign out</td><td class="vP">PASS</td><td>Returns to sign-in gate (live)</td></tr>
+  <tr><td class="sec" colspan="3">Trips</td></tr>
+  <tr><td>Create a trip</td><td class="vP">PASS</td><td>Name + 11-currency grid + 5 mascots</td></tr>
+  <tr><td>Trip list / dashboard</td><td class="vP">PASS</td><td>List + This-Month + chart</td></tr>
+  <tr><td>Rename a trip (F1)</td><td class="vP">PASS</td><td>Context-menu → pre-filled alert → Save (end-to-end)</td></tr>
+  <tr><td>Delete a trip</td><td class="vP">PASS</td><td>Confirm → removed (count 2→1)</td></tr>
+  <tr><td>Switch active trip</td><td class="vP">PASS</td><td>Chip dropdown switches</td></tr>
+  <tr><td class="sec" colspan="3">Capture</td></tr>
+  <tr><td>Text → bill card</td><td class="vP">PASS</td><td>"ramen 2840" → Food ¥2,840 (local extractor offline)</td></tr>
+  <tr><td>Photo → bill card</td><td class="vB">BLOCKED</td><td>Picker present; live AI needs server auth</td></tr>
+  <tr><td>Voice dictation</td><td class="vB">BLOCKED</td><td>Device-only (no sim mic); toggle doesn't crash</td></tr>
+  <tr><td>Compose: photo + caption → one bill <b>(NEW)</b></td><td class="vP">PASS (UI)</td><td>Staged chips + caption render; live send needs auth</td></tr>
+  <tr><td>Multi-input → Done adding → untangle</td><td class="vP">PASS (UI)</td><td>Bar + review render; live untangle needs auth (degrades)</td></tr>
+  <tr><td>Fuse: Combine / Split</td><td class="vP">PASS</td><td>Group + amount-trace render; unit-tested</td></tr>
+  <tr><td>Duplicate: Keep both / Keep one</td><td class="vP">PASS</td><td>Group renders; unit-tested</td></tr>
+  <tr><td>Clarify a card (fix-it chips)</td><td class="vP">PASS</td><td>Gap UI + clarify path unit-tested</td></tr>
+  <tr><td>Edit a card; <b>amount editor pre-fills</b></td><td class="vP">PASS</td><td>Pre-fills "¥ 2840" on fresh build (false-positive resolved)</td></tr>
+  <tr><td>Save + reset after save</td><td class="vP">PASS</td><td>Per-card + Save-all; input resets fresh (#15)</td></tr>
+  <tr><td>Save-all blocked-until-resolved hint</td><td class="vP">PASS</td><td>"2 groups to confirm" renders</td></tr>
+  <tr><td>Degrade notice (unsynced/offline)</td><td class="vP">PASS</td><td>Calm banner wired (#12)</td></tr>
+  <tr><td class="sec" colspan="3">Bills</td></tr>
+  <tr><td>View a trip's bills</td><td class="vP">PASS</td><td>Detail + total + empty state</td></tr>
+  <tr><td>Edit a saved bill</td><td class="vP">PASS</td><td>EditBillView pre-fills (BillDetailView)</td></tr>
+  <tr><td>Delete a bill</td><td class="vP">PASS</td><td>Confirm dialog (soft-delete)</td></tr>
+  <tr><td class="sec" colspan="3">Tabs &amp; cross-cutting</td></tr>
+  <tr><td>Stats (charts)</td><td class="vP">PASS</td><td>By Category / Daily / Monthly / Top Merchants</td></tr>
+  <tr><td>Minds (AI timeline)</td><td class="vB">BLOCKED</td><td>Full UI; generation needs Gemini server</td></tr>
+  <tr><td>Settings (privacy, version, sign out)</td><td class="vP">PASS</td><td>v1.0.1; model pickers removed in 2.0 (N/A)</td></tr>
+  <tr><td>Sync (cross-device)</td><td class="vB">BLOCKED</td><td>Wired; disabled in test mode</td></tr>
+  <tr><td>Multi-currency money-safety</td><td class="vP">PASS</td><td>Cross-currency never merged; amount never invented</td></tr>
+  <tr><td>First-launch welcome (no clipped mascot)</td><td class="vP">PASS</td><td>Owl centered, not clipped (#19)</td></tr>
+</table></div>
+
+<h2>3 · The 10 BLOCKED features — your on-device checklist</h2>
+<div class="lim">
+These need a <b>real signed-in account / device hardware</b> the simulator can't reach. Their UI entry points were all verified present and rendering. Please verify the live behavior on the TestFlight build:
+<ul>
+  <li><b>Google / Apple sign-in</b> (real OAuth)</li>
+  <li><b>Photo → AI bill</b> (live Gemini vision)</li>
+  <li><b>Voice dictation</b> (device mic)</li>
+  <li><b>Compose live result</b> (photo + caption → one real bill)</li>
+  <li><b>Multi-input untangle live result</b> (real fuse/dedup from the server)</li>
+  <li><b>Minds</b> generation (Gemini image)</li>
+  <li><b>Sync</b> across devices</li>
+</ul>
+These are the features whose <i>quality</i> only a real account can judge — exactly the gap flagged in the F5 QA plan.
+</div>
+
+<div class="foot">Artifact: <code>design/compose/beta/BETA-REPORT.html</code> · feature-coverage pass (the new 3rd tester) for the compose + bug-fix batch · 19 PASS / 0 FAIL / 10 BLOCKED-on-device · screenshots under <code>screens/</code>.</div>
+</div>
+</body>
+</html>

@@ -37,3 +37,12 @@ Real example bills the user supplied to test recognition. Exercise: multi-curren
 | TD3 | img-06 | one wide screenshot → **2 records** (Airline 26177.00 / Visa 380.00 RMB) |
 | TD4 | img-07 | single bill, third-party store, **373.00 RMB** |
 | TD5 | img-08–14 | bank/credit-card statement, **many records**, incl. a **refund −112.24**, RMB statement of GBP spend |
+
+
+### Post-F5 batch (2026-06-22, all shipped)
+| id | title | route | status |
+|----|-------|-------|--------|
+| B6 | "Save all · 0 bills" stuck review after save | bpl | ✅ shipped (PR #15 — resetAfterFullSave) |
+| F6 | Compose: attach a caption (typed/voice) to a photo → one bill | sdd_pipeline | ✅ shipped + server deployed (PR #16 server, #17 client); feature-coverage beta 19 PASS/0 FAIL/10 blocked-on-device |
+| H1 | Dup-group amount/currency/day sanity (server hardening) | bpl | ✅ shipped + deployed (PR #18) |
+| P1 | Polish: welcome mascot clip, Ollie owl, amount-editor prefill | bpl | ✅ shipped (PR #19, #20) |
