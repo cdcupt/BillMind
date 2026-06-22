@@ -36,6 +36,52 @@ enum ConfirmError: Error, Sendable, Equatable {
     case needsAcknowledgment
 }
 
+/// Where the held batch is in its lifecycle, distinct from per-card `CardState`
+/// (the proven card machine is untouched). A batch only exists while more than one
+/// card is held; a lone clean input never leaves `adding` (the A6 fast path).
+///
+/// `adding` → user is dropping inputs; each recognized → a HELD card with Save paused.
+/// `untangling` → "Done adding" tapped; the untangle round-trip is in flight.
+/// `reviewing` → the plan arrived (or degraded); the user resolves groups then saves.
+enum BatchPhase: String, Sendable, Equatable {
+    case adding
+    case untangling
+    case reviewing
+}
+
+/// A proposal the untangle plan makes over the held drafts. Groups are **views**
+/// over held cards — no held draft is mutated or destroyed at proposal time — so
+/// `split` / `keepBoth` are pure discards of the group and reversibility is
+/// structural. A group references its members by `cardID`, never by a copied draft
+/// (except the assembled `resolvedDraft` of a fuse, which the user reviews/saves).
+enum UntangleGroup: Sendable, Equatable, Identifiable {
+    /// Several held cards the model thinks describe ONE bill. `resolvedDraft` is the
+    /// assembled card the user would save; `amountTrace == nil` means no member
+    /// supplied an amount → the resolved card surfaces "amount required" (never minted).
+    case fuseProposed(groupID: UUID, resolvedDraft: BillDraft, sourceCardIDs: [UUID],
+                      amountTrace: APIAmountTrace?, reason: String, confidence: Double)
+    /// Several held cards that are the SAME bill. `survivorID` is kept on Save; the
+    /// rest are set aside (never persisted — no delete).
+    case flaggedDuplicate(groupID: UUID, memberCardIDs: [UUID], survivorID: UUID,
+                          tier: String, reason: String)
+
+    var id: UUID {
+        switch self {
+        case .fuseProposed(let gid, _, _, _, _, _): return gid
+        case .flaggedDuplicate(let gid, _, _, _, _): return gid
+        }
+    }
+
+    /// The held cards this group is a view over (so the coordinator can tell which
+    /// held cards a group "owns" — those are not rendered as plain review rows).
+    var memberCardIDs: [UUID] {
+        switch self {
+        case .fuseProposed(_, _, let ids, _, _, _): return ids
+        case .flaggedDuplicate(_, let ids, _, _, _): return ids
+        }
+    }
+}
+
 /// The pure state machine behind the recording agent.
 ///
 /// `RecordingSession` is a value type with mutating transitions, which makes it
@@ -49,6 +95,20 @@ enum ConfirmError: Error, Sendable, Equatable {
 /// and LLM calls per session.
 struct RecordingSession: Sendable {
     private(set) var cards: [AgentCard] = []
+
+    // MARK: - Held batch (Slice ②)
+
+    /// The held-batch phase. `adding` until the user taps "Done adding".
+    private(set) var batchPhase: BatchPhase = .adding
+    /// The untangle plan as VIEWS over held cards. Empty until `applyUntangle`.
+    /// Resolution fns (`combine/split/keepOne/keepBoth`) only ever *remove* a group
+    /// here — they never mutate a held draft — so a resolved group returns to plain
+    /// review cards and reversibility is structural.
+    private(set) var groups: [UntangleGroup] = []
+
+    /// Whether a held batch is in flight, i.e. per-card Save must be paused. True
+    /// once the user commits to the batch by tapping "Done adding".
+    var hasActiveBatch: Bool { batchPhase != .adding }
 
     let validator: BillValidator
     let maxClarifyRounds: Int
@@ -186,6 +246,143 @@ struct RecordingSession: Sendable {
         cards[i].openQuestions = []
         cards[i].state = .review
         return [.readyForReview(cardID: cardID)]
+    }
+
+    // MARK: - Held batch transitions (Slice ②)
+
+    /// `adding → untangling`. Commits the held cards to a batch so per-card Save is
+    /// paused while the untangle round-trip runs. Idempotent: re-tapping while
+    /// already untangling/reviewing is a no-op (re-runnable per the v1 contract).
+    mutating func markDoneAdding() {
+        guard batchPhase == .adding else { return }
+        batchPhase = .untangling
+    }
+
+    /// `untangling → reviewing`. Builds `groups` from the untangle plan as views over
+    /// the live held cards, validating the partition: any plan group that references
+    /// a card no longer present is **dropped**, and any live held card not accounted
+    /// for by a surviving group **fails open** to a plain review card (never dropped).
+    /// No held draft is mutated here — groups are pure views.
+    mutating func applyUntangle(_ response: APIUntangleResponse) {
+        // A declined plan degrades to plain review (per-card Save still works).
+        guard !response.declined else {
+            groups = []
+            batchPhase = .reviewing
+            return
+        }
+        // Live cards eligible to be grouped/reviewed (anything not terminal).
+        let liveIDs = Set(activeCardIDs)
+        var built: [UntangleGroup] = []
+        var accounted = Set<UUID>()
+
+        for fg in response.fuseGroups {
+            // Keep only members still live and not already claimed by an earlier group.
+            let members = fg.sourceCardIDs.filter { liveIDs.contains($0) && !accounted.contains($0) }
+            guard members.count >= 1 else { continue }   // nothing left to fuse → fail open
+            let resolved = BillDraft(serverDraft: fg.resolvedDraft,
+                                     fallbackCurrency: validator.journalCurrencyCode)
+            built.append(.fuseProposed(groupID: fg.groupID, resolvedDraft: resolved,
+                                       sourceCardIDs: members, amountTrace: fg.amountTrace,
+                                       reason: fg.reason, confidence: fg.confidence))
+            accounted.formUnion(members)
+        }
+        for dg in response.duplicateGroups {
+            let members = dg.memberCardIDs.filter { liveIDs.contains($0) && !accounted.contains($0) }
+            // A dup group needs ≥2 members and a live survivor to mean anything.
+            guard members.count >= 2, members.contains(dg.survivorCardID) else { continue }
+            built.append(.flaggedDuplicate(groupID: dg.groupID, memberCardIDs: members,
+                                           survivorID: dg.survivorCardID, tier: dg.tier, reason: dg.reason))
+            accounted.formUnion(members)
+        }
+        // cleanCardIDs + any unaccounted live card → plain review (fail-open). We
+        // don't store them anywhere special: a held card not owned by a group simply
+        // renders as a plain review row (see `plainReviewCardIDs`).
+        groups = built
+        batchPhase = .reviewing
+    }
+
+    /// Degrade straight to `reviewing` with no groups — the held cards become plain
+    /// review rows and per-card Save still works. Used when untangle errors/times out.
+    mutating func degradeToReview() {
+        groups = []
+        batchPhase = .reviewing
+    }
+
+    /// Held card ids the untangle plan did NOT claim — they render as plain review
+    /// rows. This is the fail-open surface: a live card unaccounted for by any group
+    /// lands here. Excludes terminal (recorded/discarded) cards.
+    var plainReviewCardIDs: [UUID] {
+        let claimed = Set(groups.flatMap { $0.memberCardIDs })
+        return activeCardIDs.filter { !claimed.contains($0) }
+    }
+
+    /// Resolve a fuse group by ACCEPTING it. Injects the resolved draft as ONE new
+    /// held card (run through the same validator gate as any card), sets aside the
+    /// member cards it subsumes, and drops the group. The new card then saves as a
+    /// single bill via the unchanged confirm path. `amountTrace == nil` ⇒ the server
+    /// omitted the amount ⇒ the card surfaces "amount required" and `confirm` blocks
+    /// — code never invents money. Returns the new card's id (nil if not a fuse).
+    @discardableResult
+    mutating func combine(groupID: UUID) -> UUID? {
+        guard let i = groups.firstIndex(where: { $0.id == groupID }),
+              case .fuseProposed(_, let resolved, let members, _, _, _) = groups[i] else { return nil }
+        let newID = UUID()
+        cards.append(
+            AgentCard(id: newID,
+                      draft: BillDraft(
+                          id: newID,
+                          merchant: resolved.merchant,
+                          amount: resolved.amount,
+                          currencyCode: resolved.currencyCode,
+                          date: resolved.date,
+                          rawDateText: resolved.rawDateText,
+                          categoryRaw: resolved.categoryRaw,
+                          lineItems: resolved.lineItems,
+                          source: resolved.source),
+                      state: .validating,
+                      clarifyRounds: 0,
+                      openQuestions: [],
+                      carriedGaps: [])
+        )
+        _ = resolve(cardID: newID)            // gate via validator → review (or amount-required)
+        for m in members { setAside(cardID: m) }   // members subsumed; never saved
+        groups.remove(at: i)
+        return newID
+    }
+
+    /// Resolve a fuse group by SPLITTING it — pure discard of the group. The held
+    /// member drafts were never mutated, so they restore byte-identical as plain
+    /// review cards. This is what makes a wrong fuse one-tap reversible.
+    mutating func split(groupID: UUID) {
+        groups.removeAll { $0.id == groupID }
+    }
+
+    /// Resolve a duplicate group by KEEPING ONE — set aside every member except the
+    /// chosen survivor (or the group's own survivor if the choice isn't a member),
+    /// then drop the group so the survivor saves as a plain review card.
+    mutating func keepOne(groupID: UUID, survivor: UUID) {
+        guard let i = groups.firstIndex(where: { $0.id == groupID }),
+              case .flaggedDuplicate(_, let members, let groupSurvivor, _, _) = groups[i] else { return }
+        let keep = members.contains(survivor) ? survivor : groupSurvivor
+        for m in members where m != keep { setAside(cardID: m) }
+        groups.remove(at: i)
+    }
+
+    /// Resolve a duplicate group by KEEPING BOTH — pure discard of the group. No
+    /// member is set aside, so every member restores as its own plain review card
+    /// (the "these are genuinely distinct" escape hatch).
+    mutating func keepBoth(groupID: UUID) {
+        groups.removeAll { $0.id == groupID }
+    }
+
+    /// Card ids the session still acts on for the batch (not recorded/discarded).
+    var activeCardIDs: [UUID] { cards.filter { !$0.state.isTerminal }.map(\.id) }
+
+    /// Set a card aside: a duplicate the user chose not to keep. Modeled as
+    /// `discarded` so it's never persisted and disappears from the review surface —
+    /// there is no delete; it simply isn't saved.
+    private mutating func setAside(cardID: UUID) {
+        if let i = index(cardID) { cards[i].state = .discarded }
     }
 
     // MARK: - Confirmation (single writer)
