@@ -689,6 +689,22 @@ struct EditDrawerView: View {
             .buttonStyle(HandDrawnButtonStyle(filled: true))
             .accessibilityIdentifier("drawer-set")
         }
+        // Seed the field with the card's current amount so a correction edits
+        // rather than re-types. Plain (no grouping separators) so the decimal-pad
+        // value round-trips back through `Decimal(string:)` on Set.
+        .onAppear {
+            if amountText.isEmpty, let amount = coordinator.session.card(target.cardID)?.draft.amount {
+                amountText = Self.seedString(for: amount)
+            }
+        }
+    }
+
+    /// A plain, locale-neutral string for seeding the amount field — no grouping
+    /// separators and a `.` decimal so it parses back via `Decimal(string:)`.
+    /// `nonisolated` (pure conversion, no view state) so it's callable off the
+    /// MainActor, e.g. from unit tests.
+    nonisolated static func seedString(for amount: Decimal) -> String {
+        NSDecimalNumber(decimal: amount).stringValue
     }
 
     private var merchantEditor: some View {

@@ -2023,3 +2023,30 @@ private struct RecordReviewSnapshotView: View {
         .background(SketchTheme.cream)
     }
 }
+
+// MARK: - Amount editor seed
+
+/// The amount edit drawer pre-fills the card's CURRENT amount so a correction
+/// edits rather than re-types. `seedString(for:)` must produce a plain,
+/// locale-neutral string that round-trips back through `Decimal(string:)` on Set
+/// (no grouping separators, `.` decimal).
+final class AmountEditorSeedTests: XCTestCase {
+    func testSeedsWholeAmountWithoutGroupingSeparators() {
+        XCTAssertEqual(EditDrawerView.seedString(for: dec("2840")), "2840")
+    }
+
+    func testSeedsFractionalAmount() {
+        XCTAssertEqual(EditDrawerView.seedString(for: dec("12.5")), "12.5")
+    }
+
+    func testSeedRoundTripsBackThroughDecimalString() {
+        for raw in ["2840", "12.5", "0.99", "1000000"] {
+            let amount = dec(raw)
+            let seed = EditDrawerView.seedString(for: amount)
+            XCTAssertEqual(Decimal(string: seed), amount,
+                           "seed \"\(seed)\" for \(raw) must parse back to the same Decimal")
+        }
+    }
+}
+
+private func dec(_ s: String) -> Decimal { Decimal(string: s)! }
