@@ -71,8 +71,8 @@ struct UntangleController: RouteCollection {
     // MARK: - Plan → guarded, partitioned response (pure / testable)
 
     /// Sanitize the model's proposal into the wire response, enforcing the money
-    /// guard and the partition invariant. Pure (no DB / network) so the critical
-    /// path is unit-tested directly.
+    /// guard, the duplicate-group money/day sanity check, and the partition invariant.
+    /// Pure (no DB / network) so the critical path is unit-tested directly.
     static func assemble(plan: UntanglePlan, inputs: [UntangleInput], trip: Trip) -> UntangleResponse {
         // Collision-tolerant by construction (keep first) — the controller already
         // rejects duplicate cardIDs at the boundary, but this keeps the pure assembler
@@ -144,6 +144,28 @@ struct UntangleController: RouteCollection {
         for dup in plan.duplicates {
             let members = orderedUnique(dup.memberCardIDs).filter { byID[$0] != nil && !claimed.contains($0) }
             guard members.count >= 2 else { continue }
+
+            // SERVER-SIDE SANITY: the model alone must not decide "these are the same
+            // bill". Mirror the dedup match rule (merchant+amount+date) on the money
+            // axis — members of a duplicate group MUST agree on amount (magnitude AND
+            // currency). If two members carry CONTRADICTING money (distinct magnitudes,
+            // or equal magnitudes in different currencies, e.g. ¥50 vs $50) the group is
+            // not trustworthy — a hallucinated grouping of genuinely-different bills — so
+            // it is DROPPED: its members fall through to cleanCardIDs, exactly like the
+            // conflicting-amount fuse refusal (GUARD ②). Cards with no amount don't carry
+            // money and don't gate this (a partial card may legitimately lack one).
+            // `samePhoto` is image-identity based so amounts should already agree; we
+            // assert it anyway and drop on contradiction. An optional same-calendar-day
+            // check fires only when ≥2 members carry dates (a different day ⇒ different
+            // bill under the merchant+amount+date rule). This reuses the same money
+            // helpers as the fuse path; the fuse guards themselves are untouched.
+            let memberMoney = members.compactMap { id -> (Decimal, String)? in
+                guard let amount = byID[id]?.draft.amount else { return nil }
+                return (amount, byID[id]?.draft.currencyCode ?? currency)
+            }
+            if hasConflictingAmounts(memberMoney) { continue }
+            if hasConflictingDays(members, byID) { continue }
+
             let survivor = members.contains(dup.survivorCardID) ? dup.survivorCardID : members[0]
             members.forEach { claimed.insert($0) }
             duplicateGroups.append(DuplicateGroupDTO(
@@ -210,6 +232,21 @@ struct UntangleController: RouteCollection {
     /// never fuse. Cards with no amount don't count as a conflict on their own.
     static func hasConflictingAmounts(_ money: [(Decimal, String)]) -> Bool {
         Set(money.map { "\($0.0)|\($0.1)" }).count > 1
+    }
+
+    /// True when ≥2 member cards carry dates that fall on DIFFERENT calendar days — a
+    /// soft signal that they are NOT the same bill (the dedup rule is merchant+amount+
+    /// date). Members without a date don't gate this (a partial card may lack one); the
+    /// check only fires when the contradiction is explicit. Days are compared in UTC so
+    /// the result is stable regardless of where the server runs.
+    static func hasConflictingDays(_ members: [UUID], _ byID: [UUID: UntangleInput]) -> Bool {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC") ?? cal.timeZone
+        let days = members.compactMap { id -> DateComponents? in
+            guard let date = byID[id]?.draft.date else { return nil }
+            return cal.dateComponents([.year, .month, .day], from: date)
+        }
+        return Set(days.map { "\($0.year ?? 0)-\($0.month ?? 0)-\($0.day ?? 0)" }).count > 1
     }
 
     // MARK: - small pure helpers

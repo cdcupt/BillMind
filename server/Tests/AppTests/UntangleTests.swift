@@ -463,6 +463,58 @@ final class UntangleTests: XCTestCase {
         }
         try await app.asyncShutdown()
     }
+
+    /// duplicateGroupWithMismatchedAmountsIsDropped — the model alone must not decide
+    /// "these are the same bill". The reasoner returns a `sameDetails` group whose two
+    /// members carry CONTRADICTING money (different magnitudes, and a different
+    /// currency for good measure). The server distrusts the grouping and DROPS it; both
+    /// members fall open to cleanCardIDs (no duplicate emitted), exactly like the
+    /// conflicting-amount fuse refusal.
+    func testDuplicateGroupWithMismatchedAmountsIsDropped() async throws {
+        let a = UUID(), b = UUID()
+        let plan = UntanglePlan(duplicates: [ProposedDuplicate(
+            memberCardIDs: [a, b], survivorCardID: a,
+            tier: "sameDetails", reason: "model claims same bill")])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app)
+        let inputs = [
+            input(a, draftDTO(merchant: "Cafe", amount: 500, currency: "JPY")),
+            input(b, draftDTO(merchant: "Cafe", amount: 800, currency: "USD")),   // different money
+        ]
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: inputs)) { res in
+            XCTAssertEqual(res.status, .ok)
+            let r = try res.content.decode(UntangleResponse.self)
+            XCTAssertEqual(r.duplicateGroups.count, 0)            // distrusted → dropped
+            XCTAssertEqual(Set(r.cleanCardIDs), Set([a, b]))      // both fell open
+        }
+        try await app.asyncShutdown()
+    }
+
+    /// validDuplicateGroupSurvives — regression: when the members TRULY share amount +
+    /// currency the `sameDetails` group is emitted exactly as before. (Members may
+    /// differ on other fields; money agreement is what the sanity check requires.)
+    func testValidDuplicateGroupSurvives() async throws {
+        let a = UUID(), b = UUID()
+        let plan = UntanglePlan(duplicates: [ProposedDuplicate(
+            memberCardIDs: [a, b], survivorCardID: a,
+            tier: "sameDetails", reason: "same merchant+amount")])
+        let app = try await makeApp(reasoner: StubUntangleReasoner(plan: plan))
+        let (t, trip) = try await signInAndTrip(app)
+        let inputs = [
+            input(a, draftDTO(merchant: "Cafe", amount: 500, currency: "JPY")),
+            input(b, draftDTO(merchant: "Cafe", amount: 500, currency: "JPY")),   // same money
+        ]
+        try await post(app, t.accessToken, UntangleRequest(tripID: trip.id, inputs: inputs)) { res in
+            XCTAssertEqual(res.status, .ok)
+            let r = try res.content.decode(UntangleResponse.self)
+            XCTAssertEqual(r.duplicateGroups.count, 1)            // trusted → emitted
+            let g = r.duplicateGroups[0]
+            XCTAssertEqual(Set(g.memberCardIDs), Set([a, b]))
+            XCTAssertEqual(g.survivorCardID, a)
+            XCTAssertTrue(r.cleanCardIDs.isEmpty)
+        }
+        try await app.asyncShutdown()
+    }
 }
 
 /// Minimal recognizer stub so a CaptureController can be registered (for the
