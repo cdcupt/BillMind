@@ -1258,6 +1258,25 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         return j
     }
 
+    /// Deterministic poll-until: re-checks `condition` every ~5ms and returns as soon
+    /// as it holds, `XCTFail`ing if `timeout` elapses first. Replaces fixed
+    /// `Task.sleep` waits so each test blocks exactly as long as the async
+    /// recognition/untangle Tasks actually need — fast when ready, no flaky delays.
+    private func waitUntil(_ label: String = "",
+                           timeout: TimeInterval = 2,
+                           file: StaticString = #filePath, line: UInt = #line,
+                           _ condition: @MainActor () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            if Date() >= deadline {
+                XCTFail("waitUntil timed out after \(timeout)s\(label.isEmpty ? "" : ": \(label)")",
+                        file: file, line: line)
+                return
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000)   // 5ms poll interval (not a fixed wait)
+        }
+    }
+
     /// Two held cards, fused into one, accepted, then saved: exactly one bill is
     /// persisted and the two member cards are set aside (never persisted). Drives the
     /// real coordinator path (markDoneAdding → mock untangle → combine → confirmAll).
@@ -1271,11 +1290,13 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("Lunch 1200 yen")
         coord.submitText("Same lunch, the drink")
-        try await Task.sleep(nanoseconds: 200_000_000)   // let the two recognize Tasks settle
+        await waitUntil("both recognize Tasks reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
         XCTAssertEqual(coord.cards.count, 2)
 
         coord.markDoneAdding()
-        try await Task.sleep(nanoseconds: 200_000_000)   // untangle round-trip
+        await waitUntil("untangle round-trip") { coord.batchPhase == .reviewing }
         XCTAssertEqual(coord.batchPhase, .reviewing)
         XCTAssertEqual(coord.groups.count, 1)
 
@@ -1303,9 +1324,11 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("A receipt half")
         coord.submitText("Another half")
-        try await Task.sleep(nanoseconds: 200_000_000)
+        await waitUntil("both recognize Tasks reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
         coord.markDoneAdding()
-        try await Task.sleep(nanoseconds: 200_000_000)
+        await waitUntil("untangle round-trip") { coord.groups.count == 1 }
         XCTAssertEqual(coord.groups.count, 1)
 
         let fusedID = coord.groups[0].id
@@ -1325,7 +1348,7 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         let coord = RecordCoordinator(journal: journal, modelContext: ctx, recognizer: mock)
 
         coord.submitText("Coffee 480 yen today")
-        try await Task.sleep(nanoseconds: 200_000_000)   // let the recognize Task settle
+        await waitUntil("recognize Task settles to .review") { coord.cards.first?.state == .review }
         let id = coord.cards.first?.id
         XCTAssertNotNil(id)
         XCTAssertEqual(coord.cards.first?.state, .review)
@@ -1354,12 +1377,14 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("Taxi 2000 yen")
         coord.submitText("Hotel 9000 yen")
-        try await Task.sleep(nanoseconds: 200_000_000)   // let both cards reach .review
+        await waitUntil("both cards reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
         XCTAssertEqual(coord.cards.count, 2)
 
         coord.markDoneAdding()
         // Wait for the untangle Task to throw and degrade to reviewing.
-        try await Task.sleep(nanoseconds: 200_000_000)
+        await waitUntil("untangle throws → degrade to reviewing") { coord.batchPhase == .reviewing }
         XCTAssertEqual(coord.batchPhase, .reviewing)
         XCTAssertNotNil(coord.errorMessage)              // surfaced the error
         XCTAssertEqual(coord.groups.count, 0)            // no groups → plain cards
@@ -1385,11 +1410,13 @@ final class HeldBatchCoordinatorTests: XCTestCase {
 
         coord.submitText("Lunch 1200 yen")
         coord.submitText("Same lunch, the drink")
-        try await Task.sleep(nanoseconds: 200_000_000)   // both cards reach .review
+        await waitUntil("both cards reach .review") {
+            coord.cards.count == 2 && coord.cards.allSatisfy { $0.state == .review }
+        }
         let memberIDs = Set(coord.cards.map(\.id))
 
         coord.markDoneAdding()
-        try await Task.sleep(nanoseconds: 200_000_000)   // untangle round-trip
+        await waitUntil("untangle round-trip") { coord.groups.count == 1 }
         XCTAssertEqual(coord.groups.count, 1)            // one PENDING fuse group
         XCTAssertTrue(coord.plainReviewCards.isEmpty)    // both cards owned by the group
 
@@ -1415,7 +1442,11 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         coord.submitText("Hotel 9000 yen")
         // A photo card whose recognition returns nothing → it ends in .failed.
         coord.submitPhotos([UIImage()])
-        try await Task.sleep(nanoseconds: 200_000_000)   // let all three settle
+        // Two text cards reach .review and the photo card lands in .failed.
+        await waitUntil("two .review + one .failed settle") {
+            coord.cards.filter { $0.state == .review }.count == 2
+                && coord.session.cards.contains { $0.state == .failed }
+        }
 
         let reviewIDs = Set(coord.cards.filter { $0.state == .review }.map(\.id))
         let failedID = coord.session.cards.first { $0.state == .failed }?.id
@@ -1423,7 +1454,8 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertNotNil(failedID)                        // the photo card failed
 
         coord.markDoneAdding()
-        try await Task.sleep(nanoseconds: 200_000_000)   // untangle round-trip
+        // Untangle completes → the batch reaches .reviewing (the observable side effect).
+        await waitUntil("untangle round-trip") { coord.batchPhase == .reviewing }
         let untangleCalls = await mock.untangleCount
         XCTAssertEqual(untangleCalls, 1)
         let sent = Set(await mock.lastUntangleInputIDs)

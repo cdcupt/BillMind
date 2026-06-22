@@ -312,11 +312,14 @@ struct RecordingSession: Sendable {
     }
 
     /// Held card ids the untangle plan did NOT claim — they render as plain review
-    /// rows. This is the fail-open surface: a live card unaccounted for by any group
-    /// lands here. Excludes terminal (recorded/discarded) cards.
+    /// rows. This is the fail-open surface: a card that actually reached `.review`
+    /// and is unaccounted for by any group lands here. Only `.review` cards qualify
+    /// (consistent with the untangle-input filter): a card still in flight
+    /// (`intake`/`extracting`/`validating`/`clarifying`) or `failed`/terminal is NOT
+    /// a review row — it never participates in the batch review surface.
     var plainReviewCardIDs: [UUID] {
         let claimed = Set(groups.flatMap { $0.memberCardIDs })
-        return activeCardIDs.filter { !claimed.contains($0) }
+        return cards.filter { $0.state == .review && !claimed.contains($0.id) }.map(\.id)
     }
 
     /// Resolve a fuse group by ACCEPTING it. Injects the resolved draft as ONE new
