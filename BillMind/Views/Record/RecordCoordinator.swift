@@ -424,6 +424,75 @@ final class RecordCoordinator {
     }
 }
 
+// MARK: - Preview seeding (DEBUG only)
+
+#if DEBUG
+extension RecordCoordinator {
+    /// A no-op recognizer for previews — the seeded reviewing state never calls it.
+    private struct PreviewRecognizer: RecognitionAPI {
+        func recognize(_ req: APICaptureRequest) async throws -> APICaptureResponse {
+            APICaptureResponse(declined: false, message: nil, card: nil, cards: [])
+        }
+        func untangle(_ req: APIUntangleRequest) async throws -> APIUntangleResponse {
+            APIUntangleResponse(declined: false, message: nil,
+                                fuseGroups: [], duplicateGroups: [], cleanCardIDs: [])
+        }
+    }
+
+    /// Drive the real session transitions to land in `.reviewing` with one fuse
+    /// proposal, one duplicate group, and one plain card — so a `#Preview` (and
+    /// snapshot capture) exercises the review surface the coordinator produces,
+    /// using the same `applyUntangle` path the live flow uses.
+    static func previewReviewing(modelContext: ModelContext) -> RecordCoordinator {
+        let journal = Journal(name: "Kyoto Spring", currency: "JPY", coverAnimal: .owl)
+        let coordinator = RecordCoordinator(
+            journal: journal, modelContext: modelContext, recognizer: PreviewRecognizer())
+
+        func draft(_ merchant: String?, _ amount: Decimal?, _ cat: String, _ source: DraftSource) -> BillDraft {
+            BillDraft(merchant: merchant, amount: amount, currencyCode: "JPY",
+                      date: Date(), categoryRaw: cat, source: source)
+        }
+        func review(_ d: BillDraft) -> UUID {
+            let id = coordinator.session.enqueue(source: d.source)
+            _ = coordinator.session.beginExtraction(cardID: id)
+            _ = coordinator.session.completeExtraction(cardID: id, draft: d)
+            return id
+        }
+
+        // Fuse pair: an amountless taxi photo completed by a "it was 240" note.
+        let photoID = review(draft("Kyoto MK Taxi", nil, "transport", .photo))
+        let noteID  = review(draft(nil, 240, "transport", .text))
+        // Duplicate pair: the same ramen bill, once from a photo and once typed.
+        let ramenPhoto = review(draft("Ichiran Ramen", 1480, "food", .photo))
+        let ramenTyped = review(draft("Ramen (typed)", 1480, "food", .text))
+        // A plain clean card that simply flows through.
+        _ = review(draft("Blue Bottle Coffee", 520, "food", .text))
+
+        let fuseGroup = APIFuseGroup(
+            groupID: UUID(),
+            sourceCardIDs: [photoID, noteID],
+            resolvedDraft: APIBillDraft(merchant: "Kyoto MK Taxi", amount: 240,
+                                        currencyCode: "JPY", categoryRaw: "transport",
+                                        date: Date(), source: "photo"),
+            amountTrace: APIAmountTrace(sourceCardID: noteID, field: "amount"),
+            reason: "A receipt missing its total, completed by your note.",
+            confidence: 0.9)
+        let dupGroup = APIDuplicateGroup(
+            groupID: UUID(),
+            memberCardIDs: [ramenPhoto, ramenTyped],
+            survivorCardID: ramenPhoto,
+            tier: "sameDetails",
+            reason: "Same merchant, amount & date.")
+
+        coordinator.session.markDoneAdding()
+        coordinator.session.applyUntangle(APIUntangleResponse(
+            declined: false, message: nil,
+            fuseGroups: [fuseGroup], duplicateGroups: [dupGroup], cleanCardIDs: []))
+        return coordinator
+    }
+}
+#endif
+
 // MARK: - Server card → local draft
 
 extension BillDraft {

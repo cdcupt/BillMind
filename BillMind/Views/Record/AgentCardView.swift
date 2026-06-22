@@ -316,6 +316,330 @@ struct AgentCardView: View {
     }
 }
 
+// MARK: - Untangle review group rows
+//
+// Two sibling views to `AgentCardView` that render the held-batch untangle plan
+// (slice ②) inside the same Record scroll: a fuse proposal (partials that are one
+// bill) and a flagged duplicate group (the same bill twice). Both match the
+// SketchTheme dedup grammar from design/dedup/DESIGN.html: a calm sand-caution
+// dashed bracket (never gate-red), a first-person Ollie bar, and only reversible
+// actions — nothing reads as auto-deleted. The non-destructive accept (Combine /
+// Keep both) is the prominent filled-pine button; the escape (Split / Keep one)
+// is the quiet outline.
+
+/// A held-batch fuse proposal: one resolved card Ollie assembled from several
+/// inputs, shown over a "made from" provenance strip so the money trace is
+/// literal — the amount is tagged with the input it came from, never minted.
+/// Combine accepts (→ one review card via the validator); Split discards the
+/// proposal and the originals return intact. `amountTrace == nil` ⇒ the card
+/// shows the red "amount required" gap exactly as a lone card does (A7).
+struct FuseProposalView: View {
+    let groupID: UUID
+    let resolved: BillDraft
+    let sourceCards: [AgentCard]
+    let amountTrace: APIAmountTrace?
+    let reason: String
+    let coordinator: RecordCoordinator
+
+    private var category: BillCategory { BillCategory(rawValue: resolved.categoryRaw ?? "") ?? .misc }
+    private var amountMissing: Bool { resolved.amount == nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ollieBar
+            DashedBracket(label: "⌥ COMBINED INTO ONE", tint: SketchTheme.warmOrange) {
+                VStack(alignment: .leading, spacing: 12) {
+                    resolvedRow
+                    Divider().background(SketchTheme.lightBrown.opacity(0.3))
+                    provenance
+                }
+            }
+            actions
+        }
+        .sketchCard(cornerRadius: 18)
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(SketchTheme.warmOrange.opacity(0.55), lineWidth: 2))
+    }
+
+    private var ollieBar: some View {
+        OllieNoteBar(text: amountMissing
+            ? "I joined these, but neither had a total. What was the amount?"
+            : "I combined these — looks like one bill.")
+    }
+
+    /// The resolved bill at a glance: icon · merchant · category·date · amount.
+    /// Amount italic-red when missing, mirroring `AgentCardView`'s gap treatment.
+    private var resolvedRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: category.sfSymbol)
+                .font(.system(size: 18)).foregroundStyle(category.color)
+                .frame(width: 40, height: 40)
+                .background(category.color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(resolved.merchant ?? "Combined bill")
+                    .font(SketchTheme.headlineFont(16)).foregroundStyle(SketchTheme.softBrown)
+                Text("\(category.englishName) · \(dateLabel)")
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
+            }
+            Spacer()
+            Text(amountLabel)
+                .font(amountMissing ? SketchTheme.captionFont(13) : SketchTheme.amountFont(18))
+                .italic(amountMissing)
+                .foregroundStyle(amountMissing ? SketchTheme.mutedRed : category.color)
+                .accessibilityIdentifier("fuse-amount")
+        }
+    }
+
+    /// The "made from" strip: one slip per source input (photo thumb / note text),
+    /// and — when the amount is known — its trace ("¥240 from your note").
+    private var provenance: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("made from")
+                .font(.system(size: 10, weight: .bold, design: .rounded)).textCase(.uppercase)
+                .foregroundStyle(SketchTheme.lightBrown)
+            ForEach(sourceCards) { card in
+                ProvenanceSlip(card: card, isAmountSource: card.id == amountTrace?.sourceCardID)
+            }
+            if let trace = amountTraceLabel {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.turn.down.right").font(.system(size: 10))
+                    Text(trace).font(SketchTheme.captionFont(11))
+                }
+                .foregroundStyle(SketchTheme.sageGreen)
+                .accessibilityIdentifier("fuse-amount-trace")
+            }
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 8) {
+            Button {
+                coordinator.combine(groupID: groupID)
+            } label: { Label("Combine", systemImage: "checkmark") }
+                .buttonStyle(HandDrawnButtonStyle(filled: true))
+                .accessibilityIdentifier("fuse-combine")
+            Button("Split") { coordinator.split(groupID: groupID) }
+                .buttonStyle(HandDrawnButtonStyle(filled: false))
+                .accessibilityIdentifier("fuse-split")
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var dateLabel: String { resolved.date?.relativeLabel ?? "no date" }
+    private var amountLabel: String {
+        guard let amount = resolved.amount else { return "amount required" }
+        return "\(coordinator.currencySymbol)\(amount.formatted2)"
+    }
+    /// "¥240 from your note" / "¥240 read from the receipt" — Ollie's money-trace copy.
+    private var amountTraceLabel: String? {
+        guard let trace = amountTrace, let amount = resolved.amount,
+              let source = sourceCards.first(where: { $0.id == trace.sourceCardID }) else { return nil }
+        let money = "\(coordinator.currencySymbol)\(amount.formatted2)"
+        return source.draft.source == .photo
+            ? "\(money) read from the receipt"
+            : "\(money) from your note"
+    }
+}
+
+/// One source slip inside a fuse's "made from" strip — a small photo or note
+/// chip, tagged with whether it supplied the amount.
+private struct ProvenanceSlip: View {
+    let card: AgentCard
+    let isAmountSource: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12)).foregroundStyle(SketchTheme.softBrown)
+                .frame(width: 26, height: 26)
+                .background(SketchTheme.cream)
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+                .overlay(RoundedRectangle(cornerRadius: 7).stroke(SketchTheme.lightBrown.opacity(0.4), lineWidth: 1))
+            Text(label).font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.softBrown)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            if isAmountSource {
+                Text("amount").font(.system(size: 9, weight: .bold, design: .rounded)).textCase(.uppercase)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(SketchTheme.sageGreen.opacity(0.16))
+                    .foregroundStyle(SketchTheme.sageGreen)
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    private var icon: String { card.draft.source == .photo ? "photo" : "pencil.line" }
+    private var label: String {
+        switch card.draft.source {
+        case .photo: return card.draft.merchant.map { "Receipt · \($0)" } ?? "Receipt photo"
+        case .text, .voice: return card.draft.merchant ?? "Your note"
+        case .manual: return card.draft.merchant ?? "Manual entry"
+        }
+    }
+}
+
+/// A flagged duplicate group: several held cards Ollie thinks are the same bill,
+/// tethered under one calm bracket. The survivor is pre-ringed pine; the others
+/// are dimmed "set aside" (grey, never red). Keep both is the safe filled accept;
+/// Keep one sets the dimmed members aside (reversible until Save).
+struct DuplicateGroupView: View {
+    let groupID: UUID
+    let members: [AgentCard]
+    let survivorID: UUID
+    let tier: String
+    let reason: String
+    let coordinator: RecordCoordinator
+
+    @State private var chosenSurvivor: UUID?
+
+    private var survivor: UUID { chosenSurvivor ?? survivorID }
+    /// Firm copy on an exact same-photo match; softer on a same-details match.
+    private var isFirm: Bool { tier == "samePhoto" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            OllieNoteBar(text: isFirm
+                ? "This looks like the same photo twice. Keep one, or keep both?"
+                : "These two might be the same bill. Keep both if they’re separate.")
+            DashedBracket(label: isFirm ? "≈ SAME PHOTO" : "≈ SAME BILL TWICE",
+                          tint: SketchTheme.warmOrange) {
+                VStack(spacing: 10) {
+                    ForEach(members) { member in
+                        DuplicateMemberRow(
+                            card: member,
+                            isSurvivor: member.id == survivor,
+                            currencySymbol: coordinator.currencySymbol
+                        ) { chosenSurvivor = member.id }
+                    }
+                }
+            }
+            actions
+        }
+        .sketchCard(cornerRadius: 18)
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(SketchTheme.warmOrange.opacity(0.55), lineWidth: 2))
+    }
+
+    private var actions: some View {
+        HStack(spacing: 8) {
+            // Keep both is the safe, prominent one-tap (nothing reads as deleted).
+            Button(members.count > 2 ? "Keep all" : "Keep both") {
+                coordinator.keepBoth(groupID: groupID)
+            }
+            .buttonStyle(HandDrawnButtonStyle(filled: true))
+            .accessibilityIdentifier("dup-keep-both")
+            Button("Keep one") { coordinator.keepOne(groupID: groupID, survivor: survivor) }
+                .buttonStyle(HandDrawnButtonStyle(filled: false))
+                .accessibilityIdentifier("dup-keep-one")
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// One member inside a duplicate bracket. Survivor: pine ring + "keep this one".
+/// Non-survivor: dimmed grey "set aside if kept 1" (never destructive-red), tap
+/// to make it the survivor instead.
+private struct DuplicateMemberRow: View {
+    let card: AgentCard
+    let isSurvivor: Bool
+    let currencySymbol: String
+    let onChoose: () -> Void
+
+    private var draft: BillDraft { card.draft }
+    private var category: BillCategory { BillCategory(rawValue: draft.categoryRaw ?? "") ?? .misc }
+
+    var body: some View {
+        Button(action: onChoose) {
+            HStack(spacing: 12) {
+                Image(systemName: category.sfSymbol)
+                    .font(.system(size: 16)).foregroundStyle(category.color)
+                    .frame(width: 36, height: 36)
+                    .background(category.color.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(draft.merchant ?? "Bill")
+                            .font(SketchTheme.headlineFont(15)).foregroundStyle(SketchTheme.softBrown)
+                        statusTag
+                    }
+                    Text("\(category.englishName) · \(sourceLabel)")
+                        .font(SketchTheme.captionFont(11)).foregroundStyle(SketchTheme.lightBrown)
+                }
+                Spacer()
+                Text(draft.amount.map { "\(currencySymbol)\($0.formatted2)" } ?? "—")
+                    .font(SketchTheme.amountFont(16))
+                    .foregroundStyle(isSurvivor ? category.color : SketchTheme.lightBrown)
+            }
+            .padding(10)
+            .background((isSurvivor ? SketchTheme.warmWhite : SketchTheme.cream).opacity(isSurvivor ? 1 : 0.7))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .stroke(isSurvivor ? SketchTheme.sageGreen : SketchTheme.lightBrown.opacity(0.3),
+                        lineWidth: isSurvivor ? 2 : 1))
+            .opacity(isSurvivor ? 1 : 0.6)   // dimmed "set aside" preview — never red
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(isSurvivor ? "dup-survivor" : "dup-member")
+    }
+
+    @ViewBuilder private var statusTag: some View {
+        if isSurvivor {
+            tag("✓ keep this one", color: SketchTheme.sageGreen)
+        } else {
+            tag("set aside if kept 1", color: SketchTheme.lightBrown)
+        }
+    }
+
+    private func tag(_ text: String, color: Color) -> some View {
+        Text(text).font(.system(size: 9, weight: .bold, design: .rounded)).textCase(.uppercase)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(color.opacity(0.16)).foregroundStyle(color)
+            .clipShape(Capsule())
+    }
+
+    private var sourceLabel: String {
+        switch draft.source { case .text: "typed"; case .photo: "photo"; case .voice: "voice"; case .manual: "manual" }
+    }
+}
+
+// MARK: - Shared sketch chrome (bracket + Ollie bar)
+
+/// The calm sand-caution dashed bracket the dedup design tethers groups with —
+/// a labelled tab over a dashed-outlined content well. Never gate-red: this is
+/// "Ollie noticed," not "danger."
+struct DashedBracket<Content: View>: View {
+    let label: String
+    let tint: Color
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(label)
+                .font(.system(size: 10, weight: .bold, design: .rounded)).textCase(.uppercase)
+                .padding(.horizontal, 9).padding(.vertical, 3)
+                .background(tint.opacity(0.18)).foregroundStyle(SketchTheme.softBrown)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            content()
+                .padding(12)
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .stroke(tint.opacity(0.55), style: StrokeStyle(lineWidth: 1.6, dash: [5, 4])))
+        }
+    }
+}
+
+/// A small first-person Ollie line with the owl mascot — the warm "I noticed /
+/// I tidied these" voice, reused across fuse and dup groups.
+struct OllieNoteBar: View {
+    let text: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(AnimalType.owl.imageName)
+                .resizable().scaledToFill().frame(width: 26, height: 26).clipShape(Circle())
+            Text(text).font(SketchTheme.bodyFont(13)).foregroundStyle(SketchTheme.softBrown)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 // MARK: - Edit drawer
 
 /// Bottom sheet for editing one field: date / category → pure selection;
