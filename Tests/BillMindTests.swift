@@ -1505,3 +1505,87 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         XCTAssertFalse(sent.contains(failedID))          // failed card excluded
     }
 }
+
+// MARK: - Untangle review UI snapshot (visual proof)
+
+/// Renders the seeded `.reviewing` review surface (one fuse proposal + one
+/// duplicate group + one plain card) to a PNG via ImageRenderer, as the visual
+/// proof of what the coordinator reviews. Runs on the main actor so SwiftUI and
+/// the app's asset catalog (mascots) resolve in the test host.
+@MainActor
+final class UntangleReviewSnapshotTests: XCTestCase {
+    func testRenderReviewSurfaceToPNG() throws {
+        let container = try ModelContainer(
+            for: Schema(BillMindSchemaV2.models),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let coordinator = RecordCoordinator.previewReviewing(modelContext: container.mainContext)
+
+        // Sanity: the coordinator actually landed in the reviewing state we render.
+        XCTAssertEqual(coordinator.batchPhase, .reviewing)
+        XCTAssertEqual(coordinator.groups.count, 2)         // one fuse + one duplicate
+        XCTAssertEqual(coordinator.plainReviewCards.count, 1)
+
+        // Fixed iPhone 17 Pro width; height grows to fit all rows (ImageRenderer
+        // sizes to the content's ideal height when only width is constrained).
+        let view = RecordReviewSnapshotView(coordinator: coordinator)
+            .frame(width: 393)
+            .fixedSize(horizontal: false, vertical: true)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.uiImage, let data = image.pngData() else {
+            return XCTFail("ImageRenderer produced no PNG")
+        }
+        let url = URL(fileURLWithPath: "/tmp/untangle_review_ui.png")
+        try data.write(to: url)
+        XCTAssertGreaterThan(data.count, 1000, "PNG should be non-trivial")
+    }
+}
+
+/// A snapshot-only mirror of the review surface composition (Ollie header → fuse
+/// proposal → duplicate group → plain card → Save-all bar). Kept here so the test
+/// renders the exact public group views without needing RecordView's privates.
+@MainActor
+private struct RecordReviewSnapshotView: View {
+    let coordinator: RecordCoordinator
+    var body: some View {
+        // No ScrollView: ImageRenderer can't rasterize scroll-lazy content, so the
+        // review rows are laid out in a plain VStack at a fixed width.
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                OllieNoteBar(text: "I tidied these up — \(coordinator.groups.count) to look at.")
+                    .padding(12).background(SketchTheme.warmWhite)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(SketchTheme.lightBrown.opacity(0.35), lineWidth: 1.5))
+                ForEach(coordinator.groups) { group in
+                    switch group {
+                    case let .fuseProposed(gid, resolved, ids, trace, reason, _):
+                        FuseProposalView(groupID: gid, resolved: resolved,
+                                         sourceCards: ids.compactMap { coordinator.session.card($0) },
+                                         amountTrace: trace, reason: reason, coordinator: coordinator)
+                    case let .flaggedDuplicate(gid, ids, survivor, tier, reason):
+                        DuplicateGroupView(groupID: gid,
+                                           members: ids.compactMap { coordinator.session.card($0) },
+                                           survivorID: survivor, tier: tier, reason: reason, coordinator: coordinator)
+                    }
+                }
+                ForEach(coordinator.plainReviewCards) { card in
+                    AgentCardView(card: card, coordinator: coordinator) { _ in }
+                }
+            }
+            .padding(.horizontal).padding(.top, 8)
+            VStack(spacing: 6) {
+                Text("\(coordinator.groups.count) groups to confirm · pre-set to the safe choice")
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {} label: {
+                    let n = coordinator.plainReviewCards.count
+                    Label("Save all to trip · \(n) bill\(n == 1 ? "" : "s")",
+                          systemImage: "tray.and.arrow.down.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(HandDrawnButtonStyle(filled: true))
+            }
+            .padding(.horizontal).padding(.bottom, 8)
+        }
+        .background(SketchTheme.cream)
+    }
+}

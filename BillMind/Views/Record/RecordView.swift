@@ -22,6 +22,9 @@ struct RecordView: View {
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var showNewJournal = false
     @State private var showTrips = false
+    /// A gentle "touch the flagged groups first" note when "Save all" is blocked by
+    /// still-open fuse/duplicate groups. Cleared once the user resolves them.
+    @State private var blockedNote: String?
     @StateObject private var voice = VoiceCapture()
     @FocusState private var inputFocused: Bool
 
@@ -75,36 +78,192 @@ struct RecordView: View {
             journalChip(coordinator)
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        introCard
-                        ForEach(coordinator.cards) { card in
-                            AgentCardView(card: card, coordinator: coordinator) { field in
-                                editTarget = EditTarget(cardID: card.id, field: field)
-                            }
-                            .id(card.id)
-                        }
-                        Color.clear.frame(height: 1).id("bottom")
+                    if coordinator.batchPhase == .reviewing {
+                        reviewSurface(coordinator)
+                    } else {
+                        addingScroll(coordinator)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+                    Color.clear.frame(height: 1).id("bottom")
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: coordinator.cards.count) { _, _ in
                     withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
             }
-            if let decline = coordinator.declineMessage {
-                noticeBanner(decline, icon: "hand.raised.fill", tone: SketchTheme.softBlue) {
-                    coordinator.declineMessage = nil
+            // The untangle round-trip: a calm "Ollie is tidying…" overlay reusing the
+            // thinking-state grammar, replacing the input bar while it runs.
+            if coordinator.batchPhase == .untangling {
+                untanglingBar
+            } else {
+                if let decline = coordinator.declineMessage {
+                    noticeBanner(decline, icon: "hand.raised.fill", tone: SketchTheme.softBlue) {
+                        coordinator.declineMessage = nil
+                    }
+                }
+                if let error = coordinator.errorMessage {
+                    noticeBanner(error, icon: "exclamationmark.triangle.fill", tone: SketchTheme.mutedRed) {
+                        coordinator.errorMessage = nil
+                    }
+                }
+                // Sticky "Done adding · Review N" — only while a multi-card pile is held.
+                if coordinator.showsDoneAddingBar {
+                    doneAddingBar(coordinator)
+                }
+                // One "Save all" instead of the input bar once a reviewed batch is in.
+                if coordinator.batchPhase == .reviewing {
+                    saveAllBar(coordinator)
+                } else {
+                    inputBar(coordinator)
                 }
             }
-            if let error = coordinator.errorMessage {
-                noticeBanner(error, icon: "exclamationmark.triangle.fill", tone: SketchTheme.mutedRed) {
-                    coordinator.errorMessage = nil
-                }
-            }
-            inputBar(coordinator)
         }
+        .animation(.easeInOut(duration: 0.25), value: coordinator.batchPhase)
+        // Resolving a group clears the "touch these first" note so it never lingers
+        // after the user acts; they re-tap Save all to write the now-clean batch.
+        .onChange(of: coordinator.groups.count) { _, _ in blockedNote = nil }
+    }
+
+    // MARK: - Adding scroll (staged cards)
+
+    private func addingScroll(_ coordinator: RecordCoordinator) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            introCard
+            ForEach(coordinator.cards) { card in
+                AgentCardView(card: card, coordinator: coordinator) { field in
+                    editTarget = EditTarget(cardID: card.id, field: field)
+                }
+                .id(card.id)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Review surface (groups + plain cards)
+
+    /// When the held batch is reviewing, the same vertical scroll shows Ollie's
+    /// proposed fuses and flagged duplicates as tethered groups, with the unclaimed
+    /// held cards rendered as ordinary review rows — no new screen.
+    private func reviewSurface(_ coordinator: RecordCoordinator) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            reviewHeader(coordinator)
+            ForEach(coordinator.groups) { group in
+                groupRow(group, coordinator: coordinator).id(group.id)
+            }
+            ForEach(coordinator.plainReviewCards) { card in
+                AgentCardView(card: card, coordinator: coordinator) { field in
+                    editTarget = EditTarget(cardID: card.id, field: field)
+                }
+                .id(card.id)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private func groupRow(_ group: UntangleGroup, coordinator: RecordCoordinator) -> some View {
+        switch group {
+        case let .fuseProposed(groupID, resolved, sourceCardIDs, amountTrace, reason, _):
+            FuseProposalView(
+                groupID: groupID,
+                resolved: resolved,
+                sourceCards: sourceCardIDs.compactMap { coordinator.session.card($0) },
+                amountTrace: amountTrace,
+                reason: reason,
+                coordinator: coordinator)
+        case let .flaggedDuplicate(groupID, memberCardIDs, survivorID, tier, reason):
+            DuplicateGroupView(
+                groupID: groupID,
+                members: memberCardIDs.compactMap { coordinator.session.card($0) },
+                survivorID: survivorID,
+                tier: tier,
+                reason: reason,
+                coordinator: coordinator)
+        }
+    }
+
+    private func reviewHeader(_ coordinator: RecordCoordinator) -> some View {
+        let n = coordinator.groups.count
+        let text = n == 0
+            ? "All set — nothing looked doubled up."
+            : "I tidied these up — \(n) to look at."
+        return OllieNoteBar(text: text)
+            .padding(12)
+            .background(SketchTheme.warmWhite)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(SketchTheme.lightBrown.opacity(0.35), lineWidth: 1.5))
+    }
+
+    // MARK: - Sticky bars
+
+    private func doneAddingBar(_ coordinator: RecordCoordinator) -> some View {
+        HStack(spacing: 10) {
+            Image(AnimalType.owl.imageName)
+                .resizable().scaledToFill().frame(width: 30, height: 30).clipShape(Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Done adding?").font(SketchTheme.headlineFont(15)).foregroundStyle(SketchTheme.softBrown)
+                Text("I’ll tidy these up.").font(SketchTheme.captionFont(11)).foregroundStyle(SketchTheme.lightBrown)
+            }
+            Spacer()
+            Button { coordinator.markDoneAdding() } label: {
+                Label("Review \(coordinator.cards.count)", systemImage: "wand.and.stars")
+            }
+            .buttonStyle(HandDrawnButtonStyle(filled: true))
+            .accessibilityIdentifier("record-done-adding")
+        }
+        .padding(10)
+        .background(SketchTheme.warmWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16)
+            .stroke(SketchTheme.warmOrange.opacity(0.5), style: StrokeStyle(lineWidth: 1.6, dash: [4])))
+        .padding(.horizontal).padding(.bottom, 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private var untanglingBar: some View {
+        HStack(spacing: 10) {
+            Image(AnimalType.owl.imageName)
+                .resizable().scaledToFill().frame(width: 30, height: 30).clipShape(Circle())
+            Text("Ollie’s tidying these up…").font(SketchTheme.bodyFont(14)).foregroundStyle(SketchTheme.softBrown)
+            Spacer()
+            ProgressView().tint(SketchTheme.dustyRose)
+        }
+        .padding(12)
+        .background(SketchTheme.warmWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(SketchTheme.warmOrange.opacity(0.5), lineWidth: 1.8))
+        .padding(.horizontal).padding(.bottom, 8)
+        .accessibilityIdentifier("record-untangling")
+    }
+
+    /// "Save all to trip · N bills". On tap, `confirmAll` writes one bill per plain
+    /// review card; if any group is still open (its members blocked), it gently
+    /// asks the user to touch those first — each group keeps a safe default, so
+    /// nothing is saved over an unresolved decision.
+    private func saveAllBar(_ coordinator: RecordCoordinator) -> some View {
+        let savableCount = coordinator.plainReviewCards.count
+        let openGroups = coordinator.groups.count
+        return VStack(spacing: 6) {
+            if let blockedNote {
+                Text(blockedNote)
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.mutedRed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("record-save-blocked")
+            } else if openGroups > 0 {
+                Text("\(openGroups) group\(openGroups == 1 ? "" : "s") to confirm · pre-set to the safe choice")
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Button { saveAll(coordinator) } label: {
+                Label("Save all to trip · \(savableCount) bill\(savableCount == 1 ? "" : "s")",
+                      systemImage: "tray.and.arrow.down.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(HandDrawnButtonStyle(filled: true))
+            .accessibilityIdentifier("record-save-all")
+        }
+        .padding(.horizontal).padding(.bottom, 8)
     }
 
     /// A calm, dismissable banner — used for moderation declines and errors.
@@ -244,6 +403,23 @@ struct RecordView: View {
         inputText = ""
         inputFocused = false        // dismiss the keyboard so the new card (and tab bar) are reachable
         coordinator.submitText(text)
+    }
+
+    /// Save the whole reviewed batch. `confirmAll` returns the ids it could NOT save
+    /// — members still claimed by an open group, or a row missing an amount. If any
+    /// came back blocked, we don't toast or destroy anything: we leave the rows in
+    /// review (each group keeps its safe default) and surface a calm "touch these
+    /// first" note. An empty result means every plain card was written.
+    private func saveAll(_ coordinator: RecordCoordinator) {
+        let blocked = coordinator.confirmAll(acknowledging: true)
+        if blocked.isEmpty {
+            blockedNote = nil
+        } else if !coordinator.groups.isEmpty {
+            let k = coordinator.groups.count
+            blockedNote = "Take a look at the \(k) I flagged first."
+        } else {
+            blockedNote = "A card still needs an amount — tap it to add one."
+        }
     }
 
     /// Start dictation, or stop it and hand the final transcript to the AI.
@@ -492,3 +668,70 @@ final class VoiceCapture: ObservableObject {
         finish(submit: false)
     }
 }
+
+// MARK: - Preview
+
+#if DEBUG
+/// A standalone host that renders the untangle review surface from a seeded
+/// `.reviewing` coordinator (one fuse proposal + one duplicate group + one plain
+/// card) — the visual proof of what the coordinator reviews. Mirrors the review
+/// composition in `RecordView.session` without needing its private members.
+private struct UntangleReviewPreviewHost: View {
+    let coordinator: RecordCoordinator
+    @State private var editTarget: EditTarget?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    OllieNoteBar(text: "I tidied these up — \(coordinator.groups.count) to look at.")
+                        .padding(12)
+                        .background(SketchTheme.warmWhite)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(SketchTheme.lightBrown.opacity(0.35), lineWidth: 1.5))
+                    ForEach(coordinator.groups) { group in
+                        switch group {
+                        case let .fuseProposed(groupID, resolved, sourceCardIDs, amountTrace, reason, _):
+                            FuseProposalView(
+                                groupID: groupID, resolved: resolved,
+                                sourceCards: sourceCardIDs.compactMap { coordinator.session.card($0) },
+                                amountTrace: amountTrace, reason: reason, coordinator: coordinator)
+                        case let .flaggedDuplicate(groupID, memberCardIDs, survivorID, tier, reason):
+                            DuplicateGroupView(
+                                groupID: groupID,
+                                members: memberCardIDs.compactMap { coordinator.session.card($0) },
+                                survivorID: survivorID, tier: tier, reason: reason, coordinator: coordinator)
+                        }
+                    }
+                    ForEach(coordinator.plainReviewCards) { card in
+                        AgentCardView(card: card, coordinator: coordinator) { _ in }
+                    }
+                }
+                .padding(.horizontal).padding(.top, 8)
+            }
+            VStack(spacing: 6) {
+                Text("\(coordinator.groups.count) groups to confirm · pre-set to the safe choice")
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {} label: {
+                    let n = coordinator.plainReviewCards.count
+                    Label("Save all to trip · \(n) bill\(n == 1 ? "" : "s")",
+                          systemImage: "tray.and.arrow.down.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(HandDrawnButtonStyle(filled: true))
+            }
+            .padding(.horizontal).padding(.bottom, 8)
+        }
+        .paperBackground()
+    }
+}
+
+#Preview("Untangle review") {
+    let container = try! ModelContainer(
+        for: Schema(BillMindSchemaV2.models),
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let coordinator = RecordCoordinator.previewReviewing(modelContext: container.mainContext)
+    return UntangleReviewPreviewHost(coordinator: coordinator)
+}
+#endif
