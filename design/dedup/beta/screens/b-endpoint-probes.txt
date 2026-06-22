@@ -1,0 +1,50 @@
+=== BillOwl /v1/untangle live endpoint probes ===
+date: 2026-06-22T15:40:29Z
+host: https://billmind.daichenlab.com
+
+--- 1) POST /v1/untangle, empty body, NO auth (expect 401) ---
+HTTP 401
+body: {"reason":"invalid or expired session","error":true}
+
+--- 2) POST /v1/untangle, authed-SHAPE body but NO bearer token (expect 401) ---
+HTTP 401
+body: {"error":true,"reason":"invalid or expired session"}
+
+--- 3) POST /v1/untangle, GARBAGE bearer token (expect 401) ---
+HTTP 401
+body: {"reason":"invalid or expired session","error":true}
+
+--- 4) GET /healthz (expect 200) ---
+HTTP 200
+body: {"version":"0.1.0","service":"billmind-server","status":"ok"}
+
+--- 5) malformed JSON, no auth (auth runs before decode? expect 401) ---
+HTTP 000
+body: 
+
+--- 5 (rerun) POST /v1/untangle, MALFORMED JSON, no auth — auth must run before body decode (expect 401, NOT 400/500) ---
+HTTP 401
+body: {"error":true,"reason":"invalid or expired session"}
+
+--- 6) other verbs on /v1/untangle, no auth (GET expect 401/404/405) ---
+GET HTTP 404
+body: {"reason":"Not Found","error":true}
+
+--- 7) security headers on /healthz ---
+(no notable security headers)
+
+=== server UntangleTests (Xcode toolchain) ===
+Executed 12 tests, 0 failures (0.16s) — all merged money-safety invariants PASS.
+
+=== Decimal guard semantics (probe) ===
+Decimal('1000')==Decimal('1000.00') -> true (scale-insensitive, same money: SAFE)
+Decimal('1000')==Decimal('1000.001') -> false (sub-cent diff blocked: SAFE)
+Guard only ever emits a value byte-equal to a MEMBER card amount (no minting).
+
+=== FINDING (currency-blind amount guard) ===
+hasConflictingAmounts([1000 JPY, 1000 USD]) -> false (Set<Decimal> size 1) => the two FUSE.
+resolvedDraft.currencyCode = fuse.currencyCode ?? first member's currency.
+=> equal-magnitude cross-currency members can fuse; amount is verbatim-from-a-member
+   but may attach to the OTHER member's currency. Money MEANING can be wrong.
+   Reachable: GeminiRecognizer.swift:162 infers currency per-symbol ($->USD ¥->JPY €->EUR).
+   Coverage: 0 cross-currency tests in UntangleTests (all JPY).

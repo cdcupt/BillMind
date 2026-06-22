@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — Smart Multi-Input Capture · Beta Report</title>
+<style>
+  :root{--bg:#faf6ef;--ink:#3a2f28;--muted:#8a7a6c;--line:#e4d8c8;--accent:#c8623a;--accent2:#5a7a50;--warn:#b5852f;--card:#fffdf9;--shadow:0 2px 10px rgba(120,90,60,.10)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:clamp(1.6rem,1.2rem+2.2vw,2.4rem);margin:.15em 0 .1em}
+  .sub{color:var(--muted);font-size:15px}
+  h2{font-size:1.22rem;margin:2em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+  h3{font-size:1.02rem;margin:1.3em 0 .3em;color:var(--accent)}
+  p{margin:.5em 0}
+  .verdicts{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+  .vcard{flex:1;min-width:240px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);border-top:4px solid var(--accent2)}
+  .ship{display:inline-block;font-weight:800;color:#fff;background:var(--accent2);padding:2px 12px;border-radius:999px;font-size:13px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:.6em 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:var(--shadow);min-width:0}
+  .card li{overflow-wrap:anywhere}
+  blockquote{margin:.6em 0;padding:.4em 0 .4em 14px;border-left:3px solid var(--line);color:#5a4d42;font-size:15px}
+  table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:14px;min-width:520px}
+  .scroll{overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f4ece0}
+  code{background:#f1e7d8;border-radius:5px;padding:1px 5px;font-size:13px;overflow-wrap:anywhere}
+  .fixed{color:var(--accent2);font-weight:700} .defer{color:var(--warn);font-weight:700}
+  .gallery{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:.8em 0}
+  .shot{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
+  .shot img{width:100%;height:auto;border-radius:8px;display:block;border:1px solid var(--line)}
+  .shot figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+  .lim{background:#fff8ec;border:1px solid #ecd9b3;border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:14.5px}
+  .foot{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">BillOwl · Beta-Test Report · Smart Multi-Input Capture (F5+)</div>
+  <h1>Two independent beta-testers — both ship</h1>
+  <div class="sub">Coordinator-consolidated. Two testers exercised the running feature with different lenses; both medium findings were fixed and merged before this report. · 2026-06-22</div>
+</header>
+
+<div class="verdicts">
+  <div class="vcard">
+    <h3 style="margin-top:0">Tester A · new-user UX &amp; visual polish</h3>
+    <p><span class="ship">SHIP</span></p>
+    <p style="font-size:14.5px">"It reads as a real product, not a template." The money-safe untangle reads all match the design in the actual built UI.</p>
+  </div>
+  <div class="vcard">
+    <h3 style="margin-top:0">Tester B · money-safety &amp; data integrity</h3>
+    <p><span class="ship">SHIP</span></p>
+    <p style="font-size:14.5px">"No way to mint an amount, no way to double-count, no partition hole." The guard is enforced in pure server code, not just asserted.</p>
+  </div>
+</div>
+
+<h2>1 · What they exercised</h2>
+<p>Tester A built, installed, and booted the app on the iPhone 17 Pro simulator and walked the Record tab + capture + the review surface, judging first-run feel and polish. Tester B adversarially audited the money-safety invariants in the merged server/client code, ran the server suite, probed <code>Decimal</code> equality semantics, and confirmed the live <code>/v1/untangle</code> endpoint refuses every unauthenticated/malformed request (401) with <code>/healthz</code> 200.</p>
+
+<h2>2 · Experience (in their words)</h2>
+<div class="grid">
+  <div class="card"><h4>Tester A — UX</h4>
+    <blockquote>The app feels genuinely finished and warm… I typed "ramen 2840" and got a real, legible bill card in a second. The money-safe untangle review is the standout: the fuse proposal shows a sand "COMBINED INTO ONE" bracket (never red), a "MADE FROM" provenance strip, and the trace pill "240 from your note" in green so the number visibly comes from a named input. The duplicate group dims the set-aside member grey (not red) and makes "Keep both" the prominent safe action.</blockquote>
+  </div>
+  <div class="card"><h4>Tester B — integrity</h4>
+    <blockquote>I came at this trying to make BillOwl save the wrong number. The verbatim post-check really does refuse any amount that isn't byte-equal to a member card's amount — I fed it 1000 vs 1000.00 (same money), 1000 vs 1000.001 (rejected), sign/exponent/whitespace forms — it behaves correctly. Conflicting amounts refuse the fuse; an omitted/double-claimed card fails open to clean. Enforced in pure server code I could read and run.</blockquote>
+  </div>
+</div>
+
+<h2>3 · Findings &amp; triage</h2>
+<div class="scroll"><table>
+  <tr><th>Sev</th><th>Finding</th><th>By</th><th>Disposition</th></tr>
+  <tr><td>medium</td><td><b>Currency-blind fuse guard</b> — €50 and $50 (equal magnitude, different currency) treated as the same amount → could fuse and desync amount↔currency</td><td>B</td><td class="fixed">FIXED — PR #11: guard now keys on (magnitude AND currency); cross-currency refuses the fuse; resolved currency tied to the source. + cross-currency tests.</td></tr>
+  <tr><td>medium</td><td><b>Silent degrade</b> — when untangle can't run (unsynced trip / offline), the app silently saved per-card with no explanation</td><td>A</td><td class="fixed">FIXED — PR #12: a calm visible note in Ollie's voice ("…kept these as separate bills"); per-card save preserved.</td></tr>
+  <tr><td>low</td><td>No cross-currency coverage in the untangle test suite</td><td>B</td><td class="fixed">FIXED — covered by the new tests in PR #11.</td></tr>
+  <tr><td>low</td><td>Welcome sheet shows a background mascot that reads as a clipped glitch on first run</td><td>A</td><td class="defer">DEFERRED — pre-existing first-launch UI, not F5. Quick polish follow-up.</td></tr>
+  <tr><td>low</td><td>Journal chip / intro avatar is a bear-ish animal, muddying the owl (Ollie) identity</td><td>A</td><td class="defer">DEFERRED — pre-existing brand/asset choice, not F5.</td></tr>
+  <tr><td>low</td><td>Editing an amount opens an empty 0.00 instead of pre-filling the current value</td><td>A</td><td class="defer">DEFERRED — pre-existing EditDrawer behavior, not F5.</td></tr>
+  <tr><td>low</td><td>Duplicate grouping trusts the model's "same bill" with no amount/currency sanity check</td><td>B</td><td class="defer">DEFERRED — not a money-loss hole (members only set aside on an explicit tap); a hardening follow-up.</td></tr>
+</table></div>
+<p>Both <b>medium</b> findings were fixed, Codex-reviewed, tested, and merged before this report. The currency fix is verified by exactly the cross-currency tests Tester B asked for. The four <b>low</b> items are pre-existing polish / hardening, deferred as follow-ups — none block the release.</p>
+
+<h2>4 · Pipeline screenshots (the running app)</h2>
+<div class="gallery">
+  <div class="shot"><img src="screens/b-02-record-empty.png" alt="Record tab"><figcaption>Record tab — Ollie intro</figcaption></div>
+  <div class="shot"><img src="screens/b-05-card-review.png" alt="A recognized card"><figcaption>A real, editable bill card</figcaption></div>
+  <div class="shot"><img src="screens/b-10-untangle-top.png" alt="Fuse proposal"><figcaption>Fuse — "240 from your note" trace</figcaption></div>
+  <div class="shot"><img src="screens/b-11-untangle-duplicate.png" alt="Duplicate group"><figcaption>Duplicate — set-aside dimmed, "Keep both"</figcaption></div>
+  <div class="shot"><img src="screens/b-12-untangle-saveall.png" alt="Save all"><figcaption>"Save all" — safe defaults pre-set</figcaption></div>
+  <div class="shot"><img src="screens/a-01-launch.png" alt="Launch"><figcaption>First-run launch</figcaption></div>
+</div>
+
+<h2>5 · Honest limitation (read before sign-off)</h2>
+<div class="lim">
+  <p><b>A live signed-in <i>fusion-quality</i> E2E was not possible in this environment.</b> Sign in with Apple/Google can't complete on the simulator, so neither tester held a real auth token — all live network paths (server Gemini recognition, OCR, and a real <code>/v1/untangle</code> round-trip) stop at the 401 boundary. The fuse/duplicate <i>review UI</i> was judged from the app's real built views seeded with representative data, and the <i>fusion logic</i> was verified via the pure server assembler, the 73 passing server tests (incl. the money guard + currency), and the 117 passing client tests — <b>but not a genuine server-produced untangle plan on real photos with a real account.</b></p>
+  <p>This is exactly the QA-plan's known gap: <b>real Gemini fusion accuracy on real inputs belongs in TestFlight with a real account</b>, with a labelled true-fuse / false-fuse / true-dup fixture set to track precision/recall. Recommend that be the first thing checked once the app-side build reaches a tester device.</p>
+</div>
+
+<div class="foot">Artifact: <code>design/dedup/beta/BETA-REPORT.html</code> · Two-beta-tester pass for Smart Multi-Input Capture · both verdicts: SHIP · mediums fixed (PR #11, #12). Screenshots under <code>screens/</code>.</div>
+</div>
+</body>
+</html>
