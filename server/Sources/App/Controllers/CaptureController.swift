@@ -2,10 +2,13 @@ import Vapor
 import Fluent
 import BillMindCore
 
-/// `POST /v1/recognition` — capture entry for text OR a photo:
-/// text → local DraftExtractor; image → Gemini vision → AIRecognitionMapper.
-/// Both run the moderation gate first and return the same CardDTO. Amount is
-/// never guessed (the validator flags a missing amount; canSave gates on it).
+/// `POST /v1/recognition` — capture entry for text, a photo, OR a photo + caption:
+/// text → local DraftExtractor; image → Gemini vision → AIRecognitionMapper;
+/// image + text → compose: recognize the photo, then let the caption fill the
+/// photo's gaps (a stated amount/merchant/date overrides an unreadable photo value),
+/// returning ONE card. All paths run the moderation gate first and return the same
+/// CardDTO. Amount is never guessed (the validator flags a missing amount; canSave
+/// gates on it) — and the caption is read as a hint, never invented money.
 struct CaptureController: RouteCollection {
     let moderation: ModerationService
     let recognizer: Recognizer
@@ -38,7 +41,29 @@ struct CaptureController: RouteCollection {
 
         let drafts: [BillDraft]
 
-        if let imageBase64 = body.imageBase64, !imageBase64.isEmpty {
+        let composeImage = body.imageBase64.flatMap { $0.isEmpty ? nil : $0 }
+        let composeCaption = body.text.flatMap { $0.isEmpty ? nil : $0 }
+
+        if let imageBase64 = composeImage, let caption = composeCaption {
+            // Compose path — a staged photo with an accompanying caption arrive as ONE
+            // request. The caption is user free-text, so moderate it first (same gate
+            // the text path uses). Then recognize the photo and let the caption fill
+            // the photo's gaps: a clearly-stated amount/merchant/date in the caption
+            // fills a missing one and OVERRIDES an unreadable photo value — but money is
+            // never invented, so if neither yields a total the card comes back amount-less
+            // and the validator's "amount required" gate handles it. ONE card out.
+            if let declined = try await guardModeration(caption, uid: uid, req: req,
+                                                        expenseShaped: DraftExtractor.firstAmount(in: caption) != nil) {
+                return declined
+            }
+            let result = try await recognizer.recognize(imageBase64: imageBase64,
+                                                         mimeType: body.mimeType ?? "image/jpeg", on: req)
+            let photoDraft = AIRecognitionMapper.draft(from: result, currencyCode: trip.currencyCode)
+            let today = Self.validClientDate(body.clientDate) ?? LocalTextRecognizer.utcTodayString()
+            drafts = [Self.compose(photoDraft: photoDraft, caption: caption,
+                                   currencyCode: trip.currencyCode, today: today)]
+
+        } else if let imageBase64 = body.imageBase64, !imageBase64.isEmpty {
             // Photo path — server-side recognition (one bill per receipt).
             let result = try await recognizer.recognize(imageBase64: imageBase64,
                                                          mimeType: body.mimeType ?? "image/jpeg", on: req)
@@ -84,6 +109,55 @@ struct CaptureController: RouteCollection {
         // Reject absurd dates (clock-skew / tampering): within ~2 days of UTC now.
         let drift = abs(date.timeIntervalSince(Date()))
         return drift < 60 * 60 * 24 * 2 ? raw : nil
+    }
+
+    /// Merge a recognized photo draft with its accompanying caption into ONE draft.
+    ///
+    /// The caption is parsed locally (deterministic, no network) and read as a
+    /// gap-fill on top of what the photo gave. Precedence is calibrated to what the
+    /// extractor can state with confidence vs. what it merely scrapes:
+    ///
+    /// - **Amount** is the decisive field: a clearly-stated caption total fills a
+    ///   missing photo total AND overrides an unreadable one — never invented, so when
+    ///   the caption has no number the photo's amount (possibly nil) is kept as-is and
+    ///   an amount-less draft stays gap-blocked.
+    /// - **Merchant / category / date** are fill-only: they're taken from the caption
+    ///   ONLY when the photo couldn't read them. A gap-fill caption like "total was 240,
+    ///   lunch with the team" scrapes a noisy merchant/category out of leftover words,
+    ///   so it must not clobber a merchant/category the receipt actually carried. (An
+    ///   explicit calendar date is the one date signal the extractor is sure of, but a
+    ///   read photo date is still authoritative, so date is fill-only too.)
+    ///
+    /// Pure/static so the merge is unit-tested without a network or Gemini.
+    static func compose(photoDraft: BillDraft, caption: String,
+                        currencyCode: String, today: String) -> BillDraft {
+        let cap = DraftExtractor.parse(caption, currencyCode: currencyCode,
+                                       reference: LocalTextRecognizer.referenceDate(from: today))
+        var merged = photoDraft
+
+        // Amount: a stated caption total fills/overrides; never invent when absent.
+        if let captionAmount = cap.amount { merged.amount = captionAmount }
+
+        // Merchant: fill only when the photo read none (avoid scraped-name noise).
+        if (merged.merchant?.isEmpty ?? true), let captionMerchant = cap.merchant, !captionMerchant.isEmpty {
+            merged.merchant = captionMerchant
+        }
+
+        // Date: fill only when the photo couldn't read one. DraftExtractor only yields
+        // a date for an explicit calendar date (relative words stay nil), so this never
+        // guesses a day.
+        if merged.date == nil, let captionDate = cap.date {
+            merged.date = captionDate
+            merged.rawDateText = nil
+        }
+
+        // Category: fill only when the photo gave none — a generic "misc" from the
+        // caption must not clobber a category the receipt actually carried.
+        if (merged.categoryRaw?.isEmpty ?? true), let captionCategory = cap.categoryRaw {
+            merged.categoryRaw = captionCategory
+        }
+
+        return merged
     }
 
     /// Runs the gate; returns a decline response if blocked, else nil (proceed).
