@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BillOwl — F5 Dedup · PRD</title>
+<title>BillOwl — Smart Multi-Input Capture · PRD</title>
 <style>
   :root{
     --bg:#faf6ef; --ink:#3a2f28; --muted:#8a7a6c; --line:#e4d8c8;
@@ -12,177 +12,188 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    -webkit-font-smoothing:antialiased}
-  .wrap{max-width:940px;margin:0 auto;padding:28px 20px 80px}
-  header.top{border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:8px}
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 80px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px}
   .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
   h1{font-size:clamp(1.7rem,1.2rem+2.4vw,2.5rem);margin:.15em 0 .1em}
   .sub{color:var(--muted);font-size:15px}
   h2{font-size:1.25rem;margin:2.1em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
   h3{font-size:1.02rem;margin:1.4em 0 .3em;color:var(--accent)}
   p{margin:.5em 0}
-  .glance{background:var(--card);border:1px solid var(--line);border-radius:16px;
-    box-shadow:var(--shadow);padding:14px;margin:18px 0 6px;overflow-x:auto}
-  .glance svg{display:block;min-width:680px;max-width:100%;height:auto;margin:0 auto}
+  .glance{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin:18px 0 6px;overflow-x:auto}
+  .glance svg{display:block;min-width:760px;max-width:100%;height:auto;margin:0 auto}
   figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
-  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:.6em 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:.6em 0}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
   .card h4{margin:0 0 .3em;font-size:.95rem}
+  .pillarnum{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:22px;margin-right:6px}
   .pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
   .pill.in{color:var(--accent2);border-color:#bcd0b0;background:#eef4ea}
   .pill.out{color:#a85a3a;border-color:#e6c3b3;background:#fbece4}
-  ul{margin:.4em 0 .4em 0;padding-left:1.2em}
-  li{margin:.28em 0}
+  ul{margin:.4em 0;padding-left:1.2em} li{margin:.28em 0}
   table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:14.5px}
   th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
   th{background:#f4ece0}
   code{background:#f1e7d8;border-radius:5px;padding:1px 5px;font-size:13.5px}
   .lock{background:#fff8ec;border:1px solid #ecd9b3;border-left:4px solid var(--warn)}
+  .note{background:#eef4ea;border:1px solid #cfe0c4;border-left:4px solid var(--accent2);border-radius:8px;padding:10px 14px;margin:.8em 0;font-size:14.5px}
   .foot{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header class="top">
-  <div class="kicker">BillOwl · Product Requirements · F5</div>
-  <h1>Duplicate-record detection in a capture session</h1>
-  <div class="sub">When a user submits several photos/notes at once, the same bill can land twice. Catch it before save — and let the user decide. · v1 · 2026-06-22</div>
+  <div class="kicker">BillOwl · Product Requirements · Smart Multi-Input Capture (F5+)</div>
+  <h1>Smart multi-input capture: fuse · dedup · review</h1>
+  <div class="sub">Drop in several photos and notes at once; the agent combines the ones that describe one bill, drops the duplicates, and hands you a clean set to confirm. · v1 · 2026-06-22 · supersedes the narrow "F5 dedup-only" framing</div>
 </header>
 
-<!-- ★ AT A GLANCE -->
 <figure class="glance" aria-label="At a glance">
-<svg viewBox="0 0 920 360" role="img" aria-label="F5 dedup product loop and scope">
+<svg viewBox="0 0 980 380" role="img" aria-label="Smart capture loop">
   <style>
     .lbl{font:600 13px -apple-system,sans-serif;fill:#3a2f28}
     .sm{font:11.5px -apple-system,sans-serif;fill:#8a7a6c}
-    .stp{font:700 12px -apple-system,sans-serif;fill:#fff}
-    .box{fill:#fffdf9;stroke:#e4d8c8;stroke-width:1.5;rx:12}
   </style>
-  <!-- title strip -->
-  <text x="20" y="26" class="lbl" style="font-size:14px;fill:#c8623a">★ At a glance — the capture loop, with the new dedup step</text>
+  <text x="20" y="24" class="lbl" style="font-size:14px;fill:#c8623a">★ At a glance — drop everything in, the agent untangles it, you confirm</text>
 
-  <!-- stage 1: multi-input -->
-  <rect x="20" y="50" width="150" height="92" rx="12" class="box"/>
-  <text x="95" y="74" text-anchor="middle" class="lbl">1 · One session</text>
-  <text x="95" y="98" text-anchor="middle" class="sm">📷 📷 ✏️ multiple</text>
-  <text x="95" y="116" text-anchor="middle" class="sm">photos + notes</text>
+  <!-- 1 batch input -->
+  <rect x="20" y="46" width="168" height="110" rx="12" fill="#fffdf9" stroke="#e4d8c8" stroke-width="1.5"/>
+  <text x="104" y="70" text-anchor="middle" class="lbl">1 · Add inputs</text>
+  <text x="104" y="92" text-anchor="middle" class="sm">📷 receipt (half a bill)</text>
+  <text x="104" y="110" text-anchor="middle" class="sm">✏️ "...the total was 240"</text>
+  <text x="104" y="128" text-anchor="middle" class="sm">📷 📷 more receipts</text>
+  <text x="104" y="146" text-anchor="middle" class="sm" style="fill:#b5852f">tap “Done adding”</text>
 
-  <!-- arrow -->
-  <path d="M176 96 H210" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+  <path d="M194 101 H226" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
 
-  <!-- stage 2: recognize -->
-  <rect x="214" y="50" width="150" height="92" rx="12" class="box"/>
-  <text x="289" y="74" text-anchor="middle" class="lbl">2 · Recognize</text>
-  <text x="289" y="98" text-anchor="middle" class="sm">each input →</text>
-  <text x="289" y="116" text-anchor="middle" class="sm">a staged card</text>
+  <!-- 2 agent untangles -->
+  <rect x="230" y="40" width="250" height="122" rx="12" fill="#fff3e9" stroke="#c8623a" stroke-width="2"/>
+  <text x="355" y="64" text-anchor="middle" class="lbl" style="fill:#c8623a">2 · Agent untangles ✦NEW</text>
+  <line x1="246" y1="78" x2="464" y2="78" stroke="#e8c4ad"/>
+  <text x="250" y="98" class="sm">① FUSE — partial photo + sentence</text>
+  <text x="266" y="114" class="sm">that complete each other → one bill</text>
+  <text x="250" y="134" class="sm">② DEDUP — same bill submitted twice</text>
+  <text x="266" y="150" class="sm">→ flag as a duplicate group</text>
 
-  <path d="M370 96 H404" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+  <path d="M486 101 H518" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
 
-  <!-- stage 3: dedup scan (NEW) -->
-  <rect x="408" y="44" width="166" height="104" rx="12" fill="#fff3e9" stroke="#c8623a" stroke-width="2"/>
-  <text x="491" y="68" text-anchor="middle" class="lbl" style="fill:#c8623a">3 · Dedup scan ✦NEW</text>
-  <text x="491" y="90" text-anchor="middle" class="sm">match by:</text>
-  <text x="491" y="108" text-anchor="middle" class="sm">• same photo</text>
-  <text x="491" y="124" text-anchor="middle" class="sm">• merchant+amount+date</text>
+  <!-- 3 review -->
+  <rect x="522" y="46" width="190" height="110" rx="12" fill="#fff8ec" stroke="#b5852f" stroke-width="2"/>
+  <text x="617" y="70" text-anchor="middle" class="lbl" style="fill:#b5852f">3 · Review &amp; confirm</text>
+  <text x="617" y="92" text-anchor="middle" class="sm">a clean set of cards</text>
+  <text x="617" y="110" text-anchor="middle" class="sm">fuse: "I combined these 2"</text>
+  <text x="617" y="128" text-anchor="middle" class="sm">dup: keep one / keep both</text>
+  <text x="617" y="146" text-anchor="middle" class="sm">every join/drop is undoable</text>
 
-  <path d="M580 96 H614" stroke="#c8623a" stroke-width="2.5" marker-end="url(#a)"/>
+  <path d="M718 101 H750" stroke="#5a7a50" stroke-width="2.5" marker-end="url(#b)"/>
 
-  <!-- stage 4: confirm -->
-  <rect x="618" y="50" width="150" height="92" rx="12" fill="#fff8ec" stroke="#b5852f" stroke-width="2"/>
-  <text x="693" y="74" text-anchor="middle" class="lbl" style="fill:#b5852f">4 · Confirm</text>
-  <text x="693" y="98" text-anchor="middle" class="sm">“same bill?”</text>
-  <text x="693" y="116" text-anchor="middle" class="sm">keep one / keep both</text>
+  <!-- 4 save -->
+  <rect x="754" y="46" width="106" height="110" rx="12" fill="#eef4ea" stroke="#5a7a50" stroke-width="2"/>
+  <text x="807" y="92" text-anchor="middle" class="lbl" style="fill:#5a7a50">4 · Save</text>
+  <text x="807" y="114" text-anchor="middle" class="sm">clean bills</text>
 
-  <path d="M774 96 H808" stroke="#5a7a50" stroke-width="2.5" marker-end="url(#b)"/>
+  <!-- money rule band -->
+  <rect x="20" y="186" width="840" height="76" rx="12" fill="#fff8ec" stroke="#ecd9b3"/>
+  <text x="36" y="210" class="lbl" style="fill:#b5852f">The money rule (overrides everything)</text>
+  <text x="36" y="230" class="sm">The agent PROPOSES fuses and duplicate-groups; the user DISPOSES. No bill is ever silently merged or dropped,</text>
+  <text x="36" y="248" class="sm">and an amount is never invented or altered by a fuse. Every join/drop is visible and one-tap reversible until Save.</text>
 
-  <!-- stage 5: save -->
-  <rect x="812" y="50" width="92" height="92" rx="12" fill="#eef4ea" stroke="#5a7a50" stroke-width="2"/>
-  <text x="858" y="84" text-anchor="middle" class="lbl" style="fill:#5a7a50">5 · Save</text>
-  <text x="858" y="106" text-anchor="middle" class="sm">clean set</text>
-
-  <!-- no-dup bypass -->
-  <path d="M491 148 V196 H858 V148" fill="none" stroke="#8a7a6c" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#c)"/>
-  <text x="674" y="214" text-anchor="middle" class="sm">no duplicates → straight to Save (zero friction)</text>
-
-  <!-- scope + decisions band -->
-  <rect x="20" y="244" width="884" height="96" rx="12" fill="#f7f1e8" stroke="#e4d8c8"/>
-  <text x="36" y="268" class="lbl" style="fill:#c8623a">Scope</text>
-  <text x="36" y="288" class="sm">IN: staged cards in THIS session, before save · a confirm sheet · the match logic (client-side)</text>
-  <text x="36" y="306" class="sm">OUT: dedup vs already-saved bills · cross-session/device · auto-merge without asking · server-side dedup</text>
-  <text x="36" y="330" class="sm" style="fill:#b5852f">Money rule: a bill is NEVER removed without the user's explicit tap. Confirm protects against false matches.</text>
+  <!-- pillars -->
+  <rect x="20" y="282" width="270" height="80" rx="10" fill="#f7f1e8" stroke="#e4d8c8"/>
+  <text x="34" y="304" class="lbl">Pillar 1 · FUSE</text>
+  <text x="34" y="324" class="sm">combine inputs that are</text>
+  <text x="34" y="340" class="sm">parts of ONE bill</text>
+  <rect x="305" y="282" width="270" height="80" rx="10" fill="#f7f1e8" stroke="#e4d8c8"/>
+  <text x="319" y="304" class="lbl">Pillar 2 · DEDUP (was F5)</text>
+  <text x="319" y="324" class="sm">drop inputs that are the</text>
+  <text x="319" y="340" class="sm">SAME bill twice</text>
+  <rect x="590" y="282" width="270" height="80" rx="10" fill="#f7f1e8" stroke="#e4d8c8"/>
+  <text x="604" y="304" class="lbl">Pillar 3 · BATCH REVIEW</text>
+  <text x="604" y="324" class="sm">hold inputs, untangle together,</text>
+  <text x="604" y="340" class="sm">confirm a clean set, then save</text>
 
   <defs>
     <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#c8623a"/></marker>
     <marker id="b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5a7a50"/></marker>
-    <marker id="c" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8a7a6c"/></marker>
   </defs>
 </svg>
-<figcaption>The dedup step (3–4) is inserted between recognition and save; sessions with no duplicates flow straight through.</figcaption>
+<figcaption>The agent untangles a pile of inputs (fuse partials + drop duplicates) and the user confirms a clean set before save.</figcaption>
 </figure>
 
 <h2>1 · Problem</h2>
-<p>BillOwl lets a user capture <strong>several bills in one Record session</strong> — drop a stack of receipt photos, type a few notes, mix both. Each input is recognized into its own staged card, then the user saves them all. But people <strong>re-submit the same bill</strong>: they photograph a receipt twice, or type a bill they also snapped. Today every card is saved as a separate bill, so the trip total is <strong>silently inflated</strong> and the ledger gets messy — and the user only notices later, if at all.</p>
-
-<h2>2 · Users &amp; the moment</h2>
+<p>BillOwl users want to <strong>capture a pile of bills at once</strong> — drop several receipt photos, type a few notes, mix both — and have the app sort it out. Today the Record tab is <strong>incremental and per-card</strong>: each input becomes its own card the instant it's entered, and you complete a card by editing its fields. That breaks down in two ways beta users named:</p>
 <div class="grid">
-  <div class="card"><h4>The batch capturer</h4><p>Back at the hotel after a day out, dumping a handful of receipts into the Record tab at once. Most likely to double-add.</p></div>
-  <div class="card"><h4>The belt-and-suspenders user</h4><p>Types “taxi 240” <em>and</em> photographs the taxi receipt to be safe — now it’s two cards for one ride.</p></div>
-  <div class="card"><h4>The fat-finger</h4><p>Taps a photo into the session twice without noticing.</p></div>
+  <div class="card"><h4>Same bill, twice → two bills</h4><p>A user photographs a receipt twice, or types a bill they also snapped. Each becomes a separate saved bill → the trip total is <strong>silently inflated</strong>. <em>(original F5)</em></p></div>
+  <div class="card"><h4>One bill, split across inputs → two half-bills</h4><p>A photo captures only half a bill (amount cut off); the user adds a sentence with the rest. Today the sentence makes a <strong>second, separate card</strong> instead of completing the photo's bill. <em>(the photo-plus-sentence case)</em></p></div>
 </div>
+<p>Both come from the same root: the app processes each input in isolation instead of <strong>reasoning over the whole batch</strong>.</p>
 
-<h2>3 · Goal</h2>
-<p>Before the user saves a multi-input session, <strong>detect cards that look like the same bill</strong> and let the user resolve each pair (<strong>keep one</strong> or <strong>keep both</strong>) — so no accidental double-counting, and <strong>nothing is ever removed without an explicit tap</strong>. Sessions with no duplicates feel exactly as they do today (no new friction).</p>
+<h2>2 · Goal</h2>
+<p>Let the user add several inputs in one session and tap <strong>Done adding</strong>; the agent then <strong>fuses</strong> inputs that are parts of one bill, <strong>flags duplicates</strong> that are the same bill twice, and presents a <strong>clean, reviewable set</strong>. The user confirms (every fuse and every duplicate resolution is visible and reversible), then saves. Sessions with a single clean input stay effortless.</p>
+
+<h2>3 · The three pillars</h2>
+<div class="grid">
+  <div class="card"><h4><span class="pillarnum">1</span>Fuse partials</h4><p>Detect when two inputs describe <strong>one</strong> bill that's split across them (e.g. a photo missing its amount + a sentence that supplies it) and combine them into a single card. The user sees "I combined these two" and can split them back apart.</p></div>
+  <div class="card"><h4><span class="pillarnum">2</span>Dedup copies</h4><p>Detect when two inputs are the <strong>same</strong> bill submitted twice (same photo, or matching merchant+amount+date) and flag the group: <strong>keep one / keep both</strong>. <em>(The committed F5 dedup design is the basis here.)</em></p></div>
+  <div class="card"><h4><span class="pillarnum">3</span>Batch review</h4><p>A "Done adding → Review" step holds inputs so the agent can reason over them together (fusion needs this), then shows the clean set for one confirm-and-save.</p></div>
+</div>
 
 <h2>4 · Locked decisions (PM)</h2>
 <div class="grid">
-  <div class="card lock"><h4>Match rule</h4><p><strong>Same photo OR same details.</strong> Flag a pair when it’s literally the same image, <em>or</em> when merchant + amount + date match. (Exact matching tolerances are a design/tech detail — the confirm step is the safety net against over-matching.)</p></div>
-  <div class="card lock"><h4>Action</h4><p><strong>Flag &amp; confirm — never silent.</strong> Surface “these look like the same bill — keep one / keep both.” Consistent with BillOwl’s never-guess-money principle.</p></div>
-  <div class="card lock"><h4>Scope</h4><p><strong>Current session only.</strong> Compare the cards staged in this capture session, before save. Does not touch already-saved bills, other sessions, or other devices.</p></div>
+  <div class="card lock"><h4>Money rule</h4><p><strong>Agent proposes, user disposes.</strong> No silent merge or drop; a fuse never invents or changes an amount. Every join/drop is visible and one-tap reversible until Save.</p></div>
+  <div class="card lock"><h4>Dedup match (carried from F5)</h4><p>Same photo OR (merchant + amount + date). Action = flag &amp; confirm, keep one / keep both. Never silent.</p></div>
+  <div class="card lock"><h4>Scope of comparison</h4><p>Within the <strong>current capture session</strong> only — the batch of inputs added before this Save. Not against already-saved bills, other sessions, or other devices.</p></div>
+  <div class="card lock"><h4>The "done" signal</h4><p>A <strong>UI control ("Done adding")</strong>, never a parsed trigger word — a magic word is undiscoverable and collides with real bill text.</p></div>
 </div>
+<div class="note"><strong>Open for design/tech to propose (not pre-decided):</strong> whether fusion is <em>agent-automatic</em> (it guesses the photo and sentence go together) or <em>user-directed</em> (the user attaches a note to a specific card), or a blend (agent proposes, user confirms). Lean toward "agent proposes a fuse, user confirms/splits," consistent with the money rule.</p></div>
 
 <h2>5 · Scope</h2>
-<p><span class="pill in">IN</span></p>
+<p><span class="pill in">IN (v1)</span></p>
 <ul>
-  <li>Duplicate <strong>detection across staged cards</strong> in one Record session, run before save.</li>
-  <li>A <strong>confirm interaction</strong> (keep one / keep both) for each detected duplicate group.</li>
-  <li>The <strong>match logic</strong>: same source photo, or matching merchant + amount + date.</li>
-  <li>Client-side (the staged session lives in the app).</li>
+  <li>A batch capture session with a <strong>Done-adding → Review</strong> step.</li>
+  <li><strong>Fusion</strong> of inputs that complete one bill (at minimum: a partial photo + a completing text note), proposed by the agent and confirmed by the user (splittable).</li>
+  <li><strong>Dedup</strong> per the committed F5 design (same photo OR merchant+amount+date → keep one / keep both).</li>
+  <li>A <strong>review surface</strong> showing the untangled clean set, with every fuse/dedup action visible + reversible, then a single Save.</li>
 </ul>
 <p><span class="pill out">OUT (v1)</span></p>
 <ul>
-  <li>Dedup against <strong>already-saved</strong> bills in the trip.</li>
-  <li>Cross-session or cross-device duplicate detection.</li>
-  <li><strong>Auto-merge</strong> / silent removal.</li>
-  <li>Server-side dedup or any change to the recognition API contract (unless tech finds it necessary — escalate if so).</li>
+  <li>Fusing more than the basic partial-photo + text case (e.g. stitching two photo fragments) — defer unless cheap.</li>
+  <li>Dedup/fuse against already-saved bills, or across sessions/devices.</li>
+  <li>Any silent/automatic merge or drop without user confirmation.</li>
+  <li>Removing the existing quick single-capture path (a lone input must still be effortless).</li>
 </ul>
 
 <h2>6 · Success criteria (acceptance)</h2>
 <table>
   <tr><th>#</th><th>Given</th><th>Then</th></tr>
-  <tr><td>A1</td><td>The same photo is submitted twice in one session</td><td>The pair is flagged as a duplicate; user can keep one with one tap</td></tr>
-  <tr><td>A2</td><td>A typed bill and a photo of the <em>same</em> bill (merchant+amount+date match) are staged</td><td>The pair is flagged; user resolves it</td></tr>
-  <tr><td>A3</td><td>Two genuinely distinct bills with identical details (e.g. two £30 coffees, same shop, same day)</td><td>They may be flagged, but <strong>“keep both” is one tap</strong>; nothing is auto-removed</td></tr>
-  <tr><td>A4</td><td>A session with no duplicates</td><td><strong>No prompt, no added friction</strong> — saves exactly as today</td></tr>
-  <tr><td>A5</td><td>Any duplicate resolution</td><td>A bill is only ever dropped after an explicit user tap; the kept bill’s amount is never altered</td></tr>
+  <tr><td>A1</td><td>Same photo submitted twice in a session</td><td>Flagged as a duplicate group; keep one in one tap</td></tr>
+  <tr><td>A2</td><td>A typed bill + a photo of the same bill (merchant+amount+date match)</td><td>Flagged as duplicates; user resolves</td></tr>
+  <tr><td>A3</td><td>Two genuinely distinct bills with identical details</td><td>May be flagged, but <strong>keep both is one tap</strong>; nothing auto-removed</td></tr>
+  <tr><td>A4</td><td>A photo missing its amount + a sentence "the total was 240" for the same bill</td><td>Agent <strong>proposes fusing</strong> them into one card carrying photo + amount; user can split them back</td></tr>
+  <tr><td>A5</td><td>A fuse is proposed but the two are actually different bills</td><td>User splits them in one tap; both survive intact</td></tr>
+  <tr><td>A6</td><td>A single clean input, no duplicates/partials</td><td><strong>No added friction</strong> — review is trivial/auto, saves about as fast as today</td></tr>
+  <tr><td>A7</td><td>Any fuse or dedup</td><td>An amount is never invented or altered; nothing saved/dropped without an explicit tap; reversible until Save</td></tr>
 </table>
 
 <h2>7 · Constraints</h2>
 <ul>
-  <li><strong>Money safety first</strong> — never silently drop or merge money; the kept card’s amount/fields are untouched.</li>
-  <li>Fits the existing <strong>Record tab / staged-card session</strong> flow and the sketch theme; no new top-level screens unless design justifies it.</li>
-  <li>iOS (SwiftUI). Server/API changes are out of scope unless tech proves them necessary.</li>
-  <li>Performance: detection runs on a handful of staged cards — must be instant, no perceptible delay before the confirm/save step.</li>
+  <li><strong>Money safety first</strong> — the kept/fused card's amount is always traceable to a real input; the agent never fabricates a number to "complete" a bill (if the amount is still missing after fusion, the card is flagged "amount required," as today).</li>
+  <li>Fits the Record tab + sketch theme; the single-input fast path stays.</li>
+  <li>iOS (SwiftUI) client; the agent reasoning may need a <strong>server change</strong> (batch endpoint) — tech to determine; that's allowed for this feature (unlike the narrow F5).</li>
+  <li>Capture stays AI-first; local fallback only when offline/pre-sync (existing principle).</li>
 </ul>
 
 <h2>8 · Open questions for design / tech</h2>
 <ul>
-  <li>Exact <strong>match tolerances</strong>: merchant string (exact vs normalized/case-insensitive?), amount (exact?), date (same calendar day?). Lean strict to minimize false positives, since confirm catches the rest.</li>
-  <li><strong>Same-photo</strong> detection mechanism (image hash vs identity of the picked asset).</li>
-  <li>Confirm <strong>UX shape</strong>: inline on the review list vs a dedicated sheet; how groups of 3+ are shown.</li>
+  <li>Fusion <strong>trigger</strong>: agent-automatic vs user-directed vs propose-and-confirm (lean: propose-and-confirm).</li>
+  <li>Where fusion + dedup <strong>run</strong>: client over recognized cards, or a server batch step (the agent already lives server-side) — tech decides; may need a new endpoint.</li>
+  <li>Review-surface <strong>shape</strong>: extend the staged-card list, or a dedicated review screen for the batch.</li>
+  <li>How a <strong>fused</strong> card shows its provenance (photo + the note that completed it) and how "split" works.</li>
+  <li>Match/fuse <strong>tolerances</strong> (carry F5's: merchant normalized-exact, amount exact, date same-day; same-photo via asset id + perceptual hash).</li>
 </ul>
 
-<div class="foot">Artifact: <code>design/dedup/PRD.html</code> · Pipeline F5 · next: Design Document → Gate 1. Source: beta feedback item F5 (see <code>feedback/BACKLOG.md</code>).</div>
+<div class="foot">Artifact: <code>design/dedup/PRD.html</code> · supersedes the narrow F5-dedup PRD (dedup is now Pillar 2) · next: revised Design Document → one PM checkpoint before build. Source: beta feedback F5 + the partial-photo/sentence case (see <code>feedback/BACKLOG.md</code>).</div>
 </div>
 </body>
 </html>
