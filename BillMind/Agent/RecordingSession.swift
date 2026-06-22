@@ -441,6 +441,19 @@ struct RecordingSession: Sendable {
         if let i = index(cardID) { cards[i].state = .discarded }
     }
 
+    /// Roll back a just-enqueued card entirely — REMOVE it from the live list rather
+    /// than mark it terminal. The host calls this when an input was enqueued but its
+    /// extraction never started (the session's LLM-call budget was exhausted, so
+    /// `beginExtraction` returned `false`): leaving the card behind would strand a
+    /// phantom `.intake` row that no extraction will ever advance, and on retry the
+    /// host would enqueue a duplicate. Only an `.intake` card (enqueued, never moved
+    /// to `.extracting`) is removable this way; a card whose extraction already began
+    /// is left untouched so an in-flight transition is never lost.
+    mutating func cancelEnqueued(cardID: UUID) {
+        guard let i = index(cardID), cards[i].state == .intake else { return }
+        cards.remove(at: i)
+    }
+
     // MARK: - Accessors
 
     func card(_ id: UUID) -> AgentCard? { cards.first { $0.id == id } }

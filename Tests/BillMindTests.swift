@@ -1844,6 +1844,60 @@ final class ComposeCaptureTests: XCTestCase {
         XCTAssertTrue(requests.isEmpty, "nothing reaches the server on a rejected send")
     }
 
+    /// REGRESSION (Codex-flagged): when the session-limit guard fails, `submitComposed`
+    /// enqueues a card + stores its image BEFORE `beginExtraction` — so a rejected send
+    /// used to strand a phantom `.intake` card and an orphan image. Combined with the
+    /// send loop keeping the rejected chip staged, a retry then enqueued a DUPLICATE.
+    /// The fix rolls the just-enqueued card and its image back on rejection, so:
+    ///   • the rejected send returns false and leaves `session.cards` count unchanged,
+    ///   • `sourceImages` keeps no orphan, and
+    ///   • a later successful submit (capacity restored in a fresh session) enqueues
+    ///     EXACTLY one card — never a duplicate.
+    func testSessionLimitComposeRejectionLeavesNoPhantomCard() async throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let mock = CaptureRecordingAPI()
+        // Budget of 1: the first composed send consumes the only extraction call, so the
+        // second hits the session limit (`beginExtraction` returns false) — the exact
+        // rejection path the rollback guards.
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx,
+                                      recognizer: mock, llmCallBudget: 1)
+        let docImage = try XCTUnwrap(UIImage(systemName: "doc"))
+
+        // First send is accepted and settles to one review card (budget now exhausted).
+        let firstAccepted = coord.submitComposed(image: docImage, caption: "lunch 240")
+        XCTAssertTrue(firstAccepted, "the first composed send is within budget")
+        await waitUntil("first composed card reaches .review") { coord.cards.first?.state == .review }
+        let baselineCount = coord.session.cards.count
+        XCTAssertEqual(baselineCount, 1)
+
+        // Second send hits the session limit: rejected, and NOTHING is stranded.
+        let rejected = coord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertFalse(rejected, "the session-limit send must be rejected")
+        XCTAssertEqual(coord.session.cards.count, baselineCount,
+                       "a rejected send must leave no phantom card behind")
+        XCTAssertEqual(coord.session.cards.count, 1)
+        let surfacedError = try XCTUnwrap(coord.errorMessage, "the rejection surfaces an error")
+        XCTAssertFalse(surfacedError.isEmpty)
+
+        // Retrying the still-staged chip is rejected the same way — and STILL accumulates
+        // no phantom: repeated rejected retries never pile up duplicate intake cards.
+        let retryRejected = coord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertFalse(retryRejected)
+        XCTAssertEqual(coord.session.cards.count, 1,
+                       "repeated rejected retries must not accumulate duplicate phantom cards")
+
+        // Capacity restored (a fresh session, as the rejection error directs): a successful
+        // submit enqueues EXACTLY one card — proof the rollback left no duplicate lurking.
+        let freshCoord = RecordCoordinator(journal: journal, modelContext: ctx,
+                                           recognizer: CaptureRecordingAPI(), llmCallBudget: 1)
+        let resumed = freshCoord.submitComposed(image: docImage, caption: "coffee 320")
+        XCTAssertTrue(resumed, "with capacity restored the send is accepted")
+        await waitUntil("resumed composed card reaches .review") { freshCoord.cards.first?.state == .review }
+        XCTAssertEqual(freshCoord.session.cards.count, 1, "exactly one card — no duplicate")
+    }
+
     /// The text-only path is untouched by compose: with NO staged photo, submitText
     /// sends text with no image and produces a card, exactly as before.
     func testTextOnlyPathUnchanged() async throws {

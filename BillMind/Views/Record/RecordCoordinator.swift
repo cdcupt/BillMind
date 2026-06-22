@@ -46,8 +46,12 @@ final class RecordCoordinator {
     /// transient "Saving…" state on the card until the sync round-trip completes.
     var savingCardIDs: Set<UUID> = []
 
+    /// `llmCallBudget` is forwarded to the session's per-session extraction-call cap.
+    /// It defaults to `nil` so production uses the session's own default budget
+    /// (byte-for-byte unchanged); tests inject a small budget to reach the limit
+    /// deterministically and exercise the session-limit rejection path.
     init(journal: Journal, modelContext: ModelContext, recognizer: RecognitionAPI,
-         sync: SyncCoordinator? = nil) {
+         sync: SyncCoordinator? = nil, llmCallBudget: Int? = nil) {
         self.journal = journal
         self.modelContext = modelContext
         self.recognizer = recognizer
@@ -57,7 +61,8 @@ final class RecordCoordinator {
             journalCurrencyCode: journal.currency,
             today: Date()
         )
-        self.session = RecordingSession(validator: validator)
+        self.session = llmCallBudget.map { RecordingSession(validator: validator, llmCallBudget: $0) }
+            ?? RecordingSession(validator: validator)
     }
 
     /// Visible cards in the Record input, newest last. Terminal cards are hidden:
@@ -208,6 +213,9 @@ final class RecordCoordinator {
             sourceImages[id] = image
             photoHashes[id] = image.perceptualHashHex()   // same-photo dedup signal
             guard session.beginExtraction(cardID: id) else {
+                // Same enqueue-before-guard rollback as submitComposed: drop the phantom
+                // card + its image so a session-limit rejection strands nothing.
+                rollbackEnqueued(cardID: id)
                 errorMessage = "Session limit reached — start a new session."
                 continue
             }
@@ -288,11 +296,29 @@ final class RecordCoordinator {
         photoHashes[id] = image.perceptualHashHex()        // same-photo dedup signal
         if !note.isEmpty { noteTexts[id] = note }           // caption rides as the fuse/dedup note
         guard session.beginExtraction(cardID: id) else {
+            // Session-limit guard failed AFTER the enqueue — roll back the phantom card
+            // and its image/metadata so nothing is stranded. The caller keeps the staged
+            // chip on `false`, so without this rollback a retry would enqueue a duplicate.
+            rollbackEnqueued(cardID: id)
             errorMessage = "Session limit reached — start a new session."
             return false
         }
         Task { await extract(image: image, caption: note.isEmpty ? nil : note, cardID: id, tripID: tripID) }
         return true
+    }
+
+    /// Undo a just-enqueued photo input when its extraction never started (the session
+    /// LLM-call budget was exhausted, so `beginExtraction` returned `false`). Removes
+    /// the phantom `.intake` card from the session AND clears the in-memory image and
+    /// dedup metadata keyed to it, so a rejected send leaves no trace and a later retry
+    /// enqueues exactly one card — never a duplicate. Mirrors the enqueue side effects
+    /// in `submitPhotos` / `submitComposed` so the two paths stay consistent.
+    private func rollbackEnqueued(cardID: UUID) {
+        session.cancelEnqueued(cardID: cardID)
+        sourceImages[cardID] = nil
+        photoHashes[cardID] = nil
+        noteTexts[cardID] = nil
+        photoAssetIDs[cardID] = nil
     }
 
     // MARK: - Held batch (Done adding → untangle → review)
