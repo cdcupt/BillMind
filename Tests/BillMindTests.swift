@@ -1234,6 +1234,49 @@ final class HeldBatchSessionTests: XCTestCase {
             XCTAssertEqual(error as? ConfirmError, .amountRequired)
         }
     }
+
+    /// Enqueue a card and force it into `.clarifying` via a chip-answerable gap.
+    /// A draft whose currency differs from the journal's opens the currency question
+    /// (two chip options), so `resolve` parks the card in `.clarifying` — a recognized
+    /// draft with a validation gap, exactly the held card the review surface must keep
+    /// visible (and that `plainReviewCardIDs` excludes).
+    private func seedClarifyingCard(_ session: inout RecordingSession,
+                                    amount: Decimal?, merchant: String?) -> UUID {
+        let id = session.enqueue(source: .text)
+        // Journal is JPY (see `validator`); a USD draft trips the currency gap.
+        _ = session.completeExtraction(cardID: id,
+            draft: draft(id, amount: amount, merchant: merchant, currency: "USD"))
+        return id
+    }
+
+    /// REGRESSION: when the batch enters `.reviewing`, a recognized-but-unresolved
+    /// (`.clarifying`) held card must NOT vanish from the render surface. The save
+    /// count stays `.review`-only (you can't save a clarifying card), but the user
+    /// must still SEE every held card — never a blank "0 bills" review screen.
+    func testClarifyingCardStaysVisibleInReviewSurface() throws {
+        var session = RecordingSession(validator: validator())
+        let clarifying = seedClarifyingCard(&session, amount: 1500, merchant: "Needs currency")
+        let ready = seedReviewCard(&session, amount: 800, merchant: "All good")
+        // Precondition: one card parked clarifying, one ready for review.
+        XCTAssertEqual(try XCTUnwrap(session.card(clarifying)).state, .clarifying)
+        XCTAssertEqual(try XCTUnwrap(session.card(ready)).state, .review)
+
+        session.markDoneAdding()
+        // Degrade straight to reviewing with no groups (untangle errored/timed out).
+        session.degradeToReview()
+        XCTAssertEqual(session.batchPhase, .reviewing)
+        XCTAssertTrue(session.groups.isEmpty)
+
+        // The render surface includes BOTH cards — the clarifying one is not hidden.
+        let surface = Set(session.reviewSurfaceCardIDs)
+        XCTAssertTrue(surface.contains(clarifying), "clarifying card must stay visible")
+        XCTAssertTrue(surface.contains(ready))
+        XCTAssertEqual(surface.count, 2)
+
+        // But the SAVABLE set (drives the "· N bills" count) is `.review`-only: 1.
+        XCTAssertEqual(session.plainReviewCardIDs, [ready])
+        XCTAssertEqual(session.plainReviewCardIDs.count, 1)
+    }
 }
 
 /// Coordinator tests: the @MainActor save mapping + fast path + degraded path.

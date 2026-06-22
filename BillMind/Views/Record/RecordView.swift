@@ -157,7 +157,10 @@ struct RecordView: View {
             ForEach(coordinator.groups) { group in
                 groupRow(group, coordinator: coordinator).id(group.id)
             }
-            ForEach(coordinator.plainReviewCards) { card in
+            // Render EVERY non-terminal unclaimed card — not just `.review` ones —
+            // so a card still being clarified/validated/retried stays visible here and
+            // shows its own fix-it UI. (Savable count below is still `.review`-only.)
+            ForEach(coordinator.reviewSurfaceCards) { card in
                 AgentCardView(card: card, coordinator: coordinator) { field in
                     editTarget = EditTarget(cardID: card.id, field: field)
                 }
@@ -251,6 +254,10 @@ struct RecordView: View {
     private func saveAllBar(_ coordinator: RecordCoordinator) -> some View {
         let savableCount = coordinator.plainReviewCards.count
         let openGroups = coordinator.groups.count
+        // Held cards on the surface that aren't yet savable (still being clarified /
+        // validated / retried). We surface this so the bar never reads a bare,
+        // misleading "0 bills" while the user still has bills to finish above.
+        let unfinished = max(0, coordinator.reviewSurfaceCards.count - savableCount)
         return VStack(spacing: 6) {
             if let blockedNote {
                 Text(blockedNote)
@@ -261,13 +268,24 @@ struct RecordView: View {
                 Text("\(openGroups) group\(openGroups == 1 ? "" : "s") to confirm · pre-set to the safe choice")
                     .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
                     .frame(maxWidth: .infinity, alignment: .leading)
+            } else if unfinished > 0 {
+                Text("Finish \(unfinished) above to save \(unfinished == 1 ? "it" : "them")")
+                    .font(SketchTheme.captionFont(12)).foregroundStyle(SketchTheme.lightBrown)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("record-save-unfinished")
             }
+            // Nothing savable yet but cards still need finishing: keep the button
+            // present (so the surface reads as a real review) but disabled, rather
+            // than inviting a no-op "Save · 0 bills" tap.
+            let nothingSavableYet = savableCount == 0 && unfinished > 0
             Button { saveAll(coordinator) } label: {
                 Label("Save all to trip · \(savableCount) bill\(savableCount == 1 ? "" : "s")",
                       systemImage: "tray.and.arrow.down.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(HandDrawnButtonStyle(filled: true))
+            .disabled(nothingSavableYet)
+            .opacity(nothingSavableYet ? 0.5 : 1)
             .accessibilityIdentifier("record-save-all")
         }
         .padding(.horizontal).padding(.bottom, 8)
