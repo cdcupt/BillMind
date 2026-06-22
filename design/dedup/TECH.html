@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillOwl — Smart Multi-Input Capture · Tech Document</title>
+<style>
+  :root{--bg:#faf6ef;--ink:#3a2f28;--muted:#8a7a6c;--line:#e4d8c8;--accent:#c8623a;--accent2:#5a7a50;--warn:#b5852f;--card:#fffdf9;--shadow:0 2px 10px rgba(120,90,60,.10)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+  header.top{border-bottom:2px solid var(--line);padding-bottom:14px}
+  .kicker{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:clamp(1.6rem,1.2rem+2.2vw,2.4rem);margin:.15em 0 .1em}
+  .sub{color:var(--muted);font-size:15px}
+  h2{font-size:1.22rem;margin:2em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+  h3{font-size:1rem;margin:1.3em 0 .3em;color:var(--accent)}
+  p{margin:.5em 0}
+  .fig{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin:16px 0 6px;overflow-x:auto}
+  .fig svg{display:block;max-width:100%;height:auto;margin:0 auto}
+  .fig.wide svg{min-width:720px}
+  figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:.6em 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 .3em;font-size:.95rem}
+  ul{margin:.4em 0;padding-left:1.2em} li{margin:.26em 0}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:14px;min-width:520px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#f4ece0}
+  code{background:#f1e7d8;border-radius:5px;padding:1px 5px;font-size:13px}
+  .lock{background:#fff8ec;border:1px solid #ecd9b3;border-left:4px solid var(--warn)}
+  .ok{color:var(--accent2);font-weight:700} .no{color:#a85a3a;font-weight:700}
+  .foot{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid #cfe0c4;background:#eef4ea;color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="kicker">BillOwl · Tech Document · Smart Multi-Input Capture (F5+)</div>
+  <h1>Architecture: held-batch capture → untangle → review → save</h1>
+  <div class="sub">Merged infra + backend + frontend + QA plan. Implements <code>design/dedup/PRD.html</code> + <code>design/dedup/DESIGN.html</code>. · v1 · 2026-06-22</div>
+</header>
+
+<!-- ★ AT A GLANCE -->
+<figure class="fig wide" aria-label="Architecture at a glance">
+<svg viewBox="0 0 940 380" role="img" aria-label="Architecture spine">
+  <style>.l{font:600 12.5px -apple-system,sans-serif;fill:#3a2f28}.s{font:11px -apple-system,sans-serif;fill:#8a7a6c}</style>
+  <text x="18" y="22" class="l" style="font-size:14px;fill:#c8623a">★ At a glance — the spine, and where money-safety is enforced</text>
+
+  <!-- client lane -->
+  <rect x="14" y="40" width="912" height="150" rx="12" fill="#fbf7f0" stroke="#e4d8c8"/>
+  <text x="26" y="60" class="l" style="fill:#5a7a50">CLIENT · iOS (RecordCoordinator / RecordingSession)</text>
+  <rect x="30" y="72" width="150" height="92" rx="10" fill="#fff" stroke="#e4d8c8"/>
+  <text x="105" y="94" text-anchor="middle" class="l">Add inputs</text>
+  <text x="105" y="113" text-anchor="middle" class="s">recognize each →</text>
+  <text x="105" y="130" text-anchor="middle" class="s">HELD card</text>
+  <text x="105" y="150" text-anchor="middle" class="s">(Save paused)</text>
+  <path d="M184 118 H214" stroke="#5a7a50" stroke-width="2" marker-end="url(#g)"/>
+  <rect x="218" y="72" width="150" height="92" rx="10" fill="#fff" stroke="#e4d8c8"/>
+  <text x="293" y="94" text-anchor="middle" class="l">Done adding</text>
+  <text x="293" y="113" text-anchor="middle" class="s">gather held drafts</text>
+  <text x="293" y="130" text-anchor="middle" class="s">+ photoHash/note</text>
+  <text x="293" y="150" text-anchor="middle" class="s">(no image bytes)</text>
+  <rect x="640" y="72" width="150" height="92" rx="10" fill="#fff" stroke="#e4d8c8"/>
+  <text x="715" y="94" text-anchor="middle" class="l">Review groups</text>
+  <text x="715" y="113" text-anchor="middle" class="s">Combine/Split,</text>
+  <text x="715" y="130" text-anchor="middle" class="s">keep one/both</text>
+  <text x="715" y="150" text-anchor="middle" class="s">reversible</text>
+  <rect x="800" y="72" width="118" height="92" rx="10" fill="#eef4ea" stroke="#5a7a50"/>
+  <text x="859" y="100" text-anchor="middle" class="l" style="fill:#5a7a50">Save</text>
+  <text x="859" y="122" text-anchor="middle" class="s">existing</text>
+  <text x="859" y="138" text-anchor="middle" class="s">/v1/bills/confirm</text>
+
+  <!-- server lane -->
+  <rect x="14" y="206" width="912" height="120" rx="12" fill="#fff3e9" stroke="#e8c4ad"/>
+  <text x="26" y="226" class="l" style="fill:#c8623a">SERVER · Vapor (new POST /v1/untangle) — reasoning only, no re-recognition</text>
+  <rect x="218" y="238" width="220" height="74" rx="10" fill="#fff" stroke="#e8c4ad"/>
+  <text x="328" y="260" text-anchor="middle" class="l">Gemini fuse + dedup</text>
+  <text x="328" y="279" text-anchor="middle" class="s">group cards; amount ONLY</text>
+  <text x="328" y="295" text-anchor="middle" class="s">from a card that has it</text>
+  <rect x="470" y="238" width="220" height="74" rx="10" fill="#fff8ec" stroke="#b5852f"/>
+  <text x="580" y="260" text-anchor="middle" class="l" style="fill:#b5852f">verbatim-amount post-check</text>
+  <text x="580" y="279" text-anchor="middle" class="s">drop any amount not byte-equal</text>
+  <text x="580" y="295" text-anchor="middle" class="s">to a member card → BillValidator</text>
+
+  <!-- arrows client<->server -->
+  <path d="M293 164 V238" stroke="#c8623a" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#o)"/>
+  <text x="300" y="200" class="s">POST /v1/untangle</text>
+  <path d="M690 275 H560 M620 275 Q700 275 700 200 V164" fill="none" stroke="#c8623a" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#o)"/>
+  <text x="704" y="200" class="s">fuse/dup groups</text>
+
+  <!-- degrade note -->
+  <text x="26" y="350" class="s" style="fill:#b5852f">Degraded path: if /v1/untangle errors or times out → client shows the un-tangled cards and the user saves each individually (no data loss, save never blocked).</text>
+  <text x="26" y="368" class="s">Money rule enforced twice: server never mints an amount (verbatim post-check); client never invents one (no amountTrace ⇒ “amount required”); nothing saved/dropped without a tap.</text>
+  <defs>
+    <marker id="g" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a7a50"/></marker>
+    <marker id="o" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c8623a"/></marker>
+  </defs>
+</svg>
+<figcaption>Recognition is unchanged; untangle is an optional second hop that returns a <em>plan</em> over cards the client already holds. Save flows through the existing confirm path.</figcaption>
+</figure>
+
+<h2>1 · Key decisions</h2>
+<div class="grid">
+  <div class="card"><h4>Fusion → server (Gemini)</h4><p>Fusion is reasoning ("does this note complete this photo?"); the agent already lives server-side. Keeps AI-first + concentrates money-safety server-side.</p></div>
+  <div class="card"><h4>Dedup → client-detected, server-confirmed</h4><p>Same-photo (asset id + perceptual hash) and merchant+amount+date are mechanical/free on the client; the server confirms in the same round-trip so groups are uniform &amp; testable. Client-only is the degraded fallback.</p></div>
+  <div class="card"><h4>Untangle does NOT re-recognize</h4><p>It takes cards the client already got from <code>/v1/recognition</code> and returns a plan referencing their IDs — reuses recognition, preserves money-safety, keeps the body small (no image bytes; <code>photoHash</code> only).</p></div>
+  <div class="card lock"><h4>Save path unchanged</h4><p>Disposition still saves one card at a time via existing <code>POST /v1/bills/confirm</code> (validator-gated). One fused card → one bill. Set-aside duplicates are simply not persisted (no delete).</p></div>
+  <div class="card lock"><h4>Schema: no migration (v1)</h4><p>Provenance is a <strong>pre-save review concept only</strong>. A fused bill saves as one ordinary <code>Bill</code> (existing <code>source</code> column). Post-save provenance = a future additive table, out of v1.</p></div>
+  <div class="card"><h4>New: stable <code>clientCardID</code></h4><p>The wire CardDTO has no id today; the client assigns a per-session UUID so untangle groups can reference cards. (Small additive DTO change.)</p></div>
+</div>
+
+<h2>2 · The seam — <code>POST /v1/untangle</code></h2>
+<p>Auth + owner-scoped on <code>tripID</code> (same <code>UserAuthMiddleware</code> as recognition). No images in the body → the 1mb global cap is fine.</p>
+<div class="scroll"><table>
+  <tr><th>Request</th><th>Response</th></tr>
+  <tr>
+  <td><code>tripID</code>, <code>clientDate</code><br><code>inputs[]</code> = {<br>&nbsp;<code>cardID</code> (UUID),<br>&nbsp;<code>draft</code> (existing APIBillDraft: merchant/amount/currency/category/date/source),<br>&nbsp;<code>hasPhoto</code>,<br>&nbsp;<code>noteText?</code>,<br>&nbsp;<code>photoHash?</code>, <code>photoAssetID?</code><br>}</td>
+  <td><code>declined</code>, <code>message?</code><br><code>fuseGroups[]</code> = { <code>groupID</code>, <code>sourceCardIDs[]</code>, <code>resolvedDraft</code>, <code>amountTrace</code>: {sourceCardID, field} | <span class="no">null</span>, <code>reason</code>, <code>confidence</code> }<br><code>duplicateGroups[]</code> = { <code>groupID</code>, <code>memberCardIDs[]</code>, <code>survivorCardID</code>, <code>tier</code>: samePhoto|sameDetails, <code>reason</code> }<br><code>cleanCardIDs[]</code></td>
+  </tr>
+</table></div>
+<p><strong>Partition invariant:</strong> every input <code>cardID</code> appears in exactly one of <code>fuseGroups</code> / <code>duplicateGroups</code> / <code>cleanCardIDs</code>. The client validates this against its live cards; any unaccounted card <span class="ok">fails open</span> to a plain review card (never dropped). <strong><code>amountTrace</code> is the ONLY amount provenance</strong> — null ⇒ client shows "amount required", never invents.</p>
+
+<figure class="fig wide" aria-label="Untangle sequence">
+<svg viewBox="0 0 900 250" role="img" aria-label="Untangle round-trip sequence">
+  <style>.l{font:600 12px -apple-system,sans-serif;fill:#3a2f28}.s{font:11px -apple-system,sans-serif;fill:#8a7a6c}</style>
+  <text x="90" y="20" text-anchor="middle" class="l">User</text>
+  <text x="330" y="20" text-anchor="middle" class="l">RecordCoordinator</text>
+  <text x="600" y="20" text-anchor="middle" class="l">/v1/untangle</text>
+  <text x="820" y="20" text-anchor="middle" class="l">Gemini</text>
+  <line x1="90" y1="30" x2="90" y2="230" stroke="#ddd"/><line x1="330" y1="30" x2="330" y2="230" stroke="#ddd"/>
+  <line x1="600" y1="30" x2="600" y2="230" stroke="#ddd"/><line x1="820" y1="30" x2="820" y2="230" stroke="#ddd"/>
+  <path d="M90 50 H330" stroke="#5a7a50" stroke-width="1.6" marker-end="url(#a2)"/><text x="120" y="44" class="s">Done adding</text>
+  <path d="M330 80 H600" stroke="#c8623a" stroke-width="1.6" marker-end="url(#a2)"/><text x="360" y="74" class="s">held drafts + photoHash/note</text>
+  <path d="M600 110 H820" stroke="#c8623a" stroke-width="1.6" marker-end="url(#a2)"/><text x="630" y="104" class="s">group + propose (amount from a card only)</text>
+  <path d="M820 140 H600" stroke="#8a7a6c" stroke-width="1.6" marker-end="url(#a3)"/><text x="630" y="134" class="s">groups + amountTrace</text>
+  <rect x="470" y="150" width="260" height="22" rx="6" fill="#fff8ec" stroke="#b5852f"/><text x="600" y="165" text-anchor="middle" class="s">verbatim-amount post-check + validator</text>
+  <path d="M600 192 H330" stroke="#8a7a6c" stroke-width="1.6" marker-end="url(#a3)"/><text x="360" y="186" class="s">fuse/dup groups + clean set</text>
+  <path d="M330 220 H90" stroke="#5a7a50" stroke-width="1.6" marker-end="url(#a3)"/><text x="120" y="214" class="s">inline review surface</text>
+  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c8623a"/></marker>
+  <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8a7a6c"/></marker></defs>
+</svg>
+<figcaption>One optional Gemini hop per batch, text-only (cheap/fast). Recognition already happened per card.</figcaption>
+</figure>
+
+<h2>3 · Money-safe fusion (the critical path)</h2>
+<figure class="fig" aria-label="Money-safe fusion decision">
+<svg viewBox="0 0 900 220" role="img" aria-label="Fusion money-safety flowchart">
+  <style>.l{font:600 12px -apple-system,sans-serif;fill:#3a2f28}.s{font:10.5px -apple-system,sans-serif;fill:#8a7a6c}</style>
+  <rect x="14" y="40" width="150" height="56" rx="10" fill="#fff" stroke="#e4d8c8"/><text x="89" y="64" text-anchor="middle" class="l">Gemini groups</text><text x="89" y="82" text-anchor="middle" class="s">+ proposes fields</text>
+  <path d="M166 68 H198" stroke="#c8623a" stroke-width="1.8" marker-end="url(#f)"/>
+  <rect x="200" y="34" width="170" height="68" rx="10" fill="#fff8ec" stroke="#b5852f"/><text x="285" y="58" text-anchor="middle" class="l" style="fill:#b5852f">Is proposed amount</text><text x="285" y="76" text-anchor="middle" class="s">byte-equal to a member</text><text x="285" y="92" text-anchor="middle" class="s">card's amount?</text>
+  <path d="M372 50 H470" stroke="#5a7a50" stroke-width="1.8" marker-end="url(#f2)"/><text x="392" y="42" class="s" style="fill:#5a7a50">yes</text>
+  <rect x="472" y="28" width="180" height="46" rx="10" fill="#eef4ea" stroke="#5a7a50"/><text x="562" y="56" text-anchor="middle" class="s">keep it → BillValidator</text>
+  <path d="M285 104 V140" stroke="#a85a3a" stroke-width="1.8" marker-end="url(#f3)"/><text x="293" y="126" class="s" style="fill:#a85a3a">no / conflicting</text>
+  <rect x="200" y="142" width="200" height="46" rx="10" fill="#fbece4" stroke="#a85a3a"/><text x="300" y="163" text-anchor="middle" class="s">drop the amount (don't fuse if</text><text x="300" y="178" text-anchor="middle" class="s">two cards disagree) → "amount required"</text>
+  <rect x="472" y="92" width="414" height="96" rx="10" fill="#fbf7f0" stroke="#e4d8c8"/>
+  <text x="486" y="112" class="l">Two independent guards</text>
+  <text x="486" y="132" class="s">① SERVER post-check: the model can only re-arrange existing numbers, never mint one.</text>
+  <text x="486" y="150" class="s">② CLIENT: no <code>amountTrace</code> ⇒ render "amount required", canSave=false (existing gap path).</text>
+  <text x="486" y="170" class="s">Result: an amount on a saved bill always traces to a real input the user provided.</text>
+  <defs><marker id="f" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c8623a"/></marker>
+  <marker id="f2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a7a50"/></marker>
+  <marker id="f3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a85a3a"/></marker></defs>
+</svg>
+<figcaption>Gemini call mirrors GeminiRecognizer (strict-JSON, <code>thinkingBudget:0</code>). Prompt forbids minting amounts; the server enforces it regardless of the model.</figcaption>
+</figure>
+<p>Moderation: recognition already gated each card's text at <code>/v1/recognition</code>; untangle adds no new user free-text, so no re-moderation needed.</p>
+
+<h2>4 · Client — held-batch session model</h2>
+<p>Owner: <code>RecordingSession.swift</code>. Adds a session-level <code>BatchPhase { adding, untangling, reviewing }</code> distinct from per-card <code>CardState</code> (the proven card machine is untouched). Groups are modeled as a <code>groups: [UntangleGroup]</code> value field, <strong>not</strong> new CardState cases — groups are <em>views</em> over held drafts, so Split / Keep-both are pure discards (no draft is ever mutated at proposal time → reversibility is structural).</p>
+<figure class="fig" aria-label="Session phase state machine">
+<svg viewBox="0 0 880 150" role="img" aria-label="Session phases">
+  <style>.l{font:600 12px -apple-system,sans-serif;fill:#3a2f28}.s{font:10.5px -apple-system,sans-serif;fill:#8a7a6c}</style>
+  <rect x="20" y="50" width="130" height="50" rx="10" fill="#fff" stroke="#e4d8c8"/><text x="85" y="80" text-anchor="middle" class="l">adding (held)</text>
+  <path d="M152 75 H210" stroke="#c8623a" stroke-width="1.8" marker-end="url(#p)"/><text x="156" y="68" class="s">Done adding</text>
+  <rect x="212" y="50" width="130" height="50" rx="10" fill="#fff3e9" stroke="#e8c4ad"/><text x="277" y="80" text-anchor="middle" class="l">untangling</text>
+  <path d="M344 75 H402" stroke="#c8623a" stroke-width="1.8" marker-end="url(#p)"/><text x="350" y="68" class="s">applyUntangle</text>
+  <rect x="404" y="50" width="150" height="50" rx="10" fill="#fff8ec" stroke="#b5852f"/><text x="479" y="80" text-anchor="middle" class="l">reviewing</text>
+  <path d="M556 75 H614" stroke="#5a7a50" stroke-width="1.8" marker-end="url(#p2)"/><text x="560" y="68" class="s">confirmAll</text>
+  <rect x="616" y="50" width="130" height="50" rx="10" fill="#eef4ea" stroke="#5a7a50"/><text x="681" y="80" text-anchor="middle" class="l">saved</text>
+  <path d="M277 100 Q277 130 479 130 Q479 130 479 102" fill="none" stroke="#8a7a6c" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#p3)"/>
+  <text x="300" y="146" class="s">untangle fails → straight to reviewing with plain cards (degraded; per-card Save still works)</text>
+  <defs><marker id="p" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c8623a"/></marker>
+  <marker id="p2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a7a50"/></marker>
+  <marker id="p3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8a7a6c"/></marker></defs>
+</svg>
+<figcaption>Resolution fns (<code>combine/split/keepOne/keepBoth</code>) mutate groups back to plain review cards. State lives in RecordingSession; the coordinator drives it.</figcaption>
+</figure>
+<h3>Touch-points &amp; fast path</h3>
+<ul>
+  <li><strong>Done-adding bar</strong> in <code>RecordView.session</code> (sticky, above the input bar) — renders only when <code>cards.count &gt; 1</code>. <span class="tag">A6 fast path</span> a lone clean input keeps its instant per-card Save (<code>RecordCoordinator.confirm</code>) and bypasses untangle entirely — single-capture is byte-for-byte unchanged.</li>
+  <li><strong>New views</strong> beside <code>AgentCardView</code>: <code>FuseProposalView</code> (resolved card + "made from" provenance strip with amount-source trace + Combine/Split) and <code>DuplicateGroupView</code> (the committed dedup bracket + keep one/both).</li>
+  <li><strong>Save</strong>: <code>confirmAll()</code> → one <code>BillRecord</code> per plain card and per accepted fuse, via the unchanged <code>persist</code> mapping; set-aside dups not persisted; existing <code>amountRequired</code>/<code>needsAcknowledgment</code> guards gate each row.</li>
+  <li><strong>Coordinator</strong>: new <code>markDoneAdding()</code> (gathers held cards → <code>RecognitionAPI.untangle</code> → <code>applyUntangle</code>), with a calm "Ollie is tidying…" overlay reusing the thinking-state grammar.</li>
+</ul>
+
+<h2>5 · Server touch-points</h2>
+<ul>
+  <li>New <code>server/Sources/App/Controllers/UntangleController.swift</code> + route in <code>configure.swift</code> (beside the recognition route).</li>
+  <li>New DTOs beside <code>CaptureDTOs.swift</code> (<code>CardDTO</code> gains <code>clientCardID</code>); fusion client modeled on <code>GeminiRecognizer.swift</code> / <code>GeminiLLMClient.swift</code> (strict JSON, <code>thinkingBudget:0</code>).</li>
+  <li>Reuse <code>BillValidator</code> (as in <code>CaptureController</code>); save unchanged at <code>LedgerControllers</code> confirm; <strong>no</strong> schema migration.</li>
+</ul>
+
+<h2>6 · Risks &amp; mitigations</h2>
+<div class="scroll"><table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr><td>A false fuse touches money</td><td>Server verbatim-amount post-check (model can only re-arrange) + confidence floor + don't-fuse-on-conflicting-amounts + one-tap Split + client never invents (amountTrace null ⇒ "amount required")</td></tr>
+  <tr><td>Partition violation / stale group id (user edited between Done-adding and response)</td><td>Client validates the partition against live cards; any unaccounted card fails open to a plain review card — never drop a card</td></tr>
+  <tr><td>Held-state lost on backgrounding</td><td>v1: held batch is ephemeral but Done-adding/untangle is idempotent &amp; re-runnable; durable held-state (restore photos) is a flagged fast-follow</td></tr>
+  <tr><td>Re-tidy after a late add re-proposes resolved groups</td><td>Lock resolved groups / incremental untangle keyed by stable <code>groupID</code></td></tr>
+  <tr><td>Untangle latency/cost</td><td>Text-only Gemini call (no image bytes), one per batch; degraded path saves without it</td></tr>
+  <tr><td><code>@Observable</code> identity thrash on group↔card flips</td><td>Keep the row list a derived computed view over <code>session</code>; preserve <code>.id</code> stability for scroll/diffing</td></tr>
+</table></div>
+
+<h2>7 · QA test plan</h2>
+<p>Server tests: XCTVapor <code>app.test</code> + stub-DI (<code>StubUntangleReasoner</code> mirroring <code>StubRecognizer</code>), run via <code>DEVELOPER_DIR=… xcrun swift test</code>. Client: XCTest + in-memory session. Everything below is net-new and tracks the §2 contract (partition invariant, <code>amountTrace</code>, verbatim post-check, <code>BatchPhase</code>).</p>
+<div class="grid">
+  <div class="card lock"><h4>L1 · Server — money-critical core</h4><ul>
+    <li><code>partitionIsTotalAndDisjoint</code> — every cardID in exactly one bucket</li>
+    <li><code>fusedAmountByteEqualOrTraceNull</code></li>
+    <li><code>verbatimPostCheckDropsMintedAmount</code> — stub tries to invent → server zeroes it</li>
+    <li><code>conflictingAmountsAreNotFused</code></li>
+    <li><code>traceFromNoteVsFromPhoto</code> · <code>ownerScopingRejectsForeignTrip</code> · <code>unauthenticatedRejected</code></li>
+    <li><code>noReModeration</code> (spy = 0 calls) · <code>empty/singleInputBatch</code> · <code>clientCardIDRoundTrips</code></li>
+  </ul></div>
+  <div class="card"><h4>L2 · Client — held-batch session</h4><ul>
+    <li><code>batchPhaseTransitions</code> (illegal jumps rejected)</li>
+    <li><code>groupsAreViewsNotMutations</code> — Split/Keep-both restore byte-identical drafts</li>
+    <li><code>confirmAllMapsOneFusedCardToOneBill</code> (set-aside not persisted)</li>
+    <li><code>amountTraceNullBlocksSave</code> · <code>partitionFailOpen</code></li>
+    <li><code>singleInputFastPathBypassesUntangle</code> · <code>saveAllBlockedUntilGroupsTouched</code></li>
+    <li><code>keepOneSetsAsideReversibly</code> · <code>degradedPathSavesPerCard</code></li>
+  </ul></div>
+  <div class="card"><h4>L3 · Dedup matching (carry F5)</h4><ul>
+    <li><code>samePhotoFlags</code> (asset id / perceptual hash)</li>
+    <li><code>merchantAmountDateFlags</code> (normalized-exact + exact + same-day)</li>
+    <li><code>distinctIdenticalBillsKeepBoth</code> · <code>nearMissAmountDoesNotMatch</code> · <code>threePlusFormOneGroup</code></li>
+  </ul></div>
+  <div class="card"><h4>L4 · E2E / acceptance</h4><ul>
+    <li>one user-flow test per A1–A7 (see matrix)</li>
+  </ul>
+  <h4 style="margin-top:.6em">L5 · Edge / regression</h4><ul>
+    <li><code>untangleTimeoutDegrades</code> · <code>fuseAndDupInOneBatch</code></li>
+    <li><code>staleCardIDAfterDoneAdding</code> (fail-open) · <code>empty/declinedBatch</code></li>
+    <li><code>existingRecognitionAndPerCardSaveUnchanged</code> (no regression)</li>
+  </ul></div>
+</div>
+<h3>Acceptance matrix (A1–A7 → covering tests)</h3>
+<div class="scroll"><table>
+  <tr><th>#</th><th>Criterion</th><th>Covering tests</th></tr>
+  <tr><td>A1</td><td>same photo ×2 → flag, keep one</td><td>L3 samePhotoFlags · L4 e2eSamePhotoTwiceKeepOne · L2 keepOneSetsAsideReversibly</td></tr>
+  <tr><td>A2</td><td>typed + photo of same bill → flag</td><td>L3 merchantAmountDateFlags · L4 e2eTypedPlusPhotoSameBill</td></tr>
+  <tr><td>A3</td><td>distinct identical bills → keep both</td><td>L3 distinctIdenticalBillsKeepBoth · L4 e2eDistinctIdenticalKeepBoth</td></tr>
+  <tr><td>A4</td><td>partial photo + completing note → fuse</td><td>L1 traceFromNoteVsFromPhoto · L4 e2ePartialPhotoPlusNoteFuse</td></tr>
+  <tr><td>A5</td><td>wrong fuse → split restores both</td><td>L2 groupsAreViewsNotMutations · L4 e2eFalseFuseSplitRestoresBoth</td></tr>
+  <tr><td>A6</td><td>single clean input → zero friction</td><td>L2 singleInputFastPathBypassesUntangle · L4 e2eSingleCleanInputZeroFriction</td></tr>
+  <tr><td>A7</td><td>never invent/alter an amount; reversible</td><td>L1 verbatimPostCheckDropsMintedAmount + conflictingAmountsAreNotFused · L2 amountTraceNullBlocksSave + saveAllBlockedUntilGroupsTouched · L4 e2eNeverInventOrAlterAmount</td></tr>
+</table></div>
+<h3>Coverage gaps (where automation is weak — flagged, not hidden)</h3>
+<ul>
+  <li><strong>Gemini fusion <em>quality</em></strong> (does this note really complete this photo?) — CI enforces the <em>money guard</em>, not match accuracy; needs a labelled true-fuse / false-fuse / true-dup fixture set + a tracked precision/recall threshold.</li>
+  <li><strong>Perceptual-hash threshold</strong> for re-encoded/cropped photos — needs real image fixtures + a tuned Hamming cutoff.</li>
+  <li><strong>Held-state durability</strong> across backgrounding — out of v1 (ephemeral); a known gap, not a covered guarantee.</li>
+  <li><strong>A6 "as fast as today"</strong> — qualitative; the proxy assertion is "no <code>/v1/untangle</code> call" for a lone input.</li>
+  <li><strong>Re-tidy after a late add</strong> — depends on <code>groupID</code> locking not yet pinned; contract gap to close before that behavior is testable.</li>
+</ul>
+
+<div class="foot">Artifact: <code>design/dedup/TECH.html</code> · merges backend + frontend architecture + (pending) QA plan · next: QA test plan → one PM checkpoint (design + tech) before build.</div>
+</div>
+</body>
+</html>
