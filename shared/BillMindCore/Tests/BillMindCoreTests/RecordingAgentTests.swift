@@ -357,6 +357,17 @@ final class DraftExtractorTests: XCTestCase {
         XCTAssertEqual(d.categoryRaw, "transport")
     }
 
+    func testCurrencyWordAdjacentRunBeatsEarlierCount() {
+        // A currency WORD after the number marks the money just like a symbol.
+        let d = DraftExtractor.parse("2 tickets 45 pounds train to york", currencyCode: "CNY")
+        XCTAssertEqual(d.amount, Decimal(45))
+        XCTAssertEqual(d.currencyCode, "GBP")
+
+        let d2 = DraftExtractor.parse("pub 2 pints 11 quid", currencyCode: "GBP")
+        XCTAssertEqual(d2.amount, Decimal(11))
+        XCTAssertEqual(d2.categoryRaw, "food")
+    }
+
     func testUKKeywordsCategorize() {
         XCTAssertEqual(DraftExtractor.parse("tube 2.80", currencyCode: "GBP").categoryRaw, "transport")
         XCTAssertEqual(DraftExtractor.parse("pret sandwich 6.20", currencyCode: "GBP").categoryRaw, "food")

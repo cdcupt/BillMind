@@ -221,6 +221,20 @@ final class LedgerTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    func testUpdateTripCurrencyRejectedOnceTripHasBills() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t, name: "England")
+        try await addBill(app, t, trip: trip, merchant: "Pret", amount: 4.5, category: "food")
+
+        // The 0-bills rule is server-enforced: a stale client or direct API call
+        // must not relabel recorded money under a new currency.
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "England", currencyCode: "GBP")) },
+            afterResponse: { res async in XCTAssertEqual(res.status, .conflict) })
+        try await app.asyncShutdown()
+    }
+
     func testUpdateTripRejectsMalformedCurrency() async throws {
         let app = try await makeApp(subject: "u1")
         let t = try await signIn(app)

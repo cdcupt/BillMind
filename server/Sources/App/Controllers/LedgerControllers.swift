@@ -43,7 +43,18 @@ struct TripController: RouteCollection {
             guard currency.count == 3, currency.allSatisfy({ $0.isLetter && $0.isASCII }) else {
                 throw Abort(.unprocessableEntity, reason: "currencyCode must be a 3-letter ISO 4217 code")
             }
-            trip.currencyCode = currency
+            if currency != trip.currencyCode {
+                // The 0-bills rule is enforced HERE, not just in the client UI:
+                // relabeling recorded money under a new currency misrepresents
+                // it. The default query excludes soft-deleted bills, so
+                // tombstones don't block the change.
+                let liveBills = try await Bill.query(on: req.db)
+                    .filter(\.$trip.$id == tripID).count()
+                guard liveBills == 0 else {
+                    throw Abort(.conflict, reason: "currency can only change while the trip has no bills")
+                }
+                trip.currencyCode = currency
+            }
         }
         trip.name = name
         trip.rowVersion += 1

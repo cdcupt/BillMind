@@ -125,8 +125,9 @@ public enum DraftExtractor {
             let slashAfter = range.upperBound < text.endIndex && text[range.upperBound] == "/"
             if slashBefore || slashAfter { continue }
             guard let value = Decimal(string: run.replacingOccurrences(of: ",", with: "")) else { continue }
-            // A currency symbol immediately before the run (spaces allowed) marks
-            // the stated total.
+            // A currency marker beside the run marks the stated total: a symbol
+            // before ("£45"), or a symbol / currency word right after ("45£",
+            // "45 pounds", "11 quid"). Spaces are allowed on either side.
             var adjacent = false
             var i = range.lowerBound
             while i > text.startIndex {
@@ -134,6 +135,16 @@ public enum DraftExtractor {
                 if text[i] == " " { continue }
                 adjacent = currencySymbols.contains { $0.symbol == text[i] }
                 break
+            }
+            if !adjacent {
+                var j = range.upperBound
+                while j < text.endIndex, text[j] == " " { j = text.index(after: j) }
+                if j < text.endIndex, currencySymbols.contains(where: { $0.symbol == text[j] }) {
+                    adjacent = true
+                } else if j < text.endIndex {
+                    let word = text[j...].prefix(while: { $0.isLetter }).lowercased()
+                    adjacent = currencyWords[word] != nil
+                }
             }
             candidates.append(Candidate(value: value, hasDecimal: run.contains("."), currencyAdjacent: adjacent))
         }
