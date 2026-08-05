@@ -767,7 +767,7 @@ actor MockSyncAPI: SyncAPI {
     private let pushResult: APISyncPushResult
     private(set) var pushedBills: [APIBillUpsert] = []
     private(set) var createdTripNames: [String] = []
-    private(set) var renamedTrips: [(id: UUID, name: String)] = []
+    private(set) var renamedTrips: [(id: UUID, name: String, currencyCode: String?)] = []
     private(set) var deletedTripIDs: [UUID] = []
     private(set) var pullCount = 0
     private(set) var pushCount = 0
@@ -785,7 +785,7 @@ actor MockSyncAPI: SyncAPI {
     }
 
     func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip {
-        renamedTrips.append((id: id, name: req.name))
+        renamedTrips.append((id: id, name: req.name, currencyCode: req.currencyCode))
         return APITrip(id: id, name: req.name, currencyCode: "JPY",
                        exchangeRate: 1, mascot: nil, rowVersion: 2)
     }
@@ -957,6 +957,8 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(renames.count, 1)                         // only the dirty trip is PATCHed
         XCTAssertEqual(renames.first?.id, serverID)
         XCTAssertEqual(renames.first?.name, "Kyoto")
+        XCTAssertNil(renames.first?.currencyCode,
+                     "the deferred rename push must stay name-only — a stale client's rename must never carry currency")
 
         let ctx = ModelContext(container)
         let pushed = try ctx.fetch(FetchDescriptor<Journal>(

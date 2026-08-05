@@ -8,7 +8,7 @@ struct BillNavID: Hashable {
 struct JournalDetailView: View {
     @Bindable var journal: Journal
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject private var sync: SyncCoordinator
+    @EnvironmentObject private var auth: AuthSession
 
     private var currencySymbol: String {
         CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
@@ -160,19 +160,35 @@ struct JournalDetailView: View {
 
     private func changeCurrency(to code: String) {
         guard journal.billCount == 0, journal.currency != code else { return }
+        let previous = journal.currency
         journal.currency = code
-        // An already-synced trip must PATCH the change up, or server-side
-        // recognition keeps validating against the old currency. Marking it
-        // `.local` re-enters the edited-trips push; a not-yet-created trip
-        // carries the new currency on create anyway.
-        if journal.serverID != nil { journal.syncState = .local }
         do {
             try modelContext.save()
         } catch {
+            journal.currency = previous
             currencyError = "The change couldn't be saved. Please try again. (\(error.localizedDescription))"
             return
         }
-        Task { await sync.sync() }
+        // An already-synced trip PATCHes the change up immediately and
+        // explicitly — server-side recognition validates against the trip
+        // currency. It must NOT ride the deferred rename push: a stale client's
+        // name-only rename would then carry its old currency and clobber a
+        // server-side change, or trip the server's 0-bills rule and wedge sync.
+        // On failure the local change rolls back and surfaces — never queued.
+        // A not-yet-created trip simply carries the new currency on create.
+        guard let serverID = journal.serverID else { return }
+        Task {
+            do {
+                let trip = try await auth.client.updateTrip(
+                    serverID, APIUpdateTripRequest(name: journal.name, currencyCode: code))
+                journal.rowVersion = trip.rowVersion
+                try? modelContext.save()   // LWW bookkeeping; the currency itself is already saved
+            } catch {
+                journal.currency = previous
+                try? modelContext.save()
+                currencyError = "The server didn't accept the currency change, so it was rolled back. Check your connection and try again."
+            }
+        }
     }
 
     // MARK: - Bills List

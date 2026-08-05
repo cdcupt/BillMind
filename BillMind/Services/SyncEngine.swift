@@ -95,9 +95,12 @@ actor SyncEngine {
         guard !pending.isEmpty else { return }
         for journal in pending {
             guard let serverID = journal.serverID else { continue }
-            let trip = try await api.updateTrip(
-                serverID,
-                APIUpdateTripRequest(name: journal.name, currencyCode: journal.currency))
+            // Name-only on purpose: `.local` marks any local edit, so sending the
+            // whole journal here would let a stale client's rename carry its old
+            // currency and clobber a server-side currency change (or trip the
+            // server's 0-bills rule and wedge the sync). Currency changes are
+            // PATCHed explicitly at the moment of change (JournalDetailView).
+            let trip = try await api.updateTrip(serverID, APIUpdateTripRequest(name: journal.name))
             journal.rowVersion = trip.rowVersion
             journal.syncState = .synced
         }
