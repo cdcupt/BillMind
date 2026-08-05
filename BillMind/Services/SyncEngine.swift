@@ -95,7 +95,9 @@ actor SyncEngine {
         guard !pending.isEmpty else { return }
         for journal in pending {
             guard let serverID = journal.serverID else { continue }
-            let trip = try await api.updateTrip(serverID, APIUpdateTripRequest(name: journal.name))
+            let trip = try await api.updateTrip(
+                serverID,
+                APIUpdateTripRequest(name: journal.name, currencyCode: journal.currency))
             journal.rowVersion = trip.rowVersion
             journal.syncState = .synced
         }

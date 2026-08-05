@@ -159,7 +159,8 @@ struct GeminiTextRecognizer: TextRecognizer {
         utilities, medical, education, subscription, misc), \
         lineItems (array of {description, amount}), notes (string). \
         Resolve relative dates (today, yesterday, last friday) against today=\(today). \
-        Infer currency only when a symbol or code is present ($→USD, ¥→JPY, €→EUR). \
+        Infer currency only when a symbol or code is present, mapping ANY symbol or \
+        code to ISO 4217 (£→GBP, $→USD, €→EUR, ¥→JPY; "quid"/"pounds"→GBP). \
         Always include a best-fit category (use "misc" if unsure). Omit any other field \
         not stated for that expense. NEVER invent a total — omit totalAmount if no \
         amount is stated. Output ONLY the JSON array.

@@ -8,9 +8,12 @@ struct NewJournalView: View {
     @EnvironmentObject private var sync: SyncCoordinator
 
     @State private var name = ""
-    @State private var selectedCurrency = "CNY"
+    @State private var selectedCurrency = CurrencyInfo.defaultCode
     @State private var selectedAnimal: AnimalType = .owl
     @State private var notes = ""
+    /// A create-save failure surfaced to the user. The sheet stays open so the
+    /// trip is never silently lost.
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -171,6 +174,14 @@ struct NewJournalView: View {
                         .foregroundStyle(SketchTheme.dustyRose)
                 }
             }
+            .alert("Couldn't create trip", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveError ?? "")
+            }
         }
     }
 
@@ -188,7 +199,11 @@ struct NewJournalView: View {
         do {
             try modelContext.save()
         } catch {
-            print("Failed to save journal: \(error)")
+            // Roll the insert back and keep the sheet open — dismissing here would
+            // read as success while the trip was silently lost.
+            modelContext.delete(journal)
+            saveError = "The trip couldn't be saved. Please try again. (\(error.localizedDescription))"
+            return
         }
         // The trip is created locally (syncState defaults to .local); sync creates
         // it on the server (/v1/trips) so its bills become pushable.

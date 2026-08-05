@@ -215,6 +215,10 @@ struct APICreateTripRequest: Encodable, Sendable {
 
 struct APIUpdateTripRequest: Encodable, Sendable {
     let name: String
+    /// Optional so old servers (which ignore unknown keys anyway) and name-only
+    /// edits stay unchanged; sent when a pre-trip currency change must reach the
+    /// server, which validates recognition against the trip currency.
+    var currencyCode: String? = nil
 }
 
 struct APIBill: Codable, Sendable, Identifiable {

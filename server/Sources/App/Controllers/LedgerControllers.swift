@@ -38,6 +38,13 @@ struct TripController: RouteCollection {
             throw Abort(.unprocessableEntity, reason: "trip name is too long")
         }
 
+        if let rawCurrency = body.currencyCode {
+            let currency = rawCurrency.uppercased()
+            guard currency.count == 3, currency.allSatisfy({ $0.isLetter && $0.isASCII }) else {
+                throw Abort(.unprocessableEntity, reason: "currencyCode must be a 3-letter ISO 4217 code")
+            }
+            trip.currencyCode = currency
+        }
         trip.name = name
         trip.rowVersion += 1
         try await trip.save(on: req.db)

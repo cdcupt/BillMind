@@ -8,12 +8,15 @@ struct BillNavID: Hashable {
 struct JournalDetailView: View {
     @Bindable var journal: Journal
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var sync: SyncCoordinator
 
     private var currencySymbol: String {
         CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
     }
 
     @State private var showMindFullscreen = false
+    /// A currency-change save failure surfaced to the user, never swallowed.
+    @State private var currencyError: String?
 
     private var mindImage: UIImage? {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -98,6 +101,32 @@ struct JournalDetailView: View {
                         .stroke(SketchTheme.lightBrown.opacity(0.2), lineWidth: 1)
                 )
 
+            // The trip currency. Changeable only while the trip has no bills —
+            // changing it later would silently relabel recorded money under a
+            // different symbol, so once a bill exists the code is fixed.
+            if journal.billCount == 0 {
+                Menu {
+                    ForEach(CurrencyInfo.popular) { currency in
+                        Button("\(currency.code) \(currency.symbol) · \(currency.name)") {
+                            changeCurrency(to: currency.code)
+                        }
+                    }
+                } label: {
+                    currencyChip("\(journal.currency) ▾")
+                }
+                .accessibilityIdentifier("journal-currency-menu")
+                .alert("Couldn't change currency", isPresented: Binding(
+                    get: { currencyError != nil },
+                    set: { if !$0 { currencyError = nil } }
+                )) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(currencyError ?? "")
+                }
+            } else {
+                currencyChip(journal.currency)
+            }
+
             Spacer()
 
             Text("Total: \(currencySymbol)\(journal.totalAmount.formatted2)")
@@ -114,6 +143,36 @@ struct JournalDetailView: View {
         }
         .padding(.horizontal)
         .foregroundStyle(SketchTheme.softBrown)
+    }
+
+    private func currencyChip(_ label: String) -> some View {
+        Text(label)
+            .font(SketchTheme.captionFont())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(SketchTheme.warmWhite)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(SketchTheme.lightBrown.opacity(0.2), lineWidth: 1)
+            )
+    }
+
+    private func changeCurrency(to code: String) {
+        guard journal.billCount == 0, journal.currency != code else { return }
+        journal.currency = code
+        // An already-synced trip must PATCH the change up, or server-side
+        // recognition keeps validating against the old currency. Marking it
+        // `.local` re-enters the edited-trips push; a not-yet-created trip
+        // carries the new currency on create anyway.
+        if journal.serverID != nil { journal.syncState = .local }
+        do {
+            try modelContext.save()
+        } catch {
+            currencyError = "The change couldn't be saved. Please try again. (\(error.localizedDescription))"
+            return
+        }
+        Task { await sync.sync() }
     }
 
     // MARK: - Bills List

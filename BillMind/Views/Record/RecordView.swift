@@ -347,7 +347,7 @@ struct RecordView: View {
                     .resizable().scaledToFill().frame(width: 28, height: 28).clipShape(Circle())
                 VStack(alignment: .leading, spacing: 1) {
                     Text(coordinator.journal.name).font(SketchTheme.headlineFont(15)).foregroundStyle(SketchTheme.softBrown)
-                    Text("filing bills here · \(coordinator.journal.currency)").font(SketchTheme.captionFont(11)).foregroundStyle(SketchTheme.lightBrown)
+                    Text(journalChipSubtitle(coordinator.journal)).font(SketchTheme.captionFont(11)).foregroundStyle(SketchTheme.lightBrown)
                 }
                 Spacer()
                 Text("switch ▾").font(SketchTheme.captionFont(13)).foregroundStyle(SketchTheme.softBlue)
@@ -359,6 +359,17 @@ struct RecordView: View {
             .padding(.horizontal).padding(.top, 6)
         }
         .accessibilityIdentifier("record-journal")
+    }
+
+    /// The chip's status line doubles as save feedback: the count reads straight
+    /// off the journal's live bills, so it ticks up the moment a card records —
+    /// visible proof a save landed (a saved card leaves the input immediately).
+    private func journalChipSubtitle(_ journal: Journal) -> String {
+        switch journal.billCount {
+        case 0: return "filing bills here · \(journal.currency)"
+        case 1: return "1 bill in trip · \(journal.currency)"
+        case let n: return "\(n) bills in trip · \(journal.currency)"
+        }
     }
 
     private var introCard: some View {

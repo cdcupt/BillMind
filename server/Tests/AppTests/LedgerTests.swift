@@ -192,13 +192,43 @@ final class LedgerTests: XCTestCase {
         let before = trip.rowVersion
 
         try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
-            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "New Name")) },
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "New Name", currencyCode: nil)) },
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
                 let renamed = try res.content.decode(TripDTO.self)
                 XCTAssertEqual(renamed.name, "New Name")
                 XCTAssertGreaterThan(renamed.rowVersion, before, "a rename must bump row_version so it wins LWW on sync")
             })
+        try await app.asyncShutdown()
+    }
+
+    func testUpdateTripCurrencyPersistsAndBumpsRowVersion() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t, name: "England")
+        let before = trip.rowVersion
+
+        // A pre-departure currency switch (clients offer it only at 0 bills) must
+        // land server-side — recognition validates against the trip currency.
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "England", currencyCode: "gbp")) },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let updated = try res.content.decode(TripDTO.self)
+                XCTAssertEqual(updated.currencyCode, "GBP", "currency is normalized to uppercase ISO 4217")
+                XCTAssertGreaterThan(updated.rowVersion, before, "a currency change must bump row_version so it wins LWW on sync")
+            })
+        try await app.asyncShutdown()
+    }
+
+    func testUpdateTripRejectsMalformedCurrency() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t)
+
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "Trip", currencyCode: "££")) },
+            afterResponse: { res async in XCTAssertEqual(res.status, .unprocessableEntity) })
         try await app.asyncShutdown()
     }
 
