@@ -767,7 +767,7 @@ actor MockSyncAPI: SyncAPI {
     private let pushResult: APISyncPushResult
     private(set) var pushedBills: [APIBillUpsert] = []
     private(set) var createdTripNames: [String] = []
-    private(set) var renamedTrips: [(id: UUID, name: String, currencyCode: String?)] = []
+    private(set) var renamedTrips: [(id: UUID, name: String?, currencyCode: String?)] = []
     private(set) var deletedTripIDs: [UUID] = []
     private(set) var pullCount = 0
     private(set) var pushCount = 0
@@ -786,7 +786,8 @@ actor MockSyncAPI: SyncAPI {
 
     func updateTrip(_ id: UUID, _ req: APIUpdateTripRequest) async throws -> APITrip {
         renamedTrips.append((id: id, name: req.name, currencyCode: req.currencyCode))
-        return APITrip(id: id, name: req.name, currencyCode: "JPY",
+        // Mirrors the server's partial-edit semantics: an absent field is untouched.
+        return APITrip(id: id, name: req.name ?? "unchanged", currencyCode: req.currencyCode ?? "JPY",
                        exchangeRate: 1, mascot: nil, rowVersion: 2)
     }
 

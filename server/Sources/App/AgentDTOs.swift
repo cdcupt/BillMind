@@ -8,12 +8,14 @@ struct CreateTripRequest: Content {
     let mascot: String?
 }
 
-/// Edit payload for `PATCH /v1/trips/:tripID`. The server trims + validates the
-/// name (non-empty, length cap), validates the optional currency (3-letter ISO
-/// 4217; clients only offer it while the trip has no bills), and bumps
+/// Partial-edit payload for `PATCH /v1/trips/:tripID` — at least one field must
+/// be present; absent fields are left untouched, so a currency-only change from
+/// one device can never clobber a newer rename from another. The server trims +
+/// validates the name (non-empty, length cap), validates the currency (3-letter
+/// ISO 4217; only accepted while the trip has no bills), and bumps
 /// `row_version` so the edit wins last-write-wins on every device.
 struct UpdateTripRequest: Content {
-    let name: String
+    var name: String? = nil
     var currencyCode: String? = nil
 }
 

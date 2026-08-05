@@ -180,7 +180,7 @@ struct JournalDetailView: View {
         Task {
             do {
                 let trip = try await auth.client.updateTrip(
-                    serverID, APIUpdateTripRequest(name: journal.name, currencyCode: code))
+                    serverID, APIUpdateTripRequest(currencyCode: code))
                 journal.rowVersion = trip.rowVersion
                 try? modelContext.save()   // LWW bookkeeping; the currency itself is already saved
             } catch {

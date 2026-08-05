@@ -213,11 +213,10 @@ struct APICreateTripRequest: Encodable, Sendable {
     let mascot: String?
 }
 
+/// Partial edit: absent fields are left untouched server-side, so a rename
+/// never carries currency and a currency change never carries a stale name.
 struct APIUpdateTripRequest: Encodable, Sendable {
-    let name: String
-    /// Optional so old servers (which ignore unknown keys anyway) and name-only
-    /// edits stay unchanged; sent when a pre-trip currency change must reach the
-    /// server, which validates recognition against the trip currency.
+    var name: String? = nil
     var currencyCode: String? = nil
 }
 

@@ -210,14 +210,28 @@ final class LedgerTests: XCTestCase {
 
         // A pre-departure currency switch (clients offer it only at 0 bills) must
         // land server-side — recognition validates against the trip currency.
+        // Currency-only payload: the name must be left untouched, so a stale
+        // client's currency change can never clobber a newer rename.
         try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
-            beforeRequest: { try $0.content.encode(UpdateTripRequest(name: "England", currencyCode: "gbp")) },
+            beforeRequest: { try $0.content.encode(UpdateTripRequest(currencyCode: "gbp")) },
             afterResponse: { res async throws in
                 XCTAssertEqual(res.status, .ok)
                 let updated = try res.content.decode(TripDTO.self)
                 XCTAssertEqual(updated.currencyCode, "GBP", "currency is normalized to uppercase ISO 4217")
+                XCTAssertEqual(updated.name, "England", "a currency-only edit must not touch the name")
                 XCTAssertGreaterThan(updated.rowVersion, before, "a currency change must bump row_version so it wins LWW on sync")
             })
+        try await app.asyncShutdown()
+    }
+
+    func testUpdateTripRejectsEmptyPayload() async throws {
+        let app = try await makeApp(subject: "u1")
+        let t = try await signIn(app)
+        let trip = try await createTrip(app, t)
+
+        try await app.test(.PATCH, "v1/trips/\(trip.id)", headers: bearer(t),
+            beforeRequest: { try $0.content.encode(UpdateTripRequest()) },
+            afterResponse: { res async in XCTAssertEqual(res.status, .unprocessableEntity) })
         try await app.asyncShutdown()
     }
 
