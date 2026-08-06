@@ -27,7 +27,7 @@ enum BillMindSchemaV1: VersionedSchema {
     }
 }
 
-/// V2 adds sync metadata (serverID / rowVersion / updatedAt / isDeleted /
+/// V2 adds sync metadata (serverID / rowVersion / updatedAt / isTombstoned /
 /// syncState) to Journal + BillRecord so the local store acts as a cache that
 /// reconciles with the server.
 ///

@@ -3,7 +3,7 @@ import SwiftData
 import Charts
 
 struct StatsPageView: View {
-    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+    @Query(filter: #Predicate<Journal> { !$0.isTombstoned },
            sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var selectedJournalId: UUID?
 
@@ -13,10 +13,12 @@ struct StatsPageView: View {
     }
 
     private var filteredBills: [BillRecord] {
+        // liveBills, not bills: a tombstoned (deleted-while-offline) bill must
+        // not keep inflating the statistics until its delete syncs.
         if let journal = selectedJournal {
-            return journal.bills
+            return journal.liveBills
         }
-        return journals.flatMap(\.bills)
+        return journals.flatMap(\.liveBills)
     }
 
     private var allBills: [BillRecord] {
@@ -44,6 +46,13 @@ struct StatsPageView: View {
         }
         return totals.sorted { $0.value > $1.value }
             .map { (category: $0.key, total: $0.value) }
+    }
+
+    /// Bills per category — the legend prints money per currency from these;
+    /// only the bar lengths (a visual ranking, not a money statement) use the
+    /// raw numeric totals above.
+    private var billsByCategory: [BillCategory: [BillRecord]] {
+        Dictionary(grouping: allBills, by: \.category)
     }
 
     private var dailyData: [(date: Date, total: Decimal)] {
@@ -137,18 +146,24 @@ struct StatsPageView: View {
                     Text("Total Spending")
                         .font(SketchTheme.captionFont())
                         .foregroundStyle(SketchTheme.lightBrown)
-                    Text(totalAmount.formattedCurrency)
+                    // Per-currency: "All Trips" spanning CNY + GBP journals shows
+                    // "¥12,340.00 + £862.00" — never a meaningless raw sum.
+                    Text(allBills.perCurrencyTotals)
                         .font(SketchTheme.amountFont(32))
                         .foregroundStyle(SketchTheme.softBrown)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("This Month")
                         .font(SketchTheme.captionFont())
                         .foregroundStyle(SketchTheme.lightBrown)
-                    Text(thisMonthTotal.formattedCurrency)
+                    Text(thisMonthBills.perCurrencyTotals)
                         .font(SketchTheme.headlineFont(22))
                         .foregroundStyle(SketchTheme.dustyRose)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
                 }
             }
 
@@ -186,10 +201,11 @@ struct StatsPageView: View {
                             .foregroundStyle(SketchTheme.lightBrown)
                     }
                     Spacer()
-                    let symbol = CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
-                    Text("\(symbol)\(journal.totalAmount.formattedCurrency)")
+                    Text(journal.liveBills.perCurrencyTotals)
                         .font(SketchTheme.headlineFont(16))
                         .foregroundStyle(SketchTheme.dustyRose)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 }
                 if journal.id != journals.last?.id {
                     Divider()
@@ -247,7 +263,7 @@ struct StatsPageView: View {
                             .font(SketchTheme.captionFont(12))
                             .foregroundStyle(SketchTheme.softBrown)
                         Spacer()
-                        Text(item.total.formattedCurrency)
+                        Text((billsByCategory[item.category] ?? []).perCurrencyTotals)
                             .font(SketchTheme.captionFont(12))
                             .foregroundStyle(item.category.color)
                     }
@@ -387,7 +403,7 @@ struct StatsPageView: View {
                         Text("\(item.count) bills")
                             .font(SketchTheme.captionFont(11))
                             .foregroundStyle(SketchTheme.lightBrown)
-                        Text(item.total.formattedCurrency)
+                        Text(item.bills.perCurrencyTotals)
                             .font(SketchTheme.headlineFont(14))
                             .foregroundStyle(SketchTheme.dustyRose)
                     }
@@ -400,16 +416,17 @@ struct StatsPageView: View {
         .sketchCard()
     }
 
-    private var topMerchants: [(name: String, count: Int, total: Decimal)] {
-        var data: [String: (count: Int, total: Decimal)] = [:]
+    private var topMerchants: [(name: String, count: Int, bills: [BillRecord])] {
+        var data: [String: [BillRecord]] = [:]
         for bill in allBills {
-            let name = bill.merchant ?? bill.category.displayName
-            let existing = data[name, default: (count: 0, total: 0)]
-            data[name] = (count: existing.count + 1, total: existing.total + bill.amount)
+            data[bill.merchant ?? bill.category.displayName, default: []].append(bill)
         }
-        return data.sorted { $0.value.total > $1.value.total }
+        // The raw sum ranks rows (a heuristic ordering, not a money statement);
+        // the printed total is per-currency.
+        func rank(_ bills: [BillRecord]) -> Decimal { bills.reduce(Decimal.zero) { $0 + $1.amount } }
+        return data.sorted { rank($0.value) > rank($1.value) }
             .prefix(5)
-            .map { (name: $0.key, count: $0.value.count, total: $0.value.total) }
+            .map { (name: $0.key, count: $0.value.count, bills: $0.value) }
     }
 }
 

@@ -19,11 +19,13 @@ struct AIRecognitionResult: Codable {
     var parsedDate: Date? {
         guard let dateString = date else { return nil }
         let formatters: [DateFormatter] = {
+            // Year-first formats only. Slash dates like "05/08/2026" are
+            // deliberately NOT parsed here: MM/dd-vs-dd/MM is a locale guess, and
+            // trying MM/dd first silently read UK dates as US ones. An unparsed
+            // date lands in rawDateText and raises the date clarify instead.
             let formats = [
                 "yyyy-MM-dd",
                 "yyyy/MM/dd",
-                "MM/dd/yyyy",
-                "dd/MM/yyyy",
                 "yyyy-MM-dd'T'HH:mm:ss",
             ]
             return formats.map { fmt in

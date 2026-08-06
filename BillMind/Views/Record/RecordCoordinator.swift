@@ -177,7 +177,11 @@ final class RecordCoordinator {
     /// Deterministic local fallback (offline / pre-sync / AI error).
     private func completeLocally(text: String, cardID: UUID) {
         var draft = DraftExtractor.parse(text, currencyCode: journal.currency)
-        if draft.date == nil { draft.date = Date() }   // no date stated → device-local today
+        // No date stated → device-local today. An ambiguous date the extractor
+        // refused to guess (rawDateText, e.g. "05/08/2026") is NOT "no date" —
+        // stamping today would silently discard what the user typed; the date
+        // clarify asks instead.
+        if draft.date == nil && draft.rawDateText == nil { draft.date = Date() }
         _ = session.completeExtraction(cardID: cardID, draft: draft)
     }
 
@@ -186,14 +190,16 @@ final class RecordCoordinator {
     /// on yesterday for non-UTC users). An explicitly stated date is kept as-is.
     private func draftWithDefaultDate(_ serverDraft: APIBillDraft, dateStated: Bool) -> BillDraft {
         var draft = BillDraft(serverDraft: serverDraft, fallbackCurrency: journal.currency)
-        if !dateStated { draft.date = Date() }
+        if !dateStated && draft.rawDateText == nil { draft.date = Date() }
         return draft
     }
 
-    /// Did the note mention a date at all — an explicit date (handled by the
-    /// extractor) or a relative day word the model resolves server-side?
+    /// Did the note mention a date at all — an explicit date, an ambiguous slash
+    /// date the extractor refused to guess (both handled by the extractor), or a
+    /// relative day word the model resolves server-side?
     static func textMentionsDate(_ text: String) -> Bool {
         if DraftExtractor.date(in: text) != nil { return true }
+        if DraftExtractor.rawDateText(in: text) != nil { return true }
         let lower = text.lowercased()
         let words = ["today", "yesterday", "tomorrow", "tonight", "last ", "this ", " ago",
                      "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]

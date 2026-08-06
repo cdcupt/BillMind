@@ -287,7 +287,9 @@ struct AgentCardView: View {
 
     private var category: BillCategory { BillCategory(rawValue: draft.categoryRaw ?? "") ?? .misc }
     private var amountLabel: String {
-        amountMissing ? "amount required" : "\(coordinator.currencySymbol)\(draft.amount!.formatted2)"
+        // The DRAFT's currency, not the journal's: a £ card in a CNY journal must
+        // read "£4.50" while its Keep-GBP/Use-CNY clarify is still open.
+        amountMissing ? "amount required" : "\(CurrencyInfo.symbol(for: draft.currencyCode))\(draft.amount!.formatted2)"
     }
     private var dateLabel: String {
         guard let date = draft.date else { return draft.rawDateText.map { "“\($0)”" } ?? "add a date" }

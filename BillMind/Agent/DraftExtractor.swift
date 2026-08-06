@@ -59,11 +59,13 @@ enum DraftExtractor {
     ]
 
     static func parse(_ raw: String, currencyCode: String, reference: Date = Date()) -> BillDraft {
-        BillDraft(
+        let scan = dateScan(in: raw, reference: reference)
+        return BillDraft(
             merchant: merchant(in: raw, reference: reference),
             amount: amount(in: raw, reference: reference),
             currencyCode: currency(in: raw) ?? currencyCode,
-            date: date(in: raw, reference: reference),
+            date: scan.date,
+            rawDateText: scan.rawText,
             categoryRaw: category(in: raw),
             source: .text
         )
@@ -104,10 +106,11 @@ enum DraftExtractor {
     /// is entered, never guessing one.
     static func amount(in raw: String, reference: Date = Date()) -> Decimal? {
         var text = raw
-        // Strip an explicit date span FIRST so its day/year numbers are never
-        // amount candidates (this is what filed "5th August lunch 12" as 5).
-        if let match = dateMatch(in: text, reference: reference) {
-            text.replaceSubrange(match.range, with: " ")
+        // Strip a date span (parsed OR ambiguous) FIRST so its day/year numbers
+        // are never amount candidates (this is what filed "5th August lunch 12"
+        // as 5).
+        if let range = dateScan(in: text, reference: reference).range {
+            text.replaceSubrange(range, with: " ")
         }
         guard let regex = try? NSRegularExpression(pattern: "[0-9][0-9,]*(?:\\.[0-9]+)?") else { return nil }
         let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
@@ -164,21 +167,29 @@ enum DraftExtractor {
     }
 
     /// An explicit calendar date typed in the phrase — `"June 10th 2026"`,
-    /// `"10 Jun 2026"`, `"Jun 10"` (year → `reference`'s year), or ISO `2026-06-10`.
-    /// Relative words (today/yesterday) are intentionally *not* resolved here; the
-    /// clarify handles those with the real local day.
+    /// `"10 Jun 2026"`, `"Jun 10"` (year → `reference`'s year), ISO `2026-06-10`,
+    /// or an UNAMBIGUOUS slash date (`"25/12/2026"` — a component over 12 fixes
+    /// day vs month). Relative words (today/yesterday) are intentionally *not*
+    /// resolved here; the clarify handles those with the real local day.
     static func date(in raw: String, reference: Date = Date()) -> Date? {
-        dateMatch(in: raw, reference: reference)?.date
+        dateScan(in: raw, reference: reference).date
+    }
+
+    /// An AMBIGUOUS slash date (`"05/08/2026"` — day-first in the UK, month-first
+    /// in the US) the extractor refuses to guess. It surfaces as the date clarify
+    /// ("I see …, when was it?") instead of a silently wrong parse.
+    static func rawDateText(in raw: String, reference: Date = Date()) -> String? {
+        dateScan(in: raw, reference: reference).rawText
     }
 
     /// Leftover words after removing an explicit date span, the amount, and filler,
     /// title-cased; `nil` when nothing meaningful remains.
     static func merchant(in raw: String, reference: Date = Date()) -> String? {
         var text = raw
-        // Remove an explicit date span FIRST so its month/ordinal/year words don't
-        // survive into the name (this is what produced "Taxi June Th").
-        if let match = dateMatch(in: text, reference: reference) {
-            text.replaceSubrange(match.range, with: " ")
+        // Remove a date span (parsed OR ambiguous) FIRST so its month/ordinal/year
+        // words don't survive into the name (this is what produced "Taxi June Th").
+        if let range = dateScan(in: text, reference: reference).range {
+            text.replaceSubrange(range, with: " ")
         }
         // Then strip numeric runs (amounts).
         if let amount = try? NSRegularExpression(pattern: "[0-9][0-9,]*(?:\\.[0-9]+)?") {
@@ -196,6 +207,34 @@ enum DraftExtractor {
     // MARK: - Date parsing internals
 
     private struct DateSpan { let date: Date; let range: Range<String.Index> }
+
+    private struct DateScan { let date: Date?; let rawText: String?; let range: Range<String.Index>? }
+
+    /// One pass over the phrase's date content: an explicit parseable date, an
+    /// UNAMBIGUOUS slash date (`25/12/2026` and `12/25/2026` both fix day vs
+    /// month because one component exceeds 12), or an AMBIGUOUS slash date
+    /// (`05/08/2026`) captured as raw text so the clarify asks instead of the
+    /// extractor guessing a locale. The span is stripped from merchant and
+    /// amount either way.
+    private static func dateScan(in raw: String, reference: Date) -> DateScan {
+        if let m = dateMatch(in: raw, reference: reference) {
+            return DateScan(date: m.date, rawText: nil, range: m.range)
+        }
+        if let m = firstMatch(in: raw, "\\b(\\d{1,2})/(\\d{1,2})/(\\d{2,4})\\b"),
+           let a = m.int(1), let b = m.int(2), let rawYear = m.int(3) {
+            let year = rawYear < 100 ? 2000 + rawYear : rawYear
+            if a > 12 || b > 12 {
+                let day = a > 12 ? a : b
+                let month = a > 12 ? b : a
+                if let date = makeDate(year: year, month: month, day: day) {
+                    return DateScan(date: date, rawText: nil, range: m.range)
+                }
+            } else if let text = m.string(0) {
+                return DateScan(date: nil, rawText: text, range: m.range)
+            }
+        }
+        return DateScan(date: nil, rawText: nil, range: nil)
+    }
 
     /// Month name (full + 3-letter abbrev, plus "sept") → month number.
     private static let monthByName: [String: Int] = {
