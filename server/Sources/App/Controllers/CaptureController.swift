@@ -149,6 +149,11 @@ struct CaptureController: RouteCollection {
         if merged.date == nil, let captionDate = cap.date {
             merged.date = captionDate
             merged.rawDateText = nil
+        } else if merged.date == nil, merged.rawDateText == nil, let captionRaw = cap.rawDateText {
+            // The caption stated a date we refused to guess (ambiguous slash
+            // form) — carry it so the client's date clarify asks instead of the
+            // date silently defaulting.
+            merged.rawDateText = captionRaw
         }
 
         // Category: fill only when the photo gave none — a generic "misc" from the

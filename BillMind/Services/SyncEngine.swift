@@ -50,7 +50,7 @@ actor SyncEngine {
 
     private func pushDeletedTrips(_ context: ModelContext) async throws {
         let pending = try context.fetch(FetchDescriptor<Journal>(
-            predicate: #Predicate { $0.isDeleted == true }))
+            predicate: #Predicate { $0.isTombstoned == true }))
         guard !pending.isEmpty else { return }
         for journal in pending {
             // Tombstone on the server when it exists there; a local-only trip just
@@ -69,7 +69,7 @@ actor SyncEngine {
         // Locally-created trips have no serverID yet. Create them on the server so
         // their bills become pushable. (Trip edits/deletes are out of scope for v1.)
         let pending = try context.fetch(FetchDescriptor<Journal>(
-            predicate: #Predicate { $0.serverID == nil && $0.isDeleted == false }))
+            predicate: #Predicate { $0.serverID == nil && $0.isTombstoned == false }))
         var created = 0
         for journal in pending {
             let trip = try await api.createTrip(APICreateTripRequest(
@@ -91,7 +91,7 @@ actor SyncEngine {
         // row_version; we store the returned value so LWW change-detection stays correct.
         let localRaw = SyncState.local.rawValue
         let pending = try context.fetch(FetchDescriptor<Journal>(
-            predicate: #Predicate { $0.serverID != nil && $0.syncStateRaw == localRaw && $0.isDeleted == false }))
+            predicate: #Predicate { $0.serverID != nil && $0.syncStateRaw == localRaw && $0.isTombstoned == false }))
         guard !pending.isEmpty else { return }
         for journal in pending {
             guard let serverID = journal.serverID else { continue }
@@ -112,7 +112,7 @@ actor SyncEngine {
     private func pushPendingBills(_ context: ModelContext) async throws -> (applied: Int, conflicts: Int) {
         let localRaw = SyncState.local.rawValue
         let dirty = try context.fetch(FetchDescriptor<BillRecord>(
-            predicate: #Predicate { $0.syncStateRaw == localRaw || $0.isDeleted }))
+            predicate: #Predicate { $0.syncStateRaw == localRaw || $0.isTombstoned }))
 
         // A bill can only be pushed once its trip exists on the server.
         let upserts: [APIBillUpsert] = dirty.compactMap { bill in
@@ -128,7 +128,7 @@ actor SyncEngine {
                 source: nil,
                 notes: bill.note,
                 rowVersion: bill.rowVersion,
-                deleted: bill.isDeleted ? true : nil)
+                deleted: bill.isTombstoned ? true : nil)
         }
         Self.log.notice("pushBills: dirty=\(dirty.count, privacy: .public) upserts=\(upserts.count, privacy: .public)")
         guard !upserts.isEmpty else { return (0, 0) }

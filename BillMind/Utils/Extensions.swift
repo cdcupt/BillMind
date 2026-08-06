@@ -85,6 +85,39 @@ extension Array {
     }
 }
 
+// MARK: - Money Display
+
+extension CurrencyInfo {
+    /// The display symbol for an ISO code; the code itself when we carry no
+    /// symbol for it (never blank — money must always say what it is).
+    static func symbol(for code: String) -> String {
+        popular.first(where: { $0.code == code })?.symbol ?? code
+    }
+}
+
+extension BillRecord {
+    /// The currency this bill was recorded in. Every recorded bill carries its
+    /// draft currency in `originalCurrency`; a kept-foreign bill (the "Keep GBP"
+    /// clarify) therefore renders under its OWN symbol, not the journal's.
+    var displayCurrency: String { originalCurrency ?? journal?.currency ?? "" }
+
+    var displayCurrencySymbol: String { CurrencyInfo.symbol(for: displayCurrency) }
+}
+
+extension Array where Element == BillRecord {
+    /// Per-currency totals, largest first — `"¥3,200.00 + £45.50"`. Amounts in
+    /// different currencies are NEVER added together; a single-currency set
+    /// collapses to the familiar one-symbol total.
+    var perCurrencyTotals: String {
+        guard !isEmpty else { return "0" }
+        var totals: [String: Decimal] = [:]
+        for bill in self { totals[bill.displayCurrency, default: 0] += bill.amount }
+        return totals.sorted { $0.value > $1.value }
+            .map { CurrencyInfo.symbol(for: $0.key) + $0.value.formattedCurrency }
+            .joined(separator: " + ")
+    }
+}
+
 // MARK: - Wire Money (decimal string)
 
 /// Money crosses the wire as a decimal STRING (never a JSON number — float64 is

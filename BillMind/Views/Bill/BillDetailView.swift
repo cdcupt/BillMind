@@ -402,7 +402,7 @@ struct EditBillView: View {
     /// Soft-delete: a tombstone that `pushPendingBills` propagates to the server,
     /// and `liveBills` hides immediately so the trip drops it from the UI now.
     private func deleteBill() {
-        bill.isDeleted = true
+        bill.isTombstoned = true
         bill.syncState = .local
         bill.updatedAt = Date()
         try? modelContext.save()

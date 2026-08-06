@@ -343,6 +343,43 @@ final class DraftExtractorTests: XCTestCase {
         let d = DraftExtractor.parse("05/08/2026 taxi 20", currencyCode: "GBP")
         XCTAssertEqual(d.amount, Decimal(20))
         XCTAssertEqual(d.categoryRaw, "transport")
+        XCTAssertEqual(d.merchant, "Taxi")
+    }
+
+    func testUnambiguousSlashDateParses() {
+        // A component over 12 fixes day vs month — both orders land on the same day.
+        XCTAssertEqual(DraftExtractor.parse("25/12/2026 dinner 30", currencyCode: "GBP").date, ymd(2026, 12, 25))
+        XCTAssertEqual(DraftExtractor.parse("12/25/2026 dinner 30", currencyCode: "GBP").date, ymd(2026, 12, 25))
+        XCTAssertEqual(DraftExtractor.parse("25/12/26 dinner 30", currencyCode: "GBP").date, ymd(2026, 12, 25))
+        XCTAssertEqual(DraftExtractor.parse("25/12/2026 dinner 30", currencyCode: "GBP").amount, Decimal(30))
+    }
+
+    func testInvalidSlashDateRaisesClarifyNotToday() {
+        // "31/02/2026" is unambiguous but impossible — keep the typed text for
+        // the clarify rather than silently stamping today.
+        let d = DraftExtractor.parse("31/02/2026 taxi 20", currencyCode: "GBP")
+        XCTAssertNil(d.date)
+        XCTAssertEqual(d.rawDateText, "31/02/2026")
+        XCTAssertEqual(d.amount, Decimal(20))
+    }
+
+    func testAmbiguousSlashDateRaisesClarifyNotAGuess() {
+        // "05/08/2026" is 5 Aug in the UK and 8 May in the US — the extractor
+        // must not pick a locale. The date stays nil, the typed text is kept,
+        // and the validator turns it into the date clarify.
+        let d = DraftExtractor.parse("05/08/2026 taxi 20", currencyCode: "GBP")
+        XCTAssertNil(d.date)
+        XCTAssertEqual(d.rawDateText, "05/08/2026")
+        XCTAssertTrue(makeValidator(journal: "GBP").validate(d).contains { $0.field == .date })
+    }
+
+    @MainActor
+    func testTextMentionsDateSeesAmbiguousSlashDates() {
+        // The AI-path "no date stated → stamp today" default must not fire when
+        // the user typed a slash date the extractor refused to guess.
+        XCTAssertTrue(RecordCoordinator.textMentionsDate("05/08/2026 taxi 20"))
+        XCTAssertTrue(RecordCoordinator.textMentionsDate("25/12/2026 dinner 30"))
+        XCTAssertFalse(RecordCoordinator.textMentionsDate("taxi 20"))
     }
 
     func testDecimalRunBeatsBareCount() {
@@ -420,6 +457,16 @@ final class AIRecognitionMapperTests: XCTestCase {
         XCTAssertNil(d.date)
         XCTAssertEqual(d.rawDateText, "last tuesday")
         XCTAssertEqual(d.currencyCode, "JPY")          // fallback when result currency nil
+    }
+
+    func testSlashDateFromModelGoesToClarifyNotUSParse() {
+        // "05/08/2026" used to parse as May 8 (MM/dd tried first) and save
+        // silently. It must land in rawDateText and raise the date clarify.
+        let result = AIRecognitionResult(merchant: "Pret", date: "05/08/2026", totalAmount: 4.5,
+                                         currency: "GBP", category: "food", lineItems: nil, notes: nil)
+        let d = AIRecognitionMapper.draft(from: result, currencyCode: "GBP")
+        XCTAssertNil(d.date)
+        XCTAssertEqual(d.rawDateText, "05/08/2026")
     }
 
     func testNilAmountPreserved() {

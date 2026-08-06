@@ -76,7 +76,7 @@ struct JournalDetailView: View {
         }
         .navigationDestination(for: BillNavID.self) { navId in
             if let bill = journal.bills.first(where: { $0.id == navId.id }) {
-                BillDetailView(bill: bill, currencySymbol: currencySymbol)
+                BillDetailView(bill: bill, currencySymbol: bill.displayCurrencySymbol)
             }
         }
         .fullScreenCover(isPresented: $showMindFullscreen) {
@@ -129,7 +129,7 @@ struct JournalDetailView: View {
 
             Spacer()
 
-            Text("Total: \(currencySymbol)\(journal.totalAmount.formatted2)")
+            Text("Total: \(journal.liveBills.perCurrencyTotals)")
                 .font(SketchTheme.headlineFont(16))
                 .foregroundStyle(SketchTheme.dustyRose)
                 .padding(.horizontal, 10)
@@ -210,7 +210,9 @@ struct JournalDetailView: View {
 
                 ForEach(group.bills) { bill in
                     NavigationLink(value: BillNavID(id: bill.id)) {
-                        BillCardView(bill: bill, currencySymbol: currencySymbol)
+                        // Per-bill symbol: a kept-foreign bill (Keep-GBP clarify)
+                        // renders as £, never under the journal's symbol.
+                        BillCardView(bill: bill, currencySymbol: bill.displayCurrencySymbol)
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal)

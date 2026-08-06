@@ -210,12 +210,15 @@ final class AIRecognitionResultTests: XCTestCase {
         XCTAssertNotNil(result.parsedDate)
     }
 
-    func testDateParsingUSFormat() {
+    func testAmbiguousSlashDateIsNotParsed() {
+        // "04/03/2026" is Apr 3 in the US and 4 Mar in the UK — parsedDate must
+        // refuse the guess so the string lands in rawDateText and the date
+        // clarify asks. (This test previously pinned the silent US parse.)
         let result = AIRecognitionResult(
             merchant: nil, date: "04/03/2026", totalAmount: nil,
             currency: nil, category: nil, lineItems: nil, notes: nil
         )
-        XCTAssertNotNil(result.parsedDate)
+        XCTAssertNil(result.parsedDate)
     }
 
     func testNullFields() {
@@ -730,7 +733,7 @@ final class SchemaV2Tests: XCTestCase {
         // New rows start as local, unsynced, not deleted.
         XCTAssertNil(bill.serverID)
         XCTAssertEqual(bill.rowVersion, 0)
-        XCTAssertFalse(bill.isDeleted)
+        XCTAssertFalse(bill.isTombstoned)
         XCTAssertEqual(bill.syncState, .local)
         XCTAssertNil(journal.serverID)
         XCTAssertEqual(journal.syncState, .local)
@@ -2052,4 +2055,75 @@ final class AmountEditorSeedTests: XCTestCase {
     }
 
     private func dec(_ s: String) throws -> Decimal { try XCTUnwrap(Decimal(string: s)) }
+}
+
+// MARK: - Money display (per-currency totals, per-bill symbols)
+
+final class MoneyDisplayTests: XCTestCase {
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema(BillMindSchemaV2.models)
+        return try ModelContainer(for: schema,
+                                  configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    }
+
+    @MainActor
+    func testPerCurrencyTotalsNeverAddAcrossCurrencies() throws {
+        let container = try makeContainer()
+        let ctx = container.mainContext
+        let journal = Journal(name: "England", currency: "GBP")
+        ctx.insert(journal)
+        let coffee = BillRecord(amount: Decimal(string: "4.50")!, originalCurrency: "GBP", category: .food)
+        let stray = BillRecord(amount: Decimal(string: "3200")!, originalCurrency: "CNY", category: .shopping)
+        coffee.journal = journal
+        stray.journal = journal
+        ctx.insert(coffee); ctx.insert(stray)
+        try ctx.save()
+
+        // Largest first, one entry per currency — never a raw 3204.50 sum.
+        XCTAssertEqual(journal.liveBills.perCurrencyTotals, "¥3,200.00 + £4.50")
+    }
+
+    @MainActor
+    func testTombstonedBillLeavesTheTotals() throws {
+        let container = try makeContainer()
+        let ctx = container.mainContext
+        let journal = Journal(name: "England", currency: "GBP")
+        ctx.insert(journal)
+        let kept = BillRecord(amount: Decimal(string: "10")!, originalCurrency: "GBP", category: .food)
+        let deleted = BillRecord(amount: Decimal(string: "99")!, originalCurrency: "GBP", category: .food)
+        ctx.insert(kept); ctx.insert(deleted)
+        kept.journal = journal
+        deleted.journal = journal
+        // Tombstone AFTER insert (mirrors a real delete of an existing record).
+        deleted.syncState = .local
+        deleted.isTombstoned = true
+        try ctx.save()
+
+        // REGRESSION PIN: when this flag was still named `isDeleted` it collided
+        // with SwiftData's own PersistentModel.isDeleted, and on iOS 26 every
+        // save() clobbered the user attribute back to false — deletes silently
+        // undone. The flag must survive a save.
+        XCTAssertTrue(deleted.isTombstoned, "tombstone must survive a save")
+        XCTAssertEqual(journal.liveBills.perCurrencyTotals, "£10.00")
+    }
+
+    @MainActor
+    func testDisplayCurrencyFallsBackToJournal() throws {
+        let container = try makeContainer()
+        let ctx = container.mainContext
+        let journal = Journal(name: "England", currency: "GBP")
+        ctx.insert(journal)
+        let legacy = BillRecord(amount: Decimal(string: "7")!, originalCurrency: nil, category: .food)
+        legacy.journal = journal
+        ctx.insert(legacy)
+        try ctx.save()
+
+        XCTAssertEqual(legacy.displayCurrency, "GBP")
+        XCTAssertEqual(legacy.displayCurrencySymbol, "£")
+    }
+
+    func testCurrencySymbolFallsBackToCode() {
+        XCTAssertEqual(CurrencyInfo.symbol(for: "GBP"), "£")
+        XCTAssertEqual(CurrencyInfo.symbol(for: "CHF"), "CHF")   // no symbol carried → code, never blank
+    }
 }

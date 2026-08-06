@@ -14,7 +14,13 @@ final class Journal {
     var serverID: UUID? = nil
     var rowVersion: Int = 0
     var updatedAt: Date? = nil
-    var isDeleted: Bool = false
+    /// Soft-delete tombstone awaiting sync. NAMED isTombstoned ON PURPOSE:
+    /// SwiftData's PersistentModel has its own `isDeleted` (context-deletion
+    /// state), and on iOS 26 a user attribute with that name is clobbered back
+    /// to `false` by every save — which silently broke trip deletion. Probe:
+    /// MoneyDisplayTests.testTombstonedBillLeavesTheTotals. The store column
+    /// keeps the old name.
+    @Attribute(originalName: "isDeleted") var isTombstoned: Bool = false
     var syncStateRaw: String = SyncState.local.rawValue
 
     var syncState: SyncState {
@@ -31,9 +37,9 @@ final class Journal {
     }
 
     /// Bills not pending a delete — the set shown in the UI and counted. A bill
-    /// marked `isDeleted` is a tombstone awaiting sync; it must not appear or count.
+    /// marked `isTombstoned` is a tombstone awaiting sync; it must not appear or count.
     var liveBills: [BillRecord] {
-        bills.filter { !$0.isDeleted }
+        bills.filter { !$0.isTombstoned }
     }
 
     var totalAmount: Decimal {

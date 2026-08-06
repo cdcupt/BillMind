@@ -24,12 +24,15 @@ final class BillRecord {
     //
     // The server is the source of truth; this row is a cache entry. `serverID`
     // links to the server's Bill; `rowVersion`/`updatedAt` drive last-write-wins;
-    // `isDeleted` is a tombstone pending push; `syncState` marks local edits that
+    // `isTombstoned` is a tombstone pending push; `syncState` marks local edits that
     // still need pushing. All default so existing inits/call sites are unchanged.
     var serverID: UUID? = nil
     var rowVersion: Int = 0
     var updatedAt: Date? = nil
-    var isDeleted: Bool = false
+    /// Soft-delete tombstone pending push. See Journal.isTombstoned for why this
+    /// must NOT be named `isDeleted` (SwiftData name collision — saves clobber
+    /// the flag on iOS 26). The store column keeps the old name.
+    @Attribute(originalName: "isDeleted") var isTombstoned: Bool = false
     var syncStateRaw: String = SyncState.local.rawValue
 
     var syncState: SyncState {

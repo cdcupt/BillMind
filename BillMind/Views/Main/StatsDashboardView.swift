@@ -8,8 +8,10 @@ struct StatsDashboardView: View {
         journals.reduce(0) { $0 + $1.billCount }
     }
 
-    private var totalAmount: Decimal {
-        journals.reduce(Decimal.zero) { $0 + $1.totalAmount }
+    /// All live bills across journals — money renders per currency from these,
+    /// never as a raw cross-currency sum.
+    private var allLiveBills: [BillRecord] {
+        journals.flatMap(\.liveBills)
     }
 
     private var currencyCount: Int {
@@ -18,10 +20,8 @@ struct StatsDashboardView: View {
 
     private var categoryBreakdown: [(category: BillCategory, total: Decimal)] {
         var totals: [BillCategory: Decimal] = [:]
-        for journal in journals {
-            for bill in journal.bills {
-                totals[bill.category, default: 0] += bill.amount
-            }
+        for bill in allLiveBills {
+            totals[bill.category, default: 0] += bill.amount
         }
         return totals.sorted { $0.value > $1.value }
             .map { (category: $0.key, total: $0.value) }
@@ -37,9 +37,11 @@ struct StatsDashboardView: View {
                 AnimalMascotView(animal: .owl, size: 22)
             }
 
-            Text(totalAmount.formattedCurrency)
+            Text(allLiveBills.perCurrencyTotals)
                 .font(SketchTheme.amountFont(38))
                 .foregroundStyle(SketchTheme.softBrown)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
 
             HStack(spacing: 12) {
                 StatChip(label: "Trips", value: "\(journals.count)")

@@ -699,6 +699,13 @@ components:
         currencyCode: { type: string }
         categoryRaw: { type: string, nullable: true }
         date: { type: string, format: date-time, nullable: true }
+        rawDateText:
+          type: string
+          nullable: true
+          description: >
+            A date string that was read but refused as a guess (ambiguous slash
+            dates like 05/08/2026). The client shows the date clarify instead of
+            defaulting the date.
         source: { type: string, example: text }
       required: [currencyCode, source]
 

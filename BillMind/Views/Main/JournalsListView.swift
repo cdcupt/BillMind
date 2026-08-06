@@ -4,7 +4,7 @@ import SwiftData
 struct JournalsListView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var sync: SyncCoordinator
-    @Query(filter: #Predicate<Journal> { !$0.isDeleted },
+    @Query(filter: #Predicate<Journal> { !$0.isTombstoned },
            sort: \Journal.createdDate, order: .reverse) private var journals: [Journal]
     @State private var showNewJournal = false
     @State private var navigationPath = NavigationPath()
@@ -105,10 +105,10 @@ struct JournalsListView: View {
                         // removes the bills, then clean up files after the DB delete.
                         let billImagePaths = journal.bills.flatMap { $0.imagePaths }
                         let journalID = journal.id
-                        // Tombstone locally (hidden by the isDeleted query filter) and let
+                        // Tombstone locally (hidden by the isTombstoned query filter) and let
                         // sync DELETE it on the server — a plain local delete would let the
                         // next pull bring the trip right back.
-                        journal.isDeleted = true
+                        journal.isTombstoned = true
                         journal.syncState = .local
                         try? modelContext.save()
                         BillFileCleanup.cleanUp(billImagePaths: billImagePaths, journalID: journalID)
@@ -210,9 +210,11 @@ struct JournalCardView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(currencySymbol)\(journal.totalAmount.formatted2)")
+                Text(journal.liveBills.perCurrencyTotals)
                     .font(SketchTheme.headlineFont(18))
                     .foregroundStyle(SketchTheme.dustyRose)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                 Text("\(journal.billCount) bills")
                     .font(SketchTheme.captionFont(12))
                     .foregroundStyle(SketchTheme.lightBrown)
