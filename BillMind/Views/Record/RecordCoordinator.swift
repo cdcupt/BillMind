@@ -19,6 +19,9 @@ final class RecordCoordinator {
     @ObservationIgnored private let sync: SyncCoordinator?
     /// Source images kept in memory for retry; not persisted, not observed.
     @ObservationIgnored private var sourceImages: [UUID: UIImage] = [:]
+    /// Cards whose photo failed on TRANSPORT (offline/timeout) — the only ones
+    /// the connectivity-returned auto-retry may re-send.
+    @ObservationIgnored private var transportFailedCardIDs: Set<UUID> = []
     /// Per-card dedup signals supplied to untangle: a perceptual photoHash and/or
     /// the photo-library asset id for same-photo confirmation, and the raw note text
     /// for text cards. Merchant/amount/date already ride in the draft. Not observed.
@@ -269,11 +272,24 @@ final class RecordCoordinator {
             _ = session.completeExtraction(cardID: cardID, draft: draft)
         } catch {
             _ = session.failExtraction(cardID: cardID)
-            let detail = (error as? APIError)?.errorDescription ?? error.localizedDescription
-            // Roaming-honest copy: the card and its photo are kept, and
-            // `retryFailedPhotoCards` re-sends them when connectivity returns.
-            errorMessage = "Couldn't reach the server (\(detail)). The photo card is kept — it retries once you're back online."
+            if Self.isTransportError(error) {
+                // Roaming-honest copy: the card and its photo are kept, and
+                // `retryFailedPhotoCards` re-sends them when connectivity returns.
+                transportFailedCardIDs.insert(cardID)
+                errorMessage = "Couldn't reach the server. The photo card is kept — it retries once you're back online."
+            } else {
+                // A server REJECTION (moderation, too large, 4xx) — re-sending
+                // the same payload can't succeed, so it never auto-retries.
+                errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            }
         }
+    }
+
+    /// Connectivity-shaped failures only — the class auto-retry may re-send.
+    private static func isTransportError(_ error: Error) -> Bool {
+        if error is URLError { return true }
+        if case .transport = error as? APIError { return true }
+        return false
     }
 
     /// Whether Retry can actually do something for a failed card: only a card
@@ -285,12 +301,17 @@ final class RecordCoordinator {
         sourceImages[cardID] != nil && journal.serverID != nil
     }
 
-    /// Re-send every failed photo card whose image is still retained. Called when
-    /// a sync round-trip succeeds (connectivity is back) so roaming dropouts heal
-    /// themselves instead of leaving dead cards.
+    /// Re-send failed photo cards that failed on TRANSPORT (offline/timeout) and
+    /// still hold their image. Called when a sync round-trip succeeds
+    /// (connectivity is back) so roaming dropouts heal themselves. Moderation
+    /// declines and server rejections never re-submit themselves — only the
+    /// user's explicit Retry can do that.
     func retryFailedPhotoCards() {
         guard journal.serverID != nil else { return }
-        for card in session.cards where card.state == .failed && sourceImages[card.id] != nil {
+        for card in session.cards
+        where card.state == .failed
+            && transportFailedCardIDs.contains(card.id)
+            && sourceImages[card.id] != nil {
             retry(cardID: card.id)
         }
     }
@@ -307,6 +328,8 @@ final class RecordCoordinator {
             errorMessage = "Session limit reached — start a new session."
             return
         }
+        // A fresh attempt starts clean; the catch re-marks it on transport failure.
+        transportFailedCardIDs.remove(cardID)
         Task { await extract(image: image, cardID: cardID, tripID: tripID) }
     }
 
@@ -359,6 +382,7 @@ final class RecordCoordinator {
         photoHashes[cardID] = nil
         noteTexts[cardID] = nil
         photoAssetIDs[cardID] = nil
+        transportFailedCardIDs.remove(cardID)
     }
 
     // MARK: - Held batch (Done adding → untangle → review)
@@ -498,6 +522,7 @@ final class RecordCoordinator {
 
     func discard(cardID: UUID) {
         session.discard(cardID: cardID)
+        transportFailedCardIDs.remove(cardID)
     }
 
     // MARK: - Confirm (the only write)
