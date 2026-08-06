@@ -259,7 +259,10 @@ final class RecordCoordinator {
             // Seed the local clarify-loop from the server card (the local
             // BillValidator re-derives gaps; amount stays nil if unread).
             var draft = BillDraft(serverDraft: card.draft, fallbackCurrency: journal.currency)
-            if draft.date == nil { draft.date = Date() }   // unreadable receipt date → today
+            // Unreadable receipt date → today; but a date the model READ and we
+            // refused to guess (rawDateText, e.g. a "05/08/2026" print) must
+            // reach the clarify, not be silently replaced with today.
+            if draft.date == nil && draft.rawDateText == nil { draft.date = Date() }
             _ = session.completeExtraction(cardID: cardID, draft: draft)
         } catch {
             _ = session.failExtraction(cardID: cardID)
