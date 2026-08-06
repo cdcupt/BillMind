@@ -251,8 +251,13 @@ struct AgentCardView: View {
             .animation(.easeInOut(duration: 0.4), value: coordinator.savingCardIDs.contains(card.id))
         } else if card.state == .failed {
             HStack(spacing: 8) {
-                Button("Retry") { coordinator.retry(cardID: card.id) }
-                    .buttonStyle(HandDrawnButtonStyle(filled: true))
+                // Retry only when it can actually re-send something (a retained
+                // photo + a synced trip) — a no-op Retry erodes trust exactly
+                // when an error already happened.
+                if coordinator.canRetry(cardID: card.id) {
+                    Button("Retry") { coordinator.retry(cardID: card.id) }
+                        .buttonStyle(HandDrawnButtonStyle(filled: true))
+                }
                 Button("Discard") { coordinator.discard(cardID: card.id) }
                     .buttonStyle(HandDrawnButtonStyle(filled: false))
             }
@@ -279,7 +284,9 @@ struct AgentCardView: View {
         switch coordinator.confirm(cardID: card.id, acknowledging: ackArmed) {
         case .amountRequired: onEditField(.amount)
         case .needsAcknowledgment: ackArmed = true
-        case .recorded, .notReviewable: ackArmed = false
+        // .saveFailed: the card is back in .review and the coordinator's error
+        // banner explains — the user just taps Save again.
+        case .recorded, .notReviewable, .saveFailed: ackArmed = false
         }
     }
 

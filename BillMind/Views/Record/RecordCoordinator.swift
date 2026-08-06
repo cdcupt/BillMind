@@ -138,6 +138,9 @@ final class RecordCoordinator {
             return
         }
         guard session.beginExtraction(cardID: id) else {
+            // Same enqueue-before-guard rollback as submitPhotos/submitComposed:
+            // without it every budget-refused send strands a phantom .intake card.
+            rollbackEnqueued(cardID: id)
             errorMessage = "Session limit reached — start a new session."
             return
         }
@@ -211,7 +214,7 @@ final class RecordCoordinator {
     func submitPhotos(_ images: [UIImage]) {
         guard !images.isEmpty else { return }
         guard let tripID = journal.serverID else {
-            errorMessage = "This trip isn't synced yet — pull to refresh, then try again."
+            errorMessage = "Photos need the server, and this trip hasn't synced yet — I'll be ready after its first sync. Text capture works offline."
             return
         }
         for image in images {
@@ -266,8 +269,36 @@ final class RecordCoordinator {
             _ = session.completeExtraction(cardID: cardID, draft: draft)
         } catch {
             _ = session.failExtraction(cardID: cardID)
-            errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            let detail = (error as? APIError)?.errorDescription ?? error.localizedDescription
+            // Roaming-honest copy: the card and its photo are kept, and
+            // `retryFailedPhotoCards` re-sends them when connectivity returns.
+            errorMessage = "Couldn't reach the server (\(detail)). The photo card is kept — it retries once you're back online."
         }
+    }
+
+    /// Whether Retry can actually do something for a failed card: only a card
+    /// whose source image is still retained, with a synced trip to send it to.
+    /// A declined/failed TEXT card has nothing to re-send — offering Retry there
+    /// was a silent no-op that eroded trust exactly when an error already
+    /// happened.
+    func canRetry(cardID: UUID) -> Bool {
+        sourceImages[cardID] != nil && journal.serverID != nil
+    }
+
+    /// Re-send every failed photo card whose image is still retained. Called when
+    /// a sync round-trip succeeds (connectivity is back) so roaming dropouts heal
+    /// themselves instead of leaving dead cards.
+    func retryFailedPhotoCards() {
+        guard journal.serverID != nil else { return }
+        for card in session.cards where card.state == .failed && sourceImages[card.id] != nil {
+            retry(cardID: card.id)
+        }
+    }
+
+    /// Bills saved on this phone that haven't reached the server yet — the
+    /// visible sync debt behind the "waiting to sync" chip.
+    var pendingSyncCount: Int {
+        journal.liveBills.filter { $0.syncState == .local }.count
     }
 
     func retry(cardID: UUID) {
@@ -473,7 +504,7 @@ final class RecordCoordinator {
 
     /// Returns `.recorded` on success, or a reason the confirm was refused so the
     /// view can prompt (amount required / acknowledge gaps).
-    enum ConfirmOutcome { case recorded, amountRequired, needsAcknowledgment, notReviewable }
+    enum ConfirmOutcome { case recorded, amountRequired, needsAcknowledgment, notReviewable, saveFailed }
 
     @discardableResult
     func confirm(cardID: UUID, acknowledging: Bool = false) -> ConfirmOutcome {
@@ -493,7 +524,12 @@ final class RecordCoordinator {
         do {
             let effect = try session.confirm(cardID: cardID, acknowledging: acknowledging)
             if case .persist(let id) = effect, let card = session.card(id) {
-                persist(card)
+                guard persist(card) else {
+                    // The write failed, so "recorded" would be a lie — the card
+                    // returns to review with the error banner explaining.
+                    _ = session.reopenAfterFailedPersist(cardID: id)
+                    return .saveFailed
+                }
             }
             return .recorded
         } catch let error as ConfirmError {
@@ -507,7 +543,7 @@ final class RecordCoordinator {
         }
     }
 
-    private func persist(_ card: AgentCard) {
+    private func persist(_ card: AgentCard) -> Bool {
         let draft = card.draft
         let bill = BillRecord(
             date: draft.date ?? Date(),
@@ -524,7 +560,16 @@ final class RecordCoordinator {
         bill.journal = journal
         bill.syncState = .local        // mark pending so the next push sends it
         modelContext.insert(bill)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            // The ONE write the money rule protects. Remove the failed insert and
+            // surface it — a swallowed failure here would report "saved" for
+            // money that never landed.
+            modelContext.delete(bill)
+            errorMessage = "Couldn't save that bill — please try again. (\(error.localizedDescription))"
+            return false
+        }
         // Push it now (creates the trip on the server first if needed). Mark the
         // card saving and clear it when the round-trip ends — success OR failure —
         // so the card never sticks on "Saving…". `SyncCoordinator.sync()` catches
@@ -534,6 +579,7 @@ final class RecordCoordinator {
             await sync?.sync()
             savingCardIDs.remove(card.id)
         }
+        return true
     }
 }
 

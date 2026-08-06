@@ -186,6 +186,23 @@ final class RecordingSessionTests: XCTestCase {
         XCTAssertEqual(s.remainingLLMCalls, 0)
     }
 
+    func testReopenAfterFailedPersistReturnsCardToReview() throws {
+        var s = RecordingSession(validator: makeValidator())
+        let id = s.enqueue(source: .text)
+        _ = s.beginExtraction(cardID: id)
+        let draft = BillDraft(id: id, amount: dec("10"), currencyCode: "JPY", date: Date(), categoryRaw: "food", source: .text)
+        _ = s.completeExtraction(cardID: id, draft: draft)
+        XCTAssertEqual(try s.confirm(cardID: id), .persist(cardID: id))
+        XCTAssertEqual(s.card(id)?.state, .recorded)
+
+        // The host's write failed — "recorded" would be a lie. Reopen to review
+        // so the user can save again once the failure clears.
+        XCTAssertTrue(s.reopenAfterFailedPersist(cardID: id))
+        XCTAssertEqual(s.card(id)?.state, .review)
+        XCTAssertTrue(s.recordedCards.isEmpty)
+        XCTAssertEqual(try s.confirm(cardID: id), .persist(cardID: id))
+    }
+
     func testDiscardNeverRecords() {
         var s = RecordingSession(validator: makeValidator())
         let id = s.enqueue(source: .photo)
