@@ -82,6 +82,10 @@ struct RecordView: View {
         }
         .onAppear { if coordinator == nil { setup() } }
         .onChange(of: selectedJournalID) { _, _ in rebuild() }
+        // The session's validator captures the journal currency at build time; a
+        // currency change (offered only on 0-bill trips) must rebuild it or this
+        // tab keeps validating — and clarifying — against the old currency.
+        .onChange(of: coordinator?.journal.currency) { _, _ in rebuild() }
         .onChange(of: journals.count) { _, _ in if coordinator == nil { setup() } }
         .onChange(of: photoItems) { _, items in loadPhotos(items) }
         .sheet(item: $editTarget) { target in
