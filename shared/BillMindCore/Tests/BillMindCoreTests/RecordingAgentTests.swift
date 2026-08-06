@@ -352,6 +352,15 @@ final class DraftExtractorTests: XCTestCase {
         XCTAssertEqual(DraftExtractor.parse("25/12/2026 dinner 30", currencyCode: "GBP").amount, Decimal(30))
     }
 
+    func testInvalidSlashDateRaisesClarifyNotToday() {
+        // "31/02/2026" is unambiguous but impossible — keep the typed text for
+        // the clarify rather than silently stamping today.
+        let d = DraftExtractor.parse("31/02/2026 taxi 20", currencyCode: "GBP")
+        XCTAssertNil(d.date)
+        XCTAssertEqual(d.rawDateText, "31/02/2026")
+        XCTAssertEqual(d.amount, Decimal(20))
+    }
+
     func testAmbiguousSlashDateRaisesClarifyNotAGuess() {
         // "05/08/2026" is 5 Aug in the UK and 8 May in the US — the extractor
         // must not pick a locale. The date stays nil, the typed text is kept,

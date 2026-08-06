@@ -221,7 +221,7 @@ public enum DraftExtractor {
             return DateScan(date: m.date, rawText: nil, range: m.range)
         }
         if let m = firstMatch(in: raw, "\\b(\\d{1,2})/(\\d{1,2})/(\\d{2,4})\\b"),
-           let a = m.int(1), let b = m.int(2), let rawYear = m.int(3) {
+           let a = m.int(1), let b = m.int(2), let rawYear = m.int(3), let text = m.string(0) {
             let year = rawYear < 100 ? 2000 + rawYear : rawYear
             if a > 12 || b > 12 {
                 let day = a > 12 ? a : b
@@ -229,9 +229,10 @@ public enum DraftExtractor {
                 if let date = makeDate(year: year, month: month, day: day) {
                     return DateScan(date: date, rawText: nil, range: m.range)
                 }
-            } else if let text = m.string(0) {
-                return DateScan(date: nil, rawText: text, range: m.range)
             }
+            // Ambiguous (both ≤ 12) or invalid (31/02, 45/99): keep the typed
+            // text so the clarify asks — never stamp today over a stated date.
+            return DateScan(date: nil, rawText: text, range: m.range)
         }
         return DateScan(date: nil, rawText: nil, range: nil)
     }
