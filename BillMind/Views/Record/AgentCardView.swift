@@ -289,7 +289,8 @@ struct AgentCardView: View {
     private var amountLabel: String {
         // The DRAFT's currency, not the journal's: a £ card in a CNY journal must
         // read "£4.50" while its Keep-GBP/Use-CNY clarify is still open.
-        amountMissing ? "amount required" : "\(CurrencyInfo.symbol(for: draft.currencyCode))\(draft.amount!.formatted2)"
+        guard let amount = draft.amount else { return "amount required" }
+        return "\(CurrencyInfo.symbol(for: draft.currencyCode))\(amount.formatted2)"
     }
     private var dateLabel: String {
         guard let date = draft.date else { return draft.rawDateText.map { "“\($0)”" } ?? "add a date" }
