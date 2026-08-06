@@ -288,6 +288,10 @@ struct APIBillDraft: Codable, Sendable {
     let currencyCode: String
     let categoryRaw: String?
     let date: Date?
+    /// A date string the extractor/model read but refused to guess (ambiguous
+    /// slash dates). Optional + defaulted so old servers decode fine; without
+    /// it the client would stamp "today" over a stated date.
+    var rawDateText: String? = nil
     let source: String
 }
 

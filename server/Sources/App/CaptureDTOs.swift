@@ -8,6 +8,9 @@ struct BillDraftDTO: Content {
     let currencyCode: String
     let categoryRaw: String?
     let date: Date?
+    /// A date string read but refused as a guess (ambiguous slash dates) —
+    /// must cross the wire or the client stamps "today" over a stated date.
+    let rawDateText: String?
     let source: String
 
     init(_ d: BillDraft) {
@@ -16,16 +19,18 @@ struct BillDraftDTO: Content {
         self.currencyCode = d.currencyCode
         self.categoryRaw = d.categoryRaw
         self.date = d.date
+        self.rawDateText = d.rawDateText
         self.source = d.source.rawValue
     }
 
     init(merchant: String?, amount: Decimal?, currencyCode: String,
-         categoryRaw: String?, date: Date?, source: String) {
+         categoryRaw: String?, date: Date?, rawDateText: String? = nil, source: String) {
         self.merchant = merchant
         self.amount = amount
         self.currencyCode = currencyCode
         self.categoryRaw = categoryRaw
         self.date = date
+        self.rawDateText = rawDateText
         self.source = source
     }
 
@@ -37,6 +42,7 @@ struct BillDraftDTO: Content {
             amount: amount,
             currencyCode: currencyCode,
             date: date,
+            rawDateText: rawDateText,
             categoryRaw: categoryRaw,
             source: DraftSource(rawValue: source) ?? .manual
         )

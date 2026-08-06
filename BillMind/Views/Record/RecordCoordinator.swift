@@ -616,6 +616,7 @@ extension BillDraft {
             amount: d.amount,
             currencyCode: d.currencyCode.isEmpty ? fallbackCurrency : d.currencyCode,
             date: d.date,
+            rawDateText: d.rawDateText,
             categoryRaw: d.categoryRaw,
             lineItems: [],
             source: DraftSource(rawValue: d.source) ?? .photo

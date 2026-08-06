@@ -90,6 +90,24 @@ final class CaptureTests: XCTestCase {
         try await app.asyncShutdown()
     }
 
+    func testTextCaptureCarriesRawDateTextOverTheWire() async throws {
+        // An ambiguous slash date must reach the client as rawDateText so its
+        // date clarify fires — otherwise the client stamps "today" over what the
+        // user actually typed.
+        let app = try await makeApp()
+        let (t, trip) = try await signInAndTrip(app)
+        try await app.test(.POST, "v1/recognition", headers: ["Authorization": "Bearer \(t.accessToken)"],
+            beforeRequest: { try $0.content.encode(CaptureRequest(text: "05/08/2026 taxi 20", tripID: trip.id)) },
+            afterResponse: { res async throws in
+                XCTAssertEqual(res.status, .ok)
+                let r = try res.content.decode(CaptureResponse.self)
+                XCTAssertEqual(r.card?.draft.rawDateText, "05/08/2026")
+                XCTAssertNil(r.card?.draft.date)
+                XCTAssertEqual(r.card?.draft.amount, Decimal(20))
+            })
+        try await app.asyncShutdown()
+    }
+
     func testTextCaptureWithoutAmountCannotSave() async throws {
         let app = try await makeApp()
         let (t, trip) = try await signInAndTrip(app)
