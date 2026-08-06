@@ -436,6 +436,17 @@ struct RecordingSession: Sendable {
         return .persist(cardID: cardID)
     }
 
+    /// Reopen a card whose host-side persist FAILED after `confirm` — the write
+    /// never happened, so leaving it `.recorded` would report money as saved
+    /// when it wasn't. The card returns to `.review` for another attempt; only
+    /// a `.recorded` card can reopen.
+    @discardableResult
+    mutating func reopenAfterFailedPersist(cardID: UUID) -> Bool {
+        guard let i = index(cardID), cards[i].state == .recorded else { return false }
+        cards[i].state = .review
+        return true
+    }
+
     /// Drop a card without persisting it.
     mutating func discard(cardID: UUID) {
         if let i = index(cardID) { cards[i].state = .discarded }

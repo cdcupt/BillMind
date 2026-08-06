@@ -1325,6 +1325,31 @@ final class HeldBatchCoordinatorTests: XCTestCase {
         }
     }
 
+    /// A budget-refused text send must roll its enqueued card back — the sibling
+    /// photo/composed paths already did; text leaked a phantom .intake card that
+    /// no extraction would ever advance.
+    func testSubmitTextAtZeroBudgetLeavesNoPhantomCard() throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let journal = syncedJournal(ctx)
+        let coord = RecordCoordinator(journal: journal, modelContext: ctx,
+                                      recognizer: MockUntangleAPI(.fuseAll(amount: 1, merchant: "x")),
+                                      llmCallBudget: 0)
+        coord.submitText("coffee 4.50")
+        XCTAssertTrue(coord.cards.isEmpty, "a budget-refused send must not strand a phantom card")
+        XCTAssertNotNil(coord.errorMessage)
+    }
+
+    /// Retry is only offered when it can actually re-send something: a retained
+    /// photo and a synced trip. A failed TEXT card has nothing to re-send.
+    func testRetryOnlyOfferedWhenItCanResend() throws {
+        let container = try makeContainer()
+        let ctx = ModelContext(container)
+        let coord = RecordCoordinator(journal: syncedJournal(ctx), modelContext: ctx,
+                                      recognizer: MockUntangleAPI(.fuseAll(amount: 1, merchant: "x")))
+        XCTAssertFalse(coord.canRetry(cardID: UUID()), "no retained image → no Retry")
+    }
+
     /// Two held cards, fused into one, accepted, then saved: exactly one bill is
     /// persisted and the two member cards are set aside (never persisted). Drives the
     /// real coordinator path (markDoneAdding → mock untangle → combine → confirmAll).

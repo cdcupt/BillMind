@@ -81,6 +81,12 @@ struct RecordView: View {
             }
         }
         .onAppear { if coordinator == nil { setup() } }
+        // Connectivity returned (a sync round-trip finished cleanly) → re-send
+        // failed photo cards whose images are still retained, so roaming
+        // dropouts heal themselves.
+        .onChange(of: sync.isSyncing) { was, now in
+            if was && !now && sync.lastError == nil { coordinator?.retryFailedPhotoCards() }
+        }
         .onChange(of: selectedJournalID) { _, _ in rebuild() }
         // The session's validator captures the journal currency at build time; a
         // currency change (offered only on 0-bill trips) must rebuild it or this
@@ -104,6 +110,22 @@ struct RecordView: View {
     private func session(_ coordinator: RecordCoordinator) -> some View {
         VStack(spacing: 0) {
             journalChip(coordinator)
+            // Visible sync debt: bills saved on this phone that haven't reached
+            // the server. Tap retries the push. Hidden while a sync is running
+            // (the normal save round-trip would otherwise flash it).
+            if coordinator.pendingSyncCount > 0 && !sync.isSyncing {
+                Button {
+                    Task { await sync.sync() }
+                } label: {
+                    Label(pendingSyncLabel(coordinator.pendingSyncCount),
+                          systemImage: "arrow.triangle.2.circlepath")
+                        .font(SketchTheme.captionFont(11))
+                        .foregroundStyle(SketchTheme.warmOrange)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("record-sync-pending")
+                .padding(.top, 4)
+            }
             ScrollViewReader { proxy in
                 ScrollView {
                     if coordinator.batchPhase == .reviewing {
@@ -131,6 +153,14 @@ struct RecordView: View {
                 if let error = coordinator.errorMessage {
                     noticeBanner(error, icon: "exclamationmark.triangle.fill", tone: SketchTheme.mutedRed) {
                         coordinator.errorMessage = nil
+                    }
+                }
+                // Sync failures were invisible: bills quietly piled up local-only
+                // while Stats/Minds on the server missed them. Same calm banner.
+                if let syncError = sync.lastError {
+                    noticeBanner("Bills are safe on this phone, but server sync is failing: \(syncError)",
+                                 icon: "wifi.exclamationmark", tone: SketchTheme.warmOrange) {
+                        sync.lastError = nil
                     }
                 }
                 // A calm "I kept these separate" note when the untangle hop couldn't run
@@ -363,6 +393,11 @@ struct RecordView: View {
             .padding(.horizontal).padding(.top, 6)
         }
         .accessibilityIdentifier("record-journal")
+    }
+
+    private func pendingSyncLabel(_ count: Int) -> String {
+        count == 1 ? "1 bill waiting to sync — tap to retry"
+                   : "\(count) bills waiting to sync — tap to retry"
     }
 
     /// The chip's status line doubles as save feedback: the count reads straight
