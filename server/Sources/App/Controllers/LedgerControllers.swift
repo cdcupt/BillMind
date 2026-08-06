@@ -17,10 +17,12 @@ struct TripController: RouteCollection {
     /// absurd input while clearing any realistic trip title.
     private static let maxTripNameLength = 200
 
-    /// PATCH /v1/trips/:tripID — rename a trip. Bumps `row_version` so the rename
-    /// wins last-write-wins on every other device via sync. Scoped to the owner;
-    /// another user's id returns 404, never their data. An empty/whitespace-only
-    /// name is rejected (a rename never blanks the title).
+    /// PATCH /v1/trips/:tripID — partial edit (rename and/or currency change).
+    /// Absent fields are left untouched, so a currency-only change never carries
+    /// a stale name. Bumps `row_version` so the edit wins last-write-wins on
+    /// every other device via sync. Scoped to the owner; another user's id
+    /// returns 404, never their data. An empty/whitespace-only name is rejected
+    /// (a rename never blanks the title).
     func update(_ req: Request) async throws -> TripDTO {
         let user = try req.auth.require(User.self)
         let uid = try user.requireID()
@@ -30,17 +32,49 @@ struct TripController: RouteCollection {
         else { throw Abort(.notFound) }
 
         let body = try req.content.decode(UpdateTripRequest.self)
-        let name = body.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            throw Abort(.unprocessableEntity, reason: "trip name must not be empty")
-        }
-        guard name.count <= Self.maxTripNameLength else {
-            throw Abort(.unprocessableEntity, reason: "trip name is too long")
+        guard body.name != nil || body.currencyCode != nil else {
+            throw Abort(.unprocessableEntity, reason: "nothing to update")
         }
 
-        trip.name = name
-        trip.rowVersion += 1
-        try await trip.save(on: req.db)
+        let newName: String? = try {
+            guard let rawName = body.name else { return nil }
+            let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                throw Abort(.unprocessableEntity, reason: "trip name must not be empty")
+            }
+            guard name.count <= Self.maxTripNameLength else {
+                throw Abort(.unprocessableEntity, reason: "trip name is too long")
+            }
+            return name
+        }()
+        let newCurrency: String? = try {
+            guard let rawCurrency = body.currencyCode else { return nil }
+            let currency = rawCurrency.uppercased()
+            guard currency.count == 3, currency.allSatisfy({ $0.isLetter && $0.isASCII }) else {
+                throw Abort(.unprocessableEntity, reason: "currencyCode must be a 3-letter ISO 4217 code")
+            }
+            return currency
+        }()
+
+        // The 0-bills check and the write share one transaction so a concurrent
+        // bill creation can't slip between them. The default query excludes
+        // soft-deleted bills, so tombstones don't block the change. (Even if a
+        // race slipped through, each bill carries its own currency_code — a
+        // trip-currency change never relabels recorded money; this guard keeps
+        // the trip consistent, it is not the money gate.)
+        try await req.db.transaction { db in
+            if let name = newName { trip.name = name }
+            if let currency = newCurrency, currency != trip.currencyCode {
+                let liveBills = try await Bill.query(on: db)
+                    .filter(\.$trip.$id == tripID).count()
+                guard liveBills == 0 else {
+                    throw Abort(.conflict, reason: "currency can only change while the trip has no bills")
+                }
+                trip.currencyCode = currency
+            }
+            trip.rowVersion += 1
+            try await trip.save(on: db)
+        }
         return try TripDTO(trip)
     }
 

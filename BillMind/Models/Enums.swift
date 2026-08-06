@@ -285,6 +285,16 @@ struct CurrencyInfo: Identifiable, Codable, Hashable {
     let symbol: String
     let name: String
 
+    /// The pre-selected currency for a new trip: the device locale's currency
+    /// when it is one we offer, else CNY (the app's historical default). A trip's
+    /// currency drives validation and server recognition, so the default should
+    /// match where the user actually is, not a hardcoded market.
+    static var defaultCode: String {
+        guard let code = Locale.current.currency?.identifier,
+              popular.contains(where: { $0.code == code }) else { return "CNY" }
+        return code
+    }
+
     static let popular: [CurrencyInfo] = [
         CurrencyInfo(code: "CNY", symbol: "¥", name: "Chinese Yuan"),
         CurrencyInfo(code: "USD", symbol: "$", name: "US Dollar"),

@@ -8,12 +8,15 @@ struct BillNavID: Hashable {
 struct JournalDetailView: View {
     @Bindable var journal: Journal
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var auth: AuthSession
 
     private var currencySymbol: String {
         CurrencyInfo.popular.first(where: { $0.code == journal.currency })?.symbol ?? journal.currency
     }
 
     @State private var showMindFullscreen = false
+    /// A currency-change save failure surfaced to the user, never swallowed.
+    @State private var currencyError: String?
 
     private var mindImage: UIImage? {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -98,6 +101,32 @@ struct JournalDetailView: View {
                         .stroke(SketchTheme.lightBrown.opacity(0.2), lineWidth: 1)
                 )
 
+            // The trip currency. Changeable only while the trip has no bills —
+            // changing it later would silently relabel recorded money under a
+            // different symbol, so once a bill exists the code is fixed.
+            if journal.billCount == 0 {
+                Menu {
+                    ForEach(CurrencyInfo.popular) { currency in
+                        Button("\(currency.code) \(currency.symbol) · \(currency.name)") {
+                            changeCurrency(to: currency.code)
+                        }
+                    }
+                } label: {
+                    currencyChip("\(journal.currency) ▾")
+                }
+                .accessibilityIdentifier("journal-currency-menu")
+                .alert("Couldn't change currency", isPresented: Binding(
+                    get: { currencyError != nil },
+                    set: { if !$0 { currencyError = nil } }
+                )) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(currencyError ?? "")
+                }
+            } else {
+                currencyChip(journal.currency)
+            }
+
             Spacer()
 
             Text("Total: \(currencySymbol)\(journal.totalAmount.formatted2)")
@@ -114,6 +143,52 @@ struct JournalDetailView: View {
         }
         .padding(.horizontal)
         .foregroundStyle(SketchTheme.softBrown)
+    }
+
+    private func currencyChip(_ label: String) -> some View {
+        Text(label)
+            .font(SketchTheme.captionFont())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(SketchTheme.warmWhite)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(SketchTheme.lightBrown.opacity(0.2), lineWidth: 1)
+            )
+    }
+
+    private func changeCurrency(to code: String) {
+        guard journal.billCount == 0, journal.currency != code else { return }
+        let previous = journal.currency
+        journal.currency = code
+        do {
+            try modelContext.save()
+        } catch {
+            journal.currency = previous
+            currencyError = "The change couldn't be saved. Please try again. (\(error.localizedDescription))"
+            return
+        }
+        // An already-synced trip PATCHes the change up immediately and
+        // explicitly — server-side recognition validates against the trip
+        // currency. It must NOT ride the deferred rename push: a stale client's
+        // name-only rename would then carry its old currency and clobber a
+        // server-side change, or trip the server's 0-bills rule and wedge sync.
+        // On failure the local change rolls back and surfaces — never queued.
+        // A not-yet-created trip simply carries the new currency on create.
+        guard let serverID = journal.serverID else { return }
+        Task {
+            do {
+                let trip = try await auth.client.updateTrip(
+                    serverID, APIUpdateTripRequest(currencyCode: code))
+                journal.rowVersion = trip.rowVersion
+                try? modelContext.save()   // LWW bookkeeping; the currency itself is already saved
+            } catch {
+                journal.currency = previous
+                try? modelContext.save()
+                currencyError = "The server didn't accept the currency change, so it was rolled back. Check your connection and try again."
+            }
+        }
     }
 
     // MARK: - Bills List

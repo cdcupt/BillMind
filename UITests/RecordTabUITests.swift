@@ -3,7 +3,9 @@ import XCTest
 /// End-to-end tests for the Record capture flow + the first-launch notice, on the
 /// Voyage 4-tab structure. All use the text path (local DraftExtractor, no server)
 /// and the DEBUG signed-in bypass for a clean, gated launch. Persistence is
-/// verified via the card's recorded state ("In the trip") — no Journals tab.
+/// verified via the journal chip's live bill count ("1 bill in trip · …") — a
+/// saved card leaves the input immediately by design, so the chip's tick-up is
+/// the observable proof the save landed.
 final class RecordTabUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
@@ -37,10 +39,19 @@ final class RecordTabUITests: XCTestCase {
         app.buttons["record-send"].tap()
     }
 
-    /// The card's recorded state proves persistence without leaving Record.
-    private func assertRecorded(_ app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["In the trip"].waitForExistence(timeout: 10),
-                      "Saved card should show its recorded state")
+    /// The journal chip's bill count proves persistence without leaving Record:
+    /// it reads the journal's live bills, so it only ticks up when a BillRecord
+    /// was actually written. Matched by label prefix (the suffix carries the
+    /// journal currency, which varies with the device locale default).
+    private func recordedChip(_ app: XCUIApplication, count: Int = 1) -> XCUIElement {
+        let label = count == 1 ? "1 bill in trip" : "\(count) bills in trip"
+        let predicate = NSPredicate(format: "label CONTAINS %@", label)
+        return app.descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    private func assertRecorded(_ app: XCUIApplication, count: Int = 1) {
+        XCTAssertTrue(recordedChip(app, count: count).waitForExistence(timeout: 10),
+                      "The journal chip should show \(count) recorded bill(s)")
     }
 
     // MARK: - 1. Happy / category correction (date defaults to today, no clarify)
@@ -84,7 +95,7 @@ final class RecordTabUITests: XCTestCase {
 
         let amountField = app.textFields["drawer-amount-field"]
         XCTAssertTrue(amountField.waitForExistence(timeout: 5), "Tapping save with no amount should open the amount drawer")
-        XCTAssertFalse(app.staticTexts["In the trip"].exists, "A no-amount card must not persist on the blocked save")
+        XCTAssertFalse(recordedChip(app).exists, "A no-amount card must not persist on the blocked save")
         amountField.tap()
         amountField.typeText("980")
         app.buttons["drawer-set"].tap()
@@ -110,7 +121,7 @@ final class RecordTabUITests: XCTestCase {
         // The discarded card (and its save button) is gone; nothing recorded.
         XCTAssertFalse(app.buttons["card-save"].waitForExistence(timeout: 3),
                        "A discarded card must be removed")
-        XCTAssertFalse(app.staticTexts["In the trip"].exists, "A discarded card must not persist")
+        XCTAssertFalse(recordedChip(app).exists, "A discarded card must not persist")
     }
 
     // MARK: - 3b. Voice mic toggle must not crash (regression)

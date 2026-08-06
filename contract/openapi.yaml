@@ -181,6 +181,33 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /v1/trips/{tripID}:
+    patch:
+      tags: [Trips]
+      summary: Edit a trip (rename; change currency while it has no bills)
+      description: >
+        Renames the trip and optionally changes its currency. The name is trimmed
+        and validated (non-empty, length cap). A currency change is accepted only
+        while the trip has no live bills — relabeling recorded money under a new
+        currency would misrepresent it — and returns 409 otherwise. Every accepted
+        edit bumps rowVersion so it wins last-write-wins on sync. Scoped to the
+        owner.
+      parameters:
+        - $ref: "#/components/parameters/TripIDPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateTripRequest" }
+      responses:
+        "200":
+          description: The updated trip.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Trip" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Currency change rejected — the trip already has bills. }
+        "422": { description: Empty/over-long name, or malformed currency code. }
     delete:
       tags: [Trips]
       summary: Delete a trip (and all its bills)
@@ -560,6 +587,22 @@ components:
         currencyCode: { type: string, example: JPY }
         mascot: { type: string, nullable: true }
       required: [name, currencyCode]
+
+    UpdateTripRequest:
+      type: object
+      description: >
+        Partial edit — at least one field must be present; absent fields are
+        left untouched (a currency-only change never carries a stale name).
+      properties:
+        name: { type: string, nullable: true }
+        currencyCode:
+          type: string
+          nullable: true
+          example: GBP
+          description: >
+            Optional 3-letter ISO 4217 code (normalized to uppercase). Accepted
+            only while the trip has no live bills; otherwise the request is
+            rejected with 409.
 
     Trip:
       type: object

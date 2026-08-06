@@ -301,6 +301,85 @@ final class DraftExtractorTests: XCTestCase {
     func testInvalidCalendarDateIsRejected() {
         XCTAssertNil(DraftExtractor.parse("taxi 300 february 30 2026", currencyCode: "JPY").date)
     }
+
+    // MARK: England-trip coverage (GBP signals, UK phrasing, amount hijack)
+
+    func testPoundSymbolSetsGBPAndAmount() {
+        let d = DraftExtractor.parse("£4.50 coffee at pret", currencyCode: "CNY")
+        XCTAssertEqual(d.currencyCode, "GBP")
+        XCTAssertEqual(d.amount, Decimal(string: "4.50"))
+        XCTAssertEqual(d.categoryRaw, "food")
+    }
+
+    func testCurrencyWordsSetGBP() {
+        XCTAssertEqual(DraftExtractor.parse("coffee 4.50 pounds", currencyCode: "CNY").currencyCode, "GBP")
+        XCTAssertEqual(DraftExtractor.parse("dinner 32 quid", currencyCode: "CNY").currencyCode, "GBP")
+        XCTAssertEqual(DraftExtractor.parse("fish and chips 9.99 GBP", currencyCode: "CNY").currencyCode, "GBP")
+    }
+
+    func testNoCurrencySignalFallsBackToJournal() {
+        XCTAssertEqual(DraftExtractor.parse("tesco 12.30", currencyCode: "GBP").currencyCode, "GBP")
+        XCTAssertEqual(DraftExtractor.parse("ramen 2840", currencyCode: "JPY").currencyCode, "JPY")
+    }
+
+    func testCurrencyWordsStayOutOfMerchant() {
+        XCTAssertEqual(DraftExtractor.parse("dinner 32 quid", currencyCode: "GBP").merchant, "Dinner")
+        XCTAssertEqual(DraftExtractor.parse("coffee 4.50 pounds", currencyCode: "GBP").merchant, "Coffee")
+    }
+
+    func testOrdinalDayNumberIsNotTheAmount() {
+        // The reported hijack: "5th august lunch 12" filed amount 5 (the day).
+        let ref = Date(timeIntervalSince1970: 1_775_000_000)   // 2026
+        let d = DraftExtractor.parse("5th august lunch 12", currencyCode: "GBP", reference: ref)
+        XCTAssertEqual(d.amount, Decimal(12))
+        XCTAssertEqual(d.date, ymd(2026, 8, 5))
+        XCTAssertEqual(d.categoryRaw, "food")
+    }
+
+    func testSlashDateFragmentsAreNotTheAmount() {
+        // "05/08/2026 taxi 20" filed amount 5 (a slash-date fragment).
+        let d = DraftExtractor.parse("05/08/2026 taxi 20", currencyCode: "GBP")
+        XCTAssertEqual(d.amount, Decimal(20))
+        XCTAssertEqual(d.categoryRaw, "transport")
+    }
+
+    func testDecimalRunBeatsBareCount() {
+        // "pub 2 pints 11.20" — 2 is a count, 11.20 is the money.
+        let d = DraftExtractor.parse("pub 2 pints 11.20", currencyCode: "GBP")
+        XCTAssertEqual(d.amount, Decimal(string: "11.20"))
+        XCTAssertEqual(d.categoryRaw, "food")
+    }
+
+    func testCurrencyAdjacentRunBeatsEarlierCount() {
+        let d = DraftExtractor.parse("2 tickets £45 train to york", currencyCode: "CNY")
+        XCTAssertEqual(d.amount, Decimal(45))
+        XCTAssertEqual(d.currencyCode, "GBP")
+        XCTAssertEqual(d.categoryRaw, "transport")
+    }
+
+    func testCurrencyWordAdjacentRunBeatsEarlierCount() {
+        // A currency WORD after the number marks the money just like a symbol.
+        let d = DraftExtractor.parse("2 tickets 45 pounds train to york", currencyCode: "CNY")
+        XCTAssertEqual(d.amount, Decimal(45))
+        XCTAssertEqual(d.currencyCode, "GBP")
+
+        let d2 = DraftExtractor.parse("pub 2 pints 11 quid", currencyCode: "GBP")
+        XCTAssertEqual(d2.amount, Decimal(11))
+        XCTAssertEqual(d2.categoryRaw, "food")
+    }
+
+    func testUKKeywordsCategorize() {
+        XCTAssertEqual(DraftExtractor.parse("tube 2.80", currencyCode: "GBP").categoryRaw, "transport")
+        XCTAssertEqual(DraftExtractor.parse("pret sandwich 6.20", currencyCode: "GBP").categoryRaw, "food")
+        XCTAssertEqual(DraftExtractor.parse("tesco 12.30", currencyCode: "GBP").categoryRaw, "shopping")
+    }
+
+    func testStatedGBPInCNYJournalRaisesCurrencyClarify() {
+        // The money law end to end: a typed £ in a CNY journal must surface the
+        // Keep-GBP / Use-CNY clarify, never silently file as ¥.
+        let draft = DraftExtractor.parse("£4.50 coffee", currencyCode: "CNY")
+        XCTAssertTrue(makeValidator(journal: "CNY").validate(draft).contains { $0.field == .currency })
+    }
 }
 
 // MARK: - AIRecognitionMapper

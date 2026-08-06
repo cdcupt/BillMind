@@ -13,12 +13,18 @@ public enum DraftExtractor {
 
     /// Keyword → `BillCategory.rawValue`. First match wins; unmatched → `misc`.
     private static let categoryKeywords: [(words: Set<String>, raw: String)] = [
-        (["taxi", "train", "bus", "metro", "subway", "uber", "fare", "flight", "ferry"], "transport"),
+        (["taxi", "train", "bus", "metro", "subway", "uber", "fare", "flight", "ferry",
+          "tube", "underground", "rail", "railway", "cab", "coach", "tram"], "transport"),
         (["hotel", "inn", "hostel", "airbnb", "ryokan", "lodging", "motel"], "accommodation"),
         (["ramen", "sushi", "dinner", "lunch", "breakfast", "coffee", "cafe", "café",
-          "food", "restaurant", "drink", "drinks", "beer", "meal", "snack", "izakaya"], "food"),
-        (["shop", "store", "mall", "clothes", "uniqlo", "muji", "souvenir", "konbini", "market"], "shopping"),
-        (["movie", "cinema", "game", "bar", "club", "ktv", "museum", "ticket", "show"], "entertainment"),
+          "food", "restaurant", "drink", "drinks", "beer", "meal", "snack", "izakaya",
+          "pub", "pint", "pints", "chips", "takeaway", "tea", "pret", "greggs",
+          "sandwich", "bakery"], "food"),
+        (["shop", "store", "mall", "clothes", "uniqlo", "muji", "souvenir", "konbini", "market",
+          "tesco", "sainsbury", "sainsburys", "boots", "primark", "asda", "waitrose",
+          "aldi", "lidl"], "shopping"),
+        (["movie", "cinema", "game", "bar", "club", "ktv", "museum", "ticket", "show",
+          "theatre", "gallery"], "entertainment"),
         (["pharmacy", "clinic", "hospital", "doctor", "medicine", "dental"], "medical"),
         (["sim", "data", "wifi", "electric", "water", "gas", "utility"], "utilities"),
         (["course", "class", "lesson", "book", "tuition"], "education"),
@@ -26,27 +32,59 @@ public enum DraftExtractor {
     ]
 
     /// Filler tokens stripped before deriving a merchant name. Includes ordinal
-    /// suffixes and relative-day words so they never become a merchant.
+    /// suffixes, relative-day words, and currency words so they never become a
+    /// merchant.
     private static let fillerWords: Set<String> = [
         "cash", "card", "paid", "for", "the", "a", "an", "at", "in", "on", "with", "by",
-        "yen", "jpy", "usd", "eur", "dollars", "euros", "yuan", "rmb", "cny",
+        "to", "from",
+        "yen", "jpy", "usd", "eur", "dollar", "dollars", "euro", "euros", "yuan", "rmb", "cny",
+        "gbp", "pound", "pounds", "quid", "pence", "buck", "bucks",
         "st", "nd", "rd", "th", "today", "yesterday", "tomorrow", "tonight",
+    ]
+
+    /// Currency symbols the extractor reads as an explicit signal. `¥` is
+    /// intentionally absent — it is ambiguous (JPY vs CNY), and the agent never
+    /// guesses money, currency included.
+    private static let currencySymbols: [(symbol: Character, code: String)] = [
+        ("£", "GBP"), ("€", "EUR"), ("$", "USD"),
+    ]
+
+    /// Currency words (lowercased token → ISO 4217 code).
+    private static let currencyWords: [String: String] = [
+        "gbp": "GBP", "pound": "GBP", "pounds": "GBP", "quid": "GBP", "pence": "GBP",
+        "usd": "USD", "dollar": "USD", "dollars": "USD", "buck": "USD", "bucks": "USD",
+        "eur": "EUR", "euro": "EUR", "euros": "EUR",
+        "jpy": "JPY", "yen": "JPY",
+        "cny": "CNY", "yuan": "CNY", "rmb": "CNY",
     ]
 
     public static func parse(_ raw: String, currencyCode: String, reference: Date = Date()) -> BillDraft {
         BillDraft(
             merchant: merchant(in: raw, reference: reference),
-            amount: firstAmount(in: raw),
-            currencyCode: currencyCode,
+            amount: amount(in: raw, reference: reference),
+            currencyCode: currency(in: raw) ?? currencyCode,
             date: date(in: raw, reference: reference),
             categoryRaw: category(in: raw),
             source: .text
         )
     }
 
+    /// An explicit currency stated in the phrase — a symbol (`£4.50`) or a word
+    /// (`"4.50 pounds"`, `"32 quid"`). `nil` when the phrase states none; the
+    /// caller then falls back to the journal currency. A stated currency that
+    /// differs from the journal's raises the currency clarify downstream, so a
+    /// GBP receipt never silently files under the journal's currency.
+    public static func currency(in raw: String) -> String? {
+        for entry in currencySymbols where raw.contains(entry.symbol) { return entry.code }
+        for token in raw.lowercased().split(whereSeparator: { !$0.isLetter }) {
+            if let code = currencyWords[String(token)] { return code }
+        }
+        return nil
+    }
+
     /// First numeric run (supports thousands separators and decimals). `nil` when
-    /// no number is present — the agent then blocks confirmation until an amount is
-    /// entered, never guessing one.
+    /// no number is present. Kept as the cheap "does this text look like an
+    /// expense?" signal; `amount(in:reference:)` is the smarter pick `parse` uses.
     public static func firstAmount(in raw: String) -> Decimal? {
         let pattern = "[0-9][0-9,]*(?:\\.[0-9]+)?"
         guard let regex = try? NSRegularExpression(pattern: pattern),
@@ -54,6 +92,65 @@ public enum DraftExtractor {
               let range = Range(match.range, in: raw) else { return nil }
         let cleaned = raw[range].replacingOccurrences(of: ",", with: "")
         return Decimal(string: cleaned)
+    }
+
+    /// The amount stated in the phrase — never a date fragment or a bare count
+    /// when a better candidate exists. Candidate numeric runs exclude anything
+    /// inside an explicit date span (`"5th August"`), ordinal day numbers
+    /// (`"5th"`), and slash-date fragments (`"05/08/2026"`). Among candidates, a
+    /// run adjacent to a currency symbol wins (`"£45"`), then a decimal-bearing
+    /// run (`"2 pints 11.20"` → 11.20), then the first remaining run. `nil` when
+    /// no candidate survives — the agent then blocks confirmation until an amount
+    /// is entered, never guessing one.
+    public static func amount(in raw: String, reference: Date = Date()) -> Decimal? {
+        var text = raw
+        // Strip an explicit date span FIRST so its day/year numbers are never
+        // amount candidates (this is what filed "5th August lunch 12" as 5).
+        if let match = dateMatch(in: text, reference: reference) {
+            text.replaceSubrange(match.range, with: " ")
+        }
+        guard let regex = try? NSRegularExpression(pattern: "[0-9][0-9,]*(?:\\.[0-9]+)?") else { return nil }
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+
+        struct Candidate { let value: Decimal; let hasDecimal: Bool; let currencyAdjacent: Bool }
+        var candidates: [Candidate] = []
+        for match in matches {
+            guard let range = Range(match.range, in: text) else { continue }
+            let run = String(text[range])
+            // An ordinal suffix marks a day number ("5th"), not money.
+            if ["st", "nd", "rd", "th"].contains(text[range.upperBound...].prefix(2).lowercased()) { continue }
+            // A neighbouring slash marks a date fragment ("05/08/2026"), not money.
+            let slashBefore = range.lowerBound > text.startIndex
+                && text[text.index(before: range.lowerBound)] == "/"
+            let slashAfter = range.upperBound < text.endIndex && text[range.upperBound] == "/"
+            if slashBefore || slashAfter { continue }
+            guard let value = Decimal(string: run.replacingOccurrences(of: ",", with: "")) else { continue }
+            // A currency marker beside the run marks the stated total: a symbol
+            // before ("£45"), or a symbol / currency word right after ("45£",
+            // "45 pounds", "11 quid"). Spaces are allowed on either side.
+            var adjacent = false
+            var i = range.lowerBound
+            while i > text.startIndex {
+                i = text.index(before: i)
+                if text[i] == " " { continue }
+                adjacent = currencySymbols.contains { $0.symbol == text[i] }
+                break
+            }
+            if !adjacent {
+                var j = range.upperBound
+                while j < text.endIndex, text[j] == " " { j = text.index(after: j) }
+                if j < text.endIndex, currencySymbols.contains(where: { $0.symbol == text[j] }) {
+                    adjacent = true
+                } else if j < text.endIndex {
+                    let word = text[j...].prefix(while: { $0.isLetter }).lowercased()
+                    adjacent = currencyWords[word] != nil
+                }
+            }
+            candidates.append(Candidate(value: value, hasDecimal: run.contains("."), currencyAdjacent: adjacent))
+        }
+        if let pick = candidates.first(where: { $0.currencyAdjacent }) { return pick.value }
+        if let pick = candidates.first(where: { $0.hasDecimal }) { return pick.value }
+        return candidates.first?.value
     }
 
     /// Keyword-matched category raw value, defaulting to `misc` (a valid category

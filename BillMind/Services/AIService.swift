@@ -213,8 +213,11 @@ struct APICreateTripRequest: Encodable, Sendable {
     let mascot: String?
 }
 
+/// Partial edit: absent fields are left untouched server-side, so a rename
+/// never carries currency and a currency change never carries a stale name.
 struct APIUpdateTripRequest: Encodable, Sendable {
-    let name: String
+    var name: String? = nil
+    var currencyCode: String? = nil
 }
 
 struct APIBill: Codable, Sendable, Identifiable {
