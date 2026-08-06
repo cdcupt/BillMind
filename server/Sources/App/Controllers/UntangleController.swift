@@ -114,6 +114,7 @@ struct UntangleController: RouteCollection {
             // can never desync.
             let (resolvedAmount, resolvedCurrency, trace) = resolveAmount(fuse: fuse, members: members, byID: byID)
 
+            let resolvedDate = fuse.date ?? firstNonNil(members, byID) { $0.draft.date }
             let resolvedDraft = BillDraftDTO(
                 merchant: fuse.merchant ?? firstNonNil(members, byID) { $0.draft.merchant },
                 amount: resolvedAmount,
@@ -122,7 +123,10 @@ struct UntangleController: RouteCollection {
                 currencyCode: resolvedCurrency
                     ?? fuse.currencyCode ?? firstNonNil(members, byID) { $0.draft.currencyCode } ?? currency,
                 categoryRaw: fuse.categoryRaw ?? firstNonNil(members, byID) { $0.draft.categoryRaw },
-                date: fuse.date ?? firstNonNil(members, byID) { $0.draft.date },
+                date: resolvedDate,
+                // No resolved date → keep a member's refused-to-guess date text so
+                // the client's date clarify still asks after the fuse.
+                rawDateText: resolvedDate == nil ? firstNonNil(members, byID) { $0.draft.rawDateText } : nil,
                 source: members.compactMap { byID[$0]?.draft.source }.first ?? DraftSource.manual.rawValue
             )
             // Run the resolved draft through the existing validator (gaps are advisory
